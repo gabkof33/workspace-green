@@ -1,0 +1,22 @@
+{
+  "name": "central-ti",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Workspace de gestão de demandas de TI — ITSM, engenharia, operações e CMDB",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "types:db": "npx -y supabase@latest gen types typescript --project-id jwyghgthezpsbpxbdidc > supabase/database.gerado.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11"
+  }
+}

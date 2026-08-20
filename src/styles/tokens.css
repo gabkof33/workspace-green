@@ -1,0 +1,403 @@
+/* Central Green — tokens de cor, tipografia e espaçamento. */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- Superfícies e texto (claro) --- */
+  --c-bg: #f4f7f4;
+  --c-surface: #ffffff;
+  --c-surface-2: #e9f1eb;
+  --c-surface-3: #dbe8de;
+  --c-ink: #0a1410;
+  --c-ink-2: #2b3f34;
+  --c-muted: #5a6f62;
+  --c-line: #d4e1d8;
+  --c-line-2: #bdd0c4;
+
+  /* --- Verde da marca --- */
+  --c-accent: #0b7a45;
+  --c-accent-hover: #095e36;
+  --c-accent-wash: #e0f1e7;
+  --c-accent-ink: #ffffff;
+  --c-accent-borda: #7ec49c;
+
+  /* --- Canais separados do efeito de mau contato na marca --- */
+  --c-canal-a: #4de3ff;
+  --c-canal-b: #ff4d7d;
+
+  /* --- Preto de contraste (cabeçalhos, marca) --- */
+  --c-carvao: #0a1410;
+  --c-carvao-ink: #eef5f0;
+
+  /* --- Prioridade e severidade --- */
+  --c-p1: #b42318;
+  --c-p1-wash: #fee4e2;
+  --c-p2: #b54708;
+  --c-p2-wash: #fef0c7;
+  --c-p3: #175cd3;
+  --c-p3-wash: #d1e9ff;
+  --c-p4: #5a6f62;
+  --c-p4-wash: #e3eae6;
+
+  /* --- Estado --- */
+  --c-ok: #0b7a45;
+  --c-ok-wash: #d6f0e1;
+  --c-alerta: #b54708;
+  --c-alerta-wash: #fef0c7;
+  --c-erro: #b42318;
+  --c-erro-wash: #fee4e2;
+  --c-neutro: #5a6f62;
+
+  /* --- Tipografia --- */
+  --f-display:
+    "Segoe UI Variable Display", system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --f-body:
+    "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --f-mono:
+    "Cascadia Code", "Cascadia Mono", ui-monospace, Consolas, "SF Mono", Menlo,
+    monospace;
+
+  --t-xs: 11px;
+  --t-sm: 12.5px;
+  --t-base: 14px;
+  --t-md: 15px;
+  --t-lg: 18px;
+  --t-xl: 23px;
+  --t-2xl: 30px;
+
+  /* --- Espaçamento --- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 22px;
+  --s-6: 30px;
+  --s-7: 42px;
+  --s-8: 60px;
+
+  /* --- Forma --- */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --sombra: 0 1px 2px rgb(10 20 16 / 0.05), 0 4px 12px rgb(10 20 16 / 0.05);
+  --sombra-alta: 0 8px 30px rgb(10 20 16 / 0.16);
+
+  --largura-rail: 240px;
+  --largura-conteudo: 1240px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --c-bg: #070a08;
+    --c-surface: #0e1411;
+    --c-surface-2: #151d18;
+    --c-surface-3: #1d2721;
+    --c-ink: #e6efe9;
+    --c-ink-2: #b2c5ba;
+    --c-muted: #7f948a;
+    --c-line: #1c2620;
+    --c-line-2: #28362e;
+
+    --c-accent: #35c77f;
+    --c-accent-hover: #5cd899;
+    --c-accent-wash: #0c2418;
+    --c-accent-ink: #04140c;
+    --c-accent-borda: #1f6b45;
+
+    --c-canal-a: #5aeaff;
+    --c-canal-b: #ff5c88;
+
+    --c-carvao: #000000;
+    --c-carvao-ink: #e6efe9;
+
+    --c-p1: #f97066;
+    --c-p1-wash: #3a1512;
+    --c-p2: #fdb022;
+    --c-p2-wash: #3a2608;
+    --c-p3: #53b1fd;
+    --c-p3-wash: #10243d;
+    --c-p4: #93a89c;
+    --c-p4-wash: #1c2620;
+
+    --c-ok: #35c77f;
+    --c-ok-wash: #0c2418;
+    --c-alerta: #fdb022;
+    --c-alerta-wash: #3a2608;
+    --c-erro: #f97066;
+    --c-erro-wash: #3a1512;
+    --c-neutro: #7f948a;
+
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
+    --sombra-alta: 0 8px 30px rgb(0 0 0 / 0.6);
+  }
+}
+
+:root[data-tema="escuro"] {
+  --c-bg: #070a08;
+  --c-surface: #0e1411;
+  --c-surface-2: #151d18;
+  --c-surface-3: #1d2721;
+  --c-ink: #e6efe9;
+  --c-ink-2: #b2c5ba;
+  --c-muted: #7f948a;
+  --c-line: #1c2620;
+  --c-line-2: #28362e;
+
+  --c-accent: #35c77f;
+  --c-accent-hover: #5cd899;
+  --c-accent-wash: #0c2418;
+  --c-accent-ink: #04140c;
+  --c-accent-borda: #1f6b45;
+
+  --c-canal-a: #5aeaff;
+  --c-canal-b: #ff5c88;
+
+  --c-carvao: #000000;
+  --c-carvao-ink: #e6efe9;
+
+  --c-p1: #f97066;
+  --c-p1-wash: #3a1512;
+  --c-p2: #fdb022;
+  --c-p2-wash: #3a2608;
+  --c-p3: #53b1fd;
+  --c-p3-wash: #10243d;
+  --c-p4: #93a89c;
+  --c-p4-wash: #1c2620;
+
+  --c-ok: #35c77f;
+  --c-ok-wash: #0c2418;
+  --c-alerta: #fdb022;
+  --c-alerta-wash: #3a2608;
+  --c-erro: #f97066;
+  --c-erro-wash: #3a1512;
+  --c-neutro: #7f948a;
+
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
+  --sombra-alta: 0 8px 30px rgb(0 0 0 / 0.6);
+}
+
+/* Paleta das tags Cada tag do catálogo guarda um NOME de cor, não um hexadecimal. */
+
+:root {
+  --tag-verde-f: #0b7a45;
+  --tag-verde-b: #e0f1e7;
+  --tag-ambar-f: #b54708;
+  --tag-ambar-b: #fef0c7;
+  --tag-vermelho-f: #b42318;
+  --tag-vermelho-b: #fee4e2;
+  --tag-azul-f: #175cd3;
+  --tag-azul-b: #dae6fd;
+  --tag-roxo-f: #6941c6;
+  --tag-roxo-b: #ece4fb;
+  --tag-ciano-f: #0e7490;
+  --tag-ciano-b: #d5eff7;
+  --tag-rosa-f: #c11574;
+  --tag-rosa-b: #fbe0ef;
+  --tag-cinza-f: #5a6f62;
+  --tag-cinza-b: #dbe8de;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --tag-verde-f: #35c77f;
+    --tag-verde-b: #0c2418;
+    --tag-ambar-f: #fdb022;
+    --tag-ambar-b: #32240a;
+    --tag-vermelho-f: #f97066;
+    --tag-vermelho-b: #3a1512;
+    --tag-azul-f: #7aa9ff;
+    --tag-azul-b: #101f3b;
+    --tag-roxo-f: #b193f5;
+    --tag-roxo-b: #1e1636;
+    --tag-ciano-f: #4fd1e5;
+    --tag-ciano-b: #06272f;
+    --tag-rosa-f: #f472b6;
+    --tag-rosa-b: #330f22;
+    --tag-cinza-f: #8fa79a;
+    --tag-cinza-b: #1d2721;
+  }
+}
+
+:root[data-tema="escuro"] {
+  --tag-verde-f: #35c77f;
+  --tag-verde-b: #0c2418;
+  --tag-ambar-f: #fdb022;
+  --tag-ambar-b: #32240a;
+  --tag-vermelho-f: #f97066;
+  --tag-vermelho-b: #3a1512;
+  --tag-azul-f: #7aa9ff;
+  --tag-azul-b: #101f3b;
+  --tag-roxo-f: #b193f5;
+  --tag-roxo-b: #1e1636;
+  --tag-ciano-f: #4fd1e5;
+  --tag-ciano-b: #06272f;
+  --tag-rosa-f: #f472b6;
+  --tag-rosa-b: #330f22;
+  --tag-cinza-f: #8fa79a;
+  --tag-cinza-b: #1d2721;
+}
+
+/* Paleta das barras do cronograma Seis cores fechadas. */
+
+:root {
+  --barra-verde: #12915a;
+  --barra-verde-2: #0a5f3a;
+  --barra-amarelo: #eaaa08;
+  --barra-amarelo-2: #b8860b;
+  --barra-laranja: #ef7317;
+  --barra-laranja-2: #b95410;
+  --barra-vermelho: #d63b30;
+  --barra-vermelho-2: #a32b22;
+  --barra-azul: #2a70d8;
+  --barra-azul-2: #1d51a1;
+  --barra-violeta: #8054d6;
+  --barra-violeta-2: #5e3aa5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --barra-verde: #2eb877;
+    --barra-verde-2: #6fe0ab;
+    --barra-amarelo: #e0a90a;
+    --barra-amarelo-2: #ffd45e;
+    --barra-laranja: #e8721a;
+    --barra-laranja-2: #ffa864;
+    --barra-vermelho: #d94a3f;
+    --barra-vermelho-2: #ff8a80;
+    --barra-azul: #3b7fe0;
+    --barra-azul-2: #86b6ff;
+    --barra-violeta: #8a63dd;
+    --barra-violeta-2: #c0a4ff;
+  }
+}
+
+:root[data-tema="escuro"] {
+  --barra-verde: #2eb877;
+  --barra-verde-2: #6fe0ab;
+  --barra-amarelo: #e0a90a;
+  --barra-amarelo-2: #ffd45e;
+  --barra-laranja: #e8721a;
+  --barra-laranja-2: #ffa864;
+  --barra-vermelho: #d94a3f;
+  --barra-vermelho-2: #ff8a80;
+  --barra-azul: #3b7fe0;
+  --barra-azul-2: #86b6ff;
+  --barra-violeta: #8a63dd;
+  --barra-violeta-2: #c0a4ff;
+}
+
+/* Paleta de gráfico. Validada em claro e escuro pelo validador do skill de
+   dataviz: banda de luminosidade, chroma, separação para daltonismo e
+   contraste contra a superfície. A ordem alterna quente e frio de propósito —
+   três matizes quentes vizinhos ficam indistinguíveis para protanopia. */
+:root {
+  --g1: #a87a06;
+  --g2: #12915a;
+  --g3: #e2620a;
+  --g4: #7846c9;
+  --g5: #b02418;
+  --g-grade: #e4ece7;
+  --g-eixo: #8a9c92;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --g1: #b8890c;
+    --g2: #20a065;
+    --g3: #dc7024;
+    --g4: #9070de;
+    --g5: #cf4f45;
+    --g-grade: #1b241f;
+    --g-eixo: #6b7d73;
+  }
+}
+
+:root[data-tema="escuro"] {
+  --g1: #b8890c;
+  --g2: #20a065;
+  --g3: #dc7024;
+  --g4: #9070de;
+  --g5: #cf4f45;
+  --g-grade: #1b241f;
+  --g-eixo: #6b7d73;
+}
+
+/* O tema forçado precisa levar o `color-scheme` com ele. Sem isto o
+   navegador desenha os controles nativos — seletor de data, barra de rolagem —
+   no esquema do sistema, e o ícone do calendário fica escuro sobre campo
+   escuro. */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+}
+:root[data-tema="claro"] {
+  color-scheme: light;
+}
+
+/* Cabeçalho e menu.
+   No tema claro a marca aparece: fundo branco com filete e rótulos em verde.
+   No escuro o verde vira ruído sobre o preto, então volta a superfície e
+   linha neutras — por isso os dois lados existem como token, e não como
+   regra fixa no layout. */
+:root {
+  --c-chefe-bg: #0b7a45;
+  --c-chefe-borda: #095e36;
+  --c-chefe-ink: #ffffff;
+  --c-chefe-ink-2: #cfe9dc;
+  --c-chefe-hover: #0a6b3d;
+  --c-menu-bg: #0b7a45;
+  --c-menu-borda: #0a6b3d;
+  --c-menu-ink: #ffffff;
+  --c-menu-ink-2: #cfe9dc;
+  --c-menu-rotulo: #a5d9bf;
+  --c-menu-marca: #ffffff;
+  --c-menu-hover: #0a6b3d;
+  /* Item selecionado inverte: sobre verde cheio, outro verde não separa. */
+  --c-menu-ativo-bg: #ffffff;
+  --c-menu-ativo-ink: #0b7a45;
+  /* Sobre o verde, estas peças precisam de tinta clara. No escuro o token é
+     zerado e cada uma volta à própria cor pelo fallback do `var()`. */
+  --c-menu-tinta: #ffffff;
+  --c-menu-sub: #cfe9dc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --c-chefe-bg: #0e1411;
+    --c-chefe-borda: #1c2620;
+    --c-chefe-ink: #e6efe9;
+    --c-chefe-ink-2: #7f948a;
+    --c-chefe-hover: #151d18;
+    --c-menu-bg: #0e1411;
+    --c-menu-borda: #1c2620;
+    --c-menu-ink: #e6efe9;
+    --c-menu-ink-2: #b2c5ba;
+    --c-menu-rotulo: #7f948a;
+    --c-menu-marca: #e6efe9;
+    --c-menu-hover: #151d18;
+    --c-menu-ativo-bg: #0c2418;
+    --c-menu-ativo-ink: #35c77f;
+    --c-menu-tinta: initial;
+    --c-menu-sub: initial;
+  }
+}
+
+:root[data-tema="escuro"] {
+  --c-chefe-bg: #0e1411;
+  --c-chefe-borda: #1c2620;
+  --c-chefe-ink: #e6efe9;
+  --c-chefe-ink-2: #7f948a;
+  --c-chefe-hover: #151d18;
+  --c-menu-bg: #0e1411;
+  --c-menu-borda: #1c2620;
+  --c-menu-ink: #e6efe9;
+  --c-menu-ink-2: #b2c5ba;
+  --c-menu-rotulo: #7f948a;
+  --c-menu-marca: #e6efe9;
+  --c-menu-hover: #151d18;
+  --c-menu-ativo-bg: #0c2418;
+  --c-menu-ativo-ink: #35c77f;
+  --c-menu-tinta: initial;
+  --c-menu-sub: initial;
+}

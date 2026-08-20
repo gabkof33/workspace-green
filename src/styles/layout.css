@@ -1,0 +1,402 @@
+/* Layout — shell da aplicação, cabeçalho, navegação e grades de página. */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--largura-rail) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* --- Navegação lateral --- */
+.rail {
+  background: var(--c-menu-bg);
+  border-right: 1px solid var(--c-menu-borda);
+  padding: var(--s-5) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.rail__marca {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-2);
+}
+.rail__marca img {
+  flex: none;
+}
+.rail__marca span {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--t-md);
+  letter-spacing: -0.02em;
+  color: var(--c-menu-marca);
+}
+
+.rail__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Cabeçalho da gaveta. */
+.rail__rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-menu-rotulo);
+  font-weight: 700;
+  text-align: left;
+  padding: 3px var(--s-2) var(--s-1);
+  border-radius: var(--r-sm);
+  transition: color 0.12s ease;
+}
+.rail__rotulo:hover {
+  color: var(--c-menu-ink);
+}
+.rail__rotulo:focus-visible {
+  outline: 2px solid var(--c-menu-ink);
+  outline-offset: 1px;
+}
+
+/* Ponto de "a página atual está aqui dentro", para a gaveta fechada. */
+.rail__grupo-marca {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--c-menu-ink);
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.rail__grupo--fechado .rail__grupo-marca {
+  opacity: 1;
+}
+
+.rail__grupo-seta {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+  flex: none;
+  opacity: 0.7;
+  transform: rotate(90deg);
+  transition: transform 0.22s ease;
+}
+.rail__grupo--fechado .rail__grupo-seta {
+  transform: rotate(0deg);
+}
+
+/* Gaveta. */
+.rail__gaveta {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* Sem o recorte os itens continuam desenhados fora da faixa de 0fr e
+     vazam por cima do grupo seguinte. */
+  overflow: hidden;
+  transition:
+    grid-template-rows 0.22s ease,
+    opacity 0.18s ease;
+}
+.rail__gaveta > * {
+  min-height: 0;
+}
+.rail__grupo--fechado .rail__gaveta {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+/* A gaveta é conforto de organização, não informação. */
+@media (prefers-reduced-motion: reduce) {
+  .rail__gaveta,
+  .rail__grupo-seta {
+    transition: none;
+  }
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 7px var(--s-2);
+  border-radius: var(--r-sm);
+  color: var(--c-menu-ink-2);
+  font-size: var(--t-base);
+  text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.rail__item:hover {
+  background: var(--c-menu-hover);
+  color: var(--c-menu-ink);
+  text-decoration: none;
+}
+/* Selecionado inverte: sobre verde cheio, outro verde não separa nada. */
+.rail__item[aria-current="page"] {
+  background: var(--c-menu-ativo-bg);
+  color: var(--c-menu-ativo-ink);
+  font-weight: 600;
+}
+.rail__item[aria-current="page"] svg {
+  opacity: 1;
+}
+.rail__item svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  opacity: 0.75;
+}
+.rail__contagem {
+  margin-left: auto;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-menu-rotulo);
+}
+
+.rail__rodape {
+  margin-top: auto;
+  border-top: 1px solid var(--c-menu-borda);
+  padding-top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.rail__usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-2);
+  min-width: 0;
+}
+.rail__usuario-nome {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail__usuario-nome {
+  color: var(--c-menu-ink);
+}
+.rail__usuario-papel {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-menu-rotulo);
+}
+
+/* --- Área principal --- */
+.principal {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--c-chefe-borda);
+  background: var(--c-chefe-bg);
+  color: var(--c-chefe-ink);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.topo h1 {
+  font-size: var(--t-lg);
+}
+.topo__titulo {
+  min-width: 0;
+}
+.topo__titulo h1 {
+  font-size: var(--t-xl);
+}
+.topo__sub {
+  font-size: var(--t-sm);
+  color: var(--c-chefe-ink-2);
+}
+
+/* Sobre o verde, o botão discreto vive da própria tinta: a variante neutra
+   usa superfície clara e sumiria aqui. A regra é do `--sutil` de propósito —
+   pegar `.btn` inteiro apagaria um botão primário que uma página venha a
+   colocar no slot de ações. */
+.topo .btn--sutil {
+  color: var(--c-chefe-ink);
+  border-color: transparent;
+  background: transparent;
+}
+.topo .btn--sutil:hover:not(:disabled) {
+  background: var(--c-chefe-hover);
+  color: var(--c-chefe-ink);
+}
+.topo .btn:focus-visible {
+  outline: 2px solid var(--c-chefe-ink);
+  outline-offset: 1px;
+}
+/* Botão primário sobre o verde: inverte para não sumir dentro dele. */
+.topo .btn--primario {
+  background: var(--c-chefe-ink);
+  border-color: var(--c-chefe-ink);
+  color: var(--c-chefe-bg);
+}
+.topo .btn--primario:hover:not(:disabled) {
+  background: var(--c-chefe-ink-2);
+  border-color: var(--c-chefe-ink-2);
+}
+.topo__acoes {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.conteudo {
+  padding: var(--s-4) var(--s-5) var(--s-7);
+  max-width: var(--largura-conteudo);
+  width: 100%;
+  flex: 1;
+}
+
+.grade-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+  align-items: center;
+}
+
+.grade-metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.grade-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-5);
+  align-items: start;
+}
+
+/* Colunas de mesma largura que quebram sozinhas — usada nos gráficos do
+   painel, onde nenhum dos dois lados é "principal". */
+.grade-igual {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s-4);
+  align-items: start;
+}
+
+/* --- Tela de autenticação --- */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.auth__aside {
+  position: relative;
+  overflow: hidden;
+  background: var(--c-surface-2);
+  border-right: 1px solid var(--c-line);
+  padding: var(--s-8) var(--s-7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auth__aside h2 {
+  font-size: var(--t-2xl);
+  max-width: 16ch;
+}
+.auth__aside p {
+  color: var(--c-ink-2);
+  max-width: 44ch;
+}
+.auth__pilares {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.auth__pilar {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: var(--s-3);
+  align-items: baseline;
+}
+.auth__pilar b {
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-accent);
+}
+.auth__pilar span {
+  font-size: var(--t-base);
+  color: var(--c-ink-2);
+}
+/* Coluna da direita: recorta o raio e serve de referência a ele. */
+.auth__lado {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auth__lado > .auth__form {
+  position: relative;
+  z-index: 1;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--s-8) var(--s-7);
+  gap: var(--s-4);
+  max-width: 460px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 1000px) {
+  .grade-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .auth {
+    grid-template-columns: 1fr;
+  }
+  .auth__aside {
+    display: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    border-right: none;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .rail__rodape {
+    margin-top: var(--s-3);
+  }
+  .conteudo,
+  .topo {
+    padding: var(--s-4);
+  }
+}

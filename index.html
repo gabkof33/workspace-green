@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Central Green — operação de TI: chamados, demandas, cronograma, ativos e conhecimento."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0A1410" />
+    <title>Central Green — Operação de TI</title>
+
+    <!-- O "G" é retrato, então vai embutido num SVG quadrado sobre o carvão
+         da marca, que garante contraste na aba clara e na escura. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Estilo da tela de carregamento, embutido de propósito.
+         O CSS da aplicação chega junto com o bundle; até lá este bloco seria
+         texto cru encostado no topo da página. Inline, ele já nasce pronto no
+         primeiro paint, sem depender de nada. -->
+    <style>
+      :root {
+        --boot-fundo: #f4f7f4;
+        --boot-cartao: #ffffff;
+        --boot-texto: #5a6f62;
+        --boot-trilha: #cfe4d6;
+        --boot-arco: #0b7a45;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-tema="claro"]) {
+          --boot-fundo: #070a08;
+          --boot-cartao: #0e1411;
+          --boot-texto: #7f948a;
+          --boot-trilha: #16301f;
+          --boot-arco: #35c77f;
+        }
+      }
+      :root[data-tema="escuro"] {
+        --boot-fundo: #070a08;
+        --boot-cartao: #0e1411;
+        --boot-texto: #7f948a;
+        --boot-trilha: #16301f;
+        --boot-arco: #35c77f;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--boot-fundo);
+      }
+
+      .boot {
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 18px;
+        min-height: 100vh;
+        background: var(--boot-fundo);
+        color: var(--boot-texto);
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        /* Só aparece se a carga passar de 300ms. Numa carga rápida ninguém vê
+           um lampejo de tela de espera, que incomoda mais do que informa. */
+        opacity: 0;
+        animation: boot-surge 0.25s ease 0.3s forwards;
+      }
+
+      .boot__anel {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 86px;
+        height: 86px;
+        border-radius: 50%;
+        background: var(--boot-cartao);
+        box-shadow: 0 2px 18px rgb(0 0 0 / 12%);
+      }
+      /* Trilha: o círculo inteiro no verde escuro. */
+      .boot__anel::before,
+      .boot__anel::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid transparent;
+      }
+      .boot__anel::before {
+        border-color: var(--boot-trilha);
+      }
+      /* Arco: um quarto de volta no verde claro, girando por cima. */
+      .boot__anel::after {
+        border-top-color: var(--boot-arco);
+        border-right-color: var(--boot-arco);
+        animation: boot-gira 0.9s linear infinite;
+      }
+
+      /* Sob o anel, não dentro dele: a marca não gira junto. */
+      .boot img {
+        position: relative;
+        animation: boot-pulso 1.8s ease-in-out infinite;
+      }
+
+      @keyframes boot-surge {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes boot-gira {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes boot-pulso {
+        0%,
+        100% {
+          opacity: 0.55;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* Sem movimento o anel fica inteiro no verde claro: ainda se lê como
+         espera, sem girar. */
+      @media (prefers-reduced-motion: reduce) {
+        .boot {
+          opacity: 1;
+          animation: none;
+        }
+        .boot__anel::after {
+          animation: none;
+          border-color: var(--boot-arco);
+        }
+        .boot img {
+          animation: none;
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" aria-busy="true">
+      <div class="boot">
+        <div class="boot__anel">
+          <img src="/igreen-g.png" alt="" width="30" height="40" />
+        </div>
+        <span>Carregando a Central Green…</span>
+      </div>
+    </div>
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,461 @@
+/** Ponto de entrada da Central de TI. */
+
+import "@/styles/tokens.css";
+import "@/styles/base.css";
+import "@/styles/layout.css";
+import "@/styles/components.css";
+
+import { h, montar } from "@/lib/dom";
+import { aoMudarRota, navegar, rotaAtual } from "@/lib/router";
+import {
+  abaVisivel,
+  aoMudarSessao,
+  carregarCatalogo,
+  ehAgente,
+  aoEntrarPorRecuperacao,
+  obterSessao,
+  sair,
+} from "@/lib/api";
+import { avisar } from "@/lib/dom";
+import { aplicarTemaSalvo, renderizarShell } from "@/components/shell";
+import { fecharDialogos } from "@/components/dialogo";
+import { pararFundoPontilhado } from "@/components/fundo-pontilhado";
+import { renderizarLogin, renderizarNovaSenha } from "@/pages/login";
+import { renderizarAbrir } from "@/pages/abrir";
+import { renderizarFila } from "@/pages/fila";
+import { renderizarMeus } from "@/pages/meus";
+import { renderizarChamado } from "@/pages/chamado";
+import { renderizarDemandas } from "@/pages/demandas";
+import { renderizarDemanda } from "@/pages/demanda";
+import { renderizarGantt } from "@/pages/gantt";
+import { renderizarPessoas } from "@/pages/pessoas";
+import { renderizarSetores } from "@/pages/setores";
+import { renderizarAtivos } from "@/pages/ativos";
+import { renderizarRotinas } from "@/pages/rotinas";
+import { renderizarConhecimento } from "@/pages/conhecimento";
+import { renderizarPainel } from "@/pages/painel";
+import { renderizarTempos } from "@/pages/tempos";
+import { renderizarConversas } from "@/pages/conversas";
+import type { Perfil } from "@/types/dominio";
+
+const raiz = document.getElementById("app");
+if (!raiz) throw new Error("Elemento #app não encontrado no index.html.");
+
+let perfilAtual: Perfil | null = null;
+
+interface Pagina {
+  titulo: string;
+  subtitulo?: string;
+  conteudo: HTMLElement;
+}
+
+/** Telas restritas à equipe de TI. */
+const ROTAS_DE_TI = new Set([
+  "setores",
+  "ativos",
+  "rotinas",
+  "painel",
+  "tempos",
+]);
+
+/** Rotas guardadas pela configuração de abas do setor. */
+const ABAS = new Set([
+  "abrir",
+  "meus",
+  "demandas",
+  "gantt",
+  "conversas",
+  "pessoas",
+  "setores",
+  "rotinas",
+  "ativos",
+  "conhecimento",
+  "painel",
+  "tempos",
+]);
+
+// A fila fica fora da lista de propósito.
+
+function resolverPagina(perfil: Perfil): Pagina {
+  const { caminho, parametro } = rotaAtual();
+  const conteudo = h("div", {});
+
+  if (ROTAS_DE_TI.has(caminho) && !ehAgente(perfil)) {
+    return semAcesso(conteudo, "papel");
+  }
+
+  // Telas de detalhe (`chamado`, `demanda`) não são abas e ficam de fora:
+  // quem chega nelas veio de um link ou de uma notificação, e barrar aí
+  if (ABAS.has(caminho) && !abaVisivel(perfil, caminho)) {
+    return semAcesso(conteudo, "setor");
+  }
+
+  switch (caminho) {
+    case "abrir":
+      renderizarAbrir(conteudo, perfil);
+      return {
+        titulo: "Abrir chamado",
+        subtitulo:
+          "Escolha o serviço e descreva o que houve. A prioridade é calculada a partir das suas respostas.",
+        conteudo,
+      };
+
+    case "meus":
+      renderizarMeus(conteudo, perfil);
+      return {
+        titulo: "Meus chamados",
+        subtitulo: "Tudo que você abriu, com o prazo de cada um.",
+        conteudo,
+      };
+
+    case "chamado":
+      if (!parametro) {
+        navegar("fila");
+        return { titulo: "Chamado", conteudo };
+      }
+      renderizarChamado(conteudo, perfil, parametro);
+      return { titulo: "Detalhe do chamado", conteudo };
+
+    case "demandas":
+      renderizarDemandas(conteudo, perfil);
+      return {
+        titulo: "Quadro de demandas",
+        subtitulo:
+          "Registre uma melhoria ou escolha uma demanda disponível — ao pegar, você assume o prazo.",
+        conteudo,
+      };
+
+    case "demanda":
+      if (!parametro) {
+        navegar("demandas");
+        return { titulo: "Demanda", conteudo };
+      }
+      renderizarDemanda(conteudo, perfil, parametro);
+      return { titulo: "Detalhe da demanda", conteudo };
+
+    case "pessoas":
+      renderizarPessoas(conteudo, perfil);
+      return {
+        titulo: "Pessoas",
+        subtitulo:
+          "Coordenação, gestão e colaboradores. Coordenador altera qualquer nível; gestor altera colaboradores.",
+        conteudo,
+      };
+
+    case "conversas":
+      renderizarConversas(conteudo, perfil);
+      return {
+        titulo: "Conversas",
+        subtitulo:
+          "Um canal por equipe, mais o geral. As mensagens chegam em tempo real enquanto esta tela estiver aberta.",
+        conteudo,
+      };
+
+    case "setores":
+      renderizarSetores(conteudo, perfil);
+      return {
+        titulo: "Setores",
+        subtitulo:
+          "A estrutura da empresa. Setor é quem pede; equipe é a fila de TI que atende.",
+        conteudo,
+      };
+
+    case "ativos":
+      renderizarAtivos(conteudo, perfil);
+      return {
+        titulo: "Ativos (CMDB)",
+        subtitulo:
+          "A coluna “sem conferir” é a que decide se este inventário presta — registro que ninguém confere vira ficção.",
+        conteudo,
+      };
+
+    case "rotinas":
+      renderizarRotinas(conteudo, perfil);
+      return {
+        titulo: "Rotinas preventivas",
+        subtitulo:
+          "Passo com falha abre incidente ao encerrar a execução — a rotina não termina “com ressalva”.",
+        conteudo,
+      };
+
+    case "conhecimento":
+      renderizarConhecimento(conteudo, perfil);
+      return {
+        titulo: "Base de conhecimento",
+        subtitulo:
+          "Artigo ensina o que funciona; erro conhecido documenta o que está quebrado e ainda não tem correção.",
+        conteudo,
+      };
+
+    case "tempos":
+      renderizarTempos(conteudo, perfil);
+      return {
+        titulo: "Tempos de atendimento",
+        subtitulo:
+          "Quanto o chamado espera antes de alguém tocar nele, e quanto leva até fechar.",
+        conteudo,
+      };
+
+    case "painel":
+      renderizarPainel(conteudo);
+      return {
+        titulo: "Painel de governança",
+        subtitulo:
+          "Cada indicador aparece ao lado da meta que deveria atingir, e pintado pela distância até ela.",
+        conteudo,
+      };
+
+    case "gantt":
+      renderizarGantt(conteudo, perfil);
+      return {
+        titulo: "Cronograma",
+        subtitulo:
+          "Quando a coluna de hoje passa à frente do preenchimento da barra, o trabalho está atrasado em relação ao prazo.",
+        conteudo,
+      };
+
+    case "fila":
+    default:
+      // Duas razões levam ao portal: não ser da equipe, ou o setor não
+      // incluir a fila no menu.
+      if (!ehAgente(perfil) || !abaVisivel(perfil, "fila")) {
+        renderizarMeus(conteudo, perfil);
+        return {
+          titulo: "Meus chamados",
+          subtitulo: "Tudo que você abriu, com o prazo de cada um.",
+          conteudo,
+        };
+      }
+      renderizarFila(conteudo, perfil);
+      return {
+        titulo: "Fila de atendimento",
+        subtitulo:
+          "Ordenada por prioridade e prazo mais próximo — puxe o trabalho de cima para baixo.",
+        conteudo,
+      };
+  }
+}
+
+/** Tela mostrada quando a rota existe mas não é para este perfil. */
+function semAcesso(conteudo: HTMLElement, motivo: "papel" | "setor"): Pagina {
+  montar(
+    conteudo,
+    h(
+      "div",
+      { class: "cartao" },
+      h(
+        "div",
+        { class: "vazio" },
+        h(
+          "h3",
+          {},
+          motivo === "papel"
+            ? "Esta área é da equipe de TI"
+            : "Esta aba não faz parte do seu setor",
+        ),
+        h(
+          "p",
+          {},
+          motivo === "papel"
+            ? "Seu perfil não tem acesso a esta tela. Se você precisa dela para o seu trabalho, peça a um coordenador para ajustar seu papel na tela Pessoas."
+            : "O menu do seu setor não inclui esta tela. Se ela for necessária para o seu trabalho, peça a um coordenador para acrescentá-la na configuração do setor.",
+        ),
+        h(
+          "button",
+          {
+            class: "btn btn--primario",
+            type: "button",
+            on: { click: () => navegar("meus") },
+          },
+          "Ir para meus chamados",
+        ),
+      ),
+    ),
+  );
+
+  return { titulo: "Acesso restrito", conteudo };
+}
+
+/**
+ * Por que não há perfil.
+ *
+ * Preenchido, a tela mostra o motivo e um botão de tentar de novo. Sem isto,
+ * uma falha de rede era indistinguível de "você não está logado" — e a pessoa
+ * caía na tela de acesso já estando autenticada.
+ */
+let falhaSessao: string | null = null;
+
+/**
+ * Sessão aberta por link de recuperação.
+ *
+ * Ela autentica, mas só serve para trocar a senha — deixar entrar no sistema
+ * com um token de recuperação pularia a senha inteira.
+ */
+let trocandoSenha = false;
+
+function telaIndisponivel(motivo: string): HTMLElement {
+  return h(
+    "div",
+    { class: "auth" },
+    h(
+      "div",
+      { class: "vazio", style: "min-height:100vh;place-content:center" },
+      h("h3", {}, "Não deu para carregar sua sessão"),
+      h("p", {}, motivo),
+      h(
+        "div",
+        { class: "linha-flex", style: "justify-content:center;gap:8px" },
+        h(
+          "button",
+          {
+            class: "btn btn--primario",
+            type: "button",
+            on: { click: () => location.reload() },
+          },
+          "Tentar de novo",
+        ),
+        h(
+          "button",
+          {
+            class: "btn",
+            type: "button",
+            on: {
+              click: () => {
+                void sair().finally(() => location.reload());
+              },
+            },
+          },
+          "Entrar com outra conta",
+        ),
+      ),
+    ),
+  );
+}
+
+function desenharApp(): void {
+  if (!raiz) return;
+
+  // Diálogo aberto não deve sobreviver a uma troca de tela.
+  fecharDialogos();
+
+  if (trocandoSenha) {
+    raiz.removeAttribute("aria-busy");
+    pararFundoPontilhado();
+    renderizarNovaSenha(raiz, () => {
+      trocandoSenha = false;
+      perfilAtual = null;
+      location.hash = "";
+      void sair().finally(desenharApp);
+    });
+    return;
+  }
+
+  // Falha de carga não é ausência de sessão: quem está logado não pode cair
+  // na tela de acesso por causa de um segundo de rede ruim.
+  if (!perfilAtual && falhaSessao) {
+    raiz.removeAttribute("aria-busy");
+    montar(raiz, telaIndisponivel(falhaSessao));
+    return;
+  }
+
+  if (!perfilAtual) {
+    raiz.removeAttribute("aria-busy");
+    renderizarLogin(raiz, (perfil) => {
+      perfilAtual = perfil;
+      // O catálogo só é legível depois do login: a policy
+      // `catalogo_leitura` exige sessão autenticada.
+      void carregarCatalogo()
+        .catch((e: unknown) => {
+          avisar(
+            e instanceof Error ? e.message : "Falha ao carregar o catálogo.",
+            "erro",
+          );
+        })
+        .finally(() => {
+          if (!location.hash) navegar(ehAgente(perfil) ? "fila" : "meus");
+          desenharApp();
+        });
+    });
+    return;
+  }
+
+  // Autenticado: a malha da tela de acesso não precisa mais rodar.
+  pararFundoPontilhado();
+
+  const pagina = resolverPagina(perfilAtual);
+
+  montar(
+    raiz,
+    renderizarShell({
+      perfil: perfilAtual,
+      titulo: pagina.titulo,
+      ...(pagina.subtitulo ? { subtitulo: pagina.subtitulo } : {}),
+      conteudo: pagina.conteudo,
+      aoSair: () => {
+        perfilAtual = null;
+        location.hash = "";
+        desenharApp();
+      },
+    }),
+  );
+  raiz.removeAttribute("aria-busy");
+}
+
+aplicarTemaSalvo();
+aoMudarRota(desenharApp);
+
+// O link do e-mail abre uma sessão de recuperação; a tela vira a de senha
+// nova, e o `hash` #/nova-senha cobre o caso de o evento chegar antes.
+aoEntrarPorRecuperacao(() => {
+  trocandoSenha = true;
+  desenharApp();
+});
+
+if (location.hash.startsWith("#/nova-senha")) {
+  trocandoSenha = true;
+}
+
+// Sessão encerrada em outra aba, ou token revogado: a tela acompanha.
+aoMudarSessao((autenticado) => {
+  if (!autenticado) {
+    perfilAtual = null;
+    falhaSessao = null;
+    location.hash = "";
+    desenharApp();
+  }
+});
+
+void obterSessao()
+  .then(async (estado) => {
+    falhaSessao = null;
+
+    switch (estado.tipo) {
+      case "autenticado":
+        perfilAtual = estado.perfil;
+        // Catálogo é conteúdo, não credencial: falhar aqui avisa, não desloga.
+        await carregarCatalogo().catch((e: unknown) => {
+          avisar(
+            e instanceof Error ? e.message : "Falha ao carregar o catálogo.",
+            "erro",
+          );
+        });
+        break;
+
+      case "sem_perfil":
+        falhaSessao = `A conta ${estado.email} entrou, mas não tem perfil vinculado na Central Green. Fale com o coordenador.`;
+        break;
+
+      case "indisponivel":
+        falhaSessao = estado.motivo;
+        break;
+
+      default:
+        perfilAtual = null;
+    }
+  })
+  .catch((e: unknown) => {
+    perfilAtual = null;
+    falhaSessao =
+      e instanceof Error ? e.message : "Não foi possível falar com o servidor.";
+  })
+  .finally(desenharApp);
