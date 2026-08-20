@@ -176,9 +176,11 @@ export async function reenviarConfirmacao(email: string): Promise<void> {
  */
 export async function pedirRecuperacao(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-    // O token chega no fragmento da URL e o cliente o troca por sessão de
-    // recuperação sozinho; a rota só precisa existir para receber.
-    redirectTo: location.origin + "/#/nova-senha",
+    // Parâmetro de consulta, nunca fragmento. O Supabase acrescenta o token no
+    // fragmento (`#access_token=...`); um `#` já no destino faria os dois
+    // colidirem num só, e o cliente não encontraria o token para abrir a
+    // sessão de recuperação.
+    redirectTo: location.origin + "/?recuperacao=1",
   });
   if (error) throw new Error(traduzirErroAuth(error.message));
 }

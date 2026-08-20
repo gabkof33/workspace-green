@@ -344,7 +344,9 @@ function desenharApp(): void {
     renderizarNovaSenha(raiz, () => {
       trocandoSenha = false;
       perfilAtual = null;
-      location.hash = "";
+      // Limpa `?recuperacao=1` da barra: deixá-lo faria a tela de senha
+      // reaparecer a cada recarregamento, já sem token para usar.
+      history.replaceState(null, "", location.pathname);
       void sair().finally(desenharApp);
     });
     return;
@@ -411,7 +413,9 @@ aoEntrarPorRecuperacao(() => {
   desenharApp();
 });
 
-if (location.hash.startsWith("#/nova-senha")) {
+// Deteta pelo parâmetro, não pelo evento: assim não depende de o
+// `onAuthStateChange` chegar antes do primeiro desenho.
+if (new URLSearchParams(location.search).has("recuperacao")) {
   trocandoSenha = true;
 }
 

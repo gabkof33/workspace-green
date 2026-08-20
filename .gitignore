@@ -13,3 +13,5 @@ coverage/
 # Saída do `npm run types:db`. Serve para conferir o schema depois de uma
 # migration; quem vale para a aplicação é src/types/database.ts.
 supabase/database.gerado.ts
+
+.vercel
