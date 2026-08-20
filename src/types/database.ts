@@ -1397,6 +1397,7 @@ export type Database = {
           equipe_id: string | null;
           ativo: boolean;
           abas: string[] | null;
+          pode_ver_excluidos: boolean;
         }>;
       };
       diretorio: {

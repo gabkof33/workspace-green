@@ -279,7 +279,9 @@ export function renderizarChamado(
             `Removido por ${chamado.excluido_por_nome ?? "alguém"} em ${dataHora(chamado.excluido_em)}. `,
             chamado.motivo_exclusao ? `Motivo: ${chamado.motivo_exclusao}` : "",
           ),
-          agente
+          // Mesma regra de quem vê a lixeira: restaurar é o avesso de excluir
+          // da página, não uma ação de atendimento.
+          perfil.pode_ver_excluidos
             ? h(
                 "button",
                 {

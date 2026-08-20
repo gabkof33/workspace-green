@@ -1,7 +1,6 @@
 /** Fila de atendimento — visão do agente. */
 
 import { criarFiltroData } from "@/components/filtro-data";
-import { podeGerirPessoas } from "@/lib/api";
 import { aguardando } from "@/components/esqueleto";
 import { h, montar } from "@/lib/dom";
 import { listarChamados } from "@/lib/api";
@@ -212,7 +211,9 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
       { class: "grade-filtros" },
       busca,
       periodo.elemento,
-      ...(podeGerirPessoas(perfil)
+      // Tecnologia, executivo ou admin. Antes era gestão, que incluía gestor
+      // de qualquer setor.
+      ...(perfil.pode_ver_excluidos
         ? [
             h(
               "button",

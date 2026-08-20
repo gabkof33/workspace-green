@@ -805,7 +805,7 @@ export async function excluirChamado(
   if (error) throw new Error(traduzirErro(error.message));
   if (count === 0) {
     throw new Error(
-      "Você não tem permissão para excluir este chamado. Só quem o abriu, ou a gestão, pode.",
+      "Não foi possível excluir este chamado — ele já pode ter sido excluído ou fechado por outra pessoa.",
     );
   }
 }
@@ -818,7 +818,9 @@ export async function restaurarChamado(chamadoId: string): Promise<void> {
 
   if (error) throw new Error(traduzirErro(error.message));
   if (count === 0) {
-    throw new Error("Apenas coordenação ou gestão pode restaurar.");
+    throw new Error(
+      "Não foi possível restaurar. Restaurar exige estar na Tecnologia, ser executivo ou administrar o sistema.",
+    );
   }
 }
 

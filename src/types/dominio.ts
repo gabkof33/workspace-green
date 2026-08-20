@@ -59,6 +59,14 @@ export interface Perfil {
   ativo: boolean;
   /** Abas visíveis, resolvidas a partir do setor. */
   abas: string[] | null;
+  /**
+   * Direito de ver chamados excluídos, resolvido no banco.
+   *
+   * Vem junto com o perfil e não é recalculado aqui: a mesma função
+   * (`pode_ver_excluidos`) decide o botão e a política de leitura, então as
+   * duas respostas não podem divergir.
+   */
+  pode_ver_excluidos: boolean;
 }
 
 /** Dados coletados no autocadastro. */
