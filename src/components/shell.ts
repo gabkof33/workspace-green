@@ -518,5 +518,32 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
 
   casca.append(rail, principal);
   aplicarPainel();
+  revelarItemAtivo(rail);
   return casca;
+}
+
+/**
+ * Traz o item da página atual para dentro da vista do menu.
+ *
+ * Mexe em `scrollTop` do painel e não em `scrollIntoView`: este último rola
+ * também os ancestrais, e com o item abaixo da dobra ele arrastaria a página
+ * inteira para baixo no carregamento.
+ */
+function revelarItemAtivo(rail: HTMLElement): void {
+  // Depois de o painel entrar no documento: fora dele não há altura medida.
+  requestAnimationFrame(() => {
+    if (rail.scrollHeight <= rail.clientHeight) return;
+
+    const ativo = rail.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!ativo) return;
+
+    const acima = ativo.offsetTop < rail.scrollTop;
+    const abaixo =
+      ativo.offsetTop + ativo.offsetHeight > rail.scrollTop + rail.clientHeight;
+    if (!acima && !abaixo) return;
+
+    // Um terço da altura acima do item, não no topo: mostrar o rótulo do grupo
+    // junto situa quem olha.
+    rail.scrollTop = Math.max(0, ativo.offsetTop - rail.clientHeight / 3);
+  });
 }

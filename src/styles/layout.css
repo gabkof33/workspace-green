@@ -53,6 +53,24 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
+
+  /* Preso na tela, com rolagem própria.
+
+     Como item de grade ele esticava até a altura da linha, que é a do
+     conteúdo: numa página longa isso abria um vazio enorme entre o último
+     item e o rodapé, e fazia o menu subir junto com a rolagem da página.
+     Agora ele ocupa a tela e rola por dentro quando os grupos abertos não
+     couberem. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  /* `dvh` desconta a barra de endereço do celular, que o `vh` ignora — sem
+     isto o rodapé do menu fica embaixo dela. */
+  height: 100dvh;
+  overflow-y: auto;
+  /* Barra fina e na cor do menu: a padrão do sistema é clara e corta o verde. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-menu-borda) transparent;
 }
 
 .rail__marca {
@@ -437,8 +455,10 @@
   }
   .rail {
     width: auto;
-  }
-  .rail {
+    /* Empilhado acima do conteúdo, prender e medir por tela tomaria tudo. */
+    position: static;
+    height: auto;
+    overflow-y: visible;
     border-right: none;
     border-bottom: 1px solid var(--c-line);
   }
