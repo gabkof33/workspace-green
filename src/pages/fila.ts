@@ -75,14 +75,46 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
             filtroTag = t;
             desenhar();
           },
-          vazio: {
-            titulo: "Fila limpa",
-            texto:
-              "Nenhum chamado corresponde aos filtros aplicados. Se isso não parece certo, remova o filtro de prioridade.",
-          },
+          vazio: vazioDaFila(),
         }),
       );
     });
+  };
+
+  /**
+   * O mesmo zero sai de situações diferentes: não existe chamado, ou existem
+   * e os filtros os escondem. Culpar um filtro que ninguém aplicou é o que
+   * faz a tela parecer quebrada em vez de parecer vazia.
+   */
+  const vazioDaFila = (): { titulo: string; texto: string } => {
+    if (verExcluidos) {
+      return {
+        titulo: "Lixeira vazia",
+        texto: "Nenhum chamado foi retirado da página até agora.",
+      };
+    }
+
+    const { de, ate } = periodo.valor();
+    const estreitando = [
+      filtroPrioridade ? "prioridade" : null,
+      filtroTexto.trim() ? "busca" : null,
+      filtroTag ? "tag" : null,
+      de ?? ate ? "data" : null,
+    ].filter((r): r is string => r !== null);
+
+    if (estreitando.length > 0) {
+      return {
+        titulo: "Nada com esses filtros",
+        texto: `Há filtro de ${estreitando.join(", ")} aplicado. Limpe para ver a fila inteira.`,
+      };
+    }
+
+    return {
+      titulo: "Fila limpa",
+      texto: apenasAbertos
+        ? "Nenhum chamado em aberto. Quando alguém abrir um, ele aparece aqui."
+        : "Nenhum chamado registrado até agora.",
+    };
   };
 
   const metricas = (chamados: ChamadoEnriquecido[]): HTMLElement => {

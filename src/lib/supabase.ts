@@ -28,6 +28,14 @@ export function traduzirErro(mensagem: string): string {
       "Causa raiz e solução aplicada são obrigatórias, com ao menos 20 caracteres cada.",
     ],
     [
+      "causa_obrigatoria_para_publicar",
+      "Para publicar o post-mortem, a causa raiz precisa de ao menos 30 caracteres.",
+    ],
+    [
+      "acoes_obrigatorias_para_publicar",
+      "Para publicar o post-mortem, registre ao menos uma ação corretiva.",
+    ],
+    [
       "chamados_titulo_check",
       "O título do chamado precisa de ao menos 10 caracteres.",
     ],

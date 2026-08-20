@@ -1004,6 +1004,17 @@ type PostMortemsInsert = {
   publicado?: boolean;
 };
 
+/**
+ * O que `post_mortems_visiveis` devolve: a linha mais o nome do responsável e
+ * o contexto do chamado. Os `chamado_*` são anuláveis porque `chamado_id` é.
+ */
+export interface PostMortemComContextoDb extends PostMortemsRow {
+  chamado_numero: string | null;
+  chamado_titulo: string | null;
+  chamado_prioridade: PrioridadeDb | null;
+  responsavel_nome: string;
+}
+
 export type TipoCanalDb = "geral" | "equipe";
 
 /** Forma que as RPCs do chat devolvem: mensagem mais o autor, sem PII. */
@@ -1464,6 +1475,10 @@ export type Database = {
       revisar_artigos_vencidos: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      post_mortems_visiveis: {
+        Args: { p_chamado?: string | null };
+        Returns: Array<PostMortemComContextoDb>;
       };
     };
     Enums: {

@@ -80,6 +80,11 @@ const NAV_OPERACAO: ItemNav[] = [
     somenteAgente: true,
   },
   {
+    caminho: "postmortems",
+    rotulo: "Post-mortems",
+    icone: ICONES.postmortem,
+  },
+  {
     caminho: "painel",
     rotulo: "Painel de governança",
     icone: ICONES.painel,

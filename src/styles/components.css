@@ -3577,3 +3577,145 @@ button.tags__marca:hover {
   font-size: 11px;
   color: var(--c-muted);
 }
+
+/* --- Post-mortem --- */
+
+/* Publicado e rascunho seguem o padrão dos outros selos: tinta e lavado do
+   mesmo par de tokens, borda apagada. */
+.selo--publicado {
+  color: var(--c-ok);
+  background: var(--c-ok-wash);
+  border-color: transparent;
+}
+.selo--rascunho {
+  color: var(--c-alerta);
+  background: var(--c-alerta-wash);
+  border-color: transparent;
+}
+
+/* Pilha mais apertada que a `.pilha`, para listas de cartões. */
+.pilha-fina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+/* Cartão que é botão. Sem isto o navegador centraliza o texto e encolhe a
+   caixa ao conteúdo, porque é o que ele faz com qualquer `button`. */
+.cartao--clicavel {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.cartao--clicavel:hover {
+  border-color: var(--c-accent);
+  background: var(--c-surface-2);
+}
+.cartao--clicavel:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.pm__titulo {
+  font-size: var(--t-xl);
+  margin-bottom: var(--s-2);
+}
+
+/* Metadados do cartão da lista, separados por ponto médio. */
+.pm__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--c-ink-2);
+}
+.pm__meta > * + *::before {
+  content: "·";
+  margin-right: var(--s-2);
+  color: var(--c-muted);
+}
+
+/* Linha do tempo. O filete à esquerda liga os momentos; o marcador é desenhado
+   sobre ele, então o `li` não pode ter `overflow` escondido. */
+.pm__linha {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--s-4);
+  border-left: 2px solid var(--c-line-2);
+}
+.pm__momento {
+  position: relative;
+  padding: var(--s-2) 0;
+}
+.pm__momento::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--s-4) * -1 - 5px);
+  top: 50%;
+  translate: 0 -50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+.pm__momento-campos {
+  display: grid;
+  /* Hora com largura fixa, texto elástico, botão no tamanho dele: alinhar as
+     horas em coluna é o que torna a linha do tempo lida de relance. */
+  grid-template-columns: minmax(0, 190px) minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+.pm__quando {
+  font-family: var(--f-mono);
+  font-size: var(--t-sm);
+  color: var(--c-muted);
+  margin-right: var(--s-3);
+}
+
+/* Ação corretiva: marcador, campos, remover. */
+.pm__acao {
+  display: flex;
+  align-items: start;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--c-line);
+  border-radius: var(--r-sm);
+}
+.pm__acao-campos {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 160px);
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
+}
+.pm__marca {
+  font-family: var(--f-mono);
+  color: var(--c-accent);
+  flex: none;
+}
+.pm__feita {
+  text-decoration: line-through;
+  color: var(--c-muted);
+}
+
+/* Texto longo em leitura: quebra de linha do original preservada. */
+.pm__texto {
+  white-space: pre-wrap;
+}
+
+/* Nas telas estreitas as grades viram uma coluna — três campos de 1/3 numa
+   largura de celular não caberiam em nada legível. */
+@media (max-width: 780px) {
+  .pm__momento-campos,
+  .pm__acao-campos {
+    grid-template-columns: 1fr;
+  }
+}

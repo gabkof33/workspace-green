@@ -22,6 +22,11 @@ import {
   rotuloTipo,
   STATUS_ENCERRADOS,
 } from "@/lib/formato";
+import {
+  criarPostMortem,
+  listarPostMortems,
+  pendenciasParaPublicar,
+} from "@/lib/postmortem";
 import { formatarDuracao, POLITICAS_SLA } from "@/lib/prioridade";
 import { navegar } from "@/lib/router";
 import { barraSla } from "@/components/tabela-chamados";
@@ -29,6 +34,7 @@ import type {
   ChamadoEnriquecido,
   Interacao,
   Perfil,
+  PostMortem,
   StatusChamado,
 } from "@/types/dominio";
 
@@ -459,6 +465,7 @@ export function renderizarChamado(
             ),
           )
         : null,
+      blocoPostMortem(chamado, perfil),
     );
 
     montar(
@@ -483,6 +490,130 @@ export function renderizarChamado(
   };
 
   recarregar();
+}
+
+/**
+ * Post-mortem do incidente.
+ *
+ * Só para incidente e só para a equipe: requisição não gera post-mortem, e
+ * quem abriu o chamado não é quem escreve a análise. O cartão se preenche
+ * sozinho depois de montado — a coluna lateral é construída de forma síncrona
+ * e esperar a consulta atrasaria a ficha inteira.
+ */
+function blocoPostMortem(
+  chamado: ChamadoEnriquecido,
+  perfil: Perfil,
+): HTMLElement | null {
+  if (chamado.tipo !== "incidente" || !ehAgente(perfil)) return null;
+
+  const corpo = h("div", { class: "pilha-fina" });
+  const cartao = h(
+    "div",
+    { class: "cartao" },
+    h(
+      "div",
+      { class: "cartao__cabecalho" },
+      h("span", { class: "cartao__titulo" }, "Post-mortem"),
+    ),
+    corpo,
+  );
+
+  const desenhar = (pm: PostMortem | null): void => {
+    if (pm) {
+      const faltas = pendenciasParaPublicar(pm);
+      montar(
+        corpo,
+        h(
+          "span",
+          {
+            class: `selo ${pm.publicado ? "selo--publicado" : "selo--rascunho"}`,
+          },
+          pm.publicado ? "publicado" : "rascunho",
+        ),
+        h(
+          "button",
+          {
+            class: "btn btn--sm",
+            type: "button",
+            on: { click: () => navegar(`postmortem/${pm.id}`) },
+          },
+          "Abrir post-mortem",
+        ),
+        faltas.length > 0
+          ? h(
+              "span",
+              { class: "texto-sutil" },
+              `Falta para publicar: ${faltas.join(" e ")}.`,
+            )
+          : null,
+      );
+      return;
+    }
+
+    montar(
+      corpo,
+      h(
+        "p",
+        { class: "texto-sutil" },
+        chamado.prioridade === "P1" || chamado.prioridade === "P2"
+          ? "Incidente desta gravidade merece análise escrita: o que falhou, por que, e o que muda."
+          : "Registre a análise se o incidente ensinou algo que vale guardar.",
+      ),
+      h(
+        "button",
+        {
+          class: "btn btn--sm",
+          type: "button",
+          on: { click: criar },
+        },
+        "Criar post-mortem",
+      ),
+    );
+  };
+
+  const criar = (): void => {
+    const prazo = new Date();
+    prazo.setDate(prazo.getDate() + 14);
+    const mes = String(prazo.getMonth() + 1).padStart(2, "0");
+    const dia = String(prazo.getDate()).padStart(2, "0");
+
+    void criarPostMortem({
+      titulo: chamado.titulo,
+      impacto: "",
+      responsavel_id: perfil.id,
+      chamado_id: chamado.id,
+      duracao_minutos: duracaoDoIncidente(chamado),
+      prazo: `${prazo.getFullYear()}-${mes}-${dia}`,
+    })
+      .then((id) => navegar(`postmortem/${id}`))
+      .catch((e: unknown) =>
+        avisar(
+          e instanceof Error ? e.message : "Falha ao criar o post-mortem.",
+          "erro",
+        ),
+      );
+  };
+
+  void listarPostMortems(chamado.id)
+    .then((lista) => desenhar(lista[0] ?? null))
+    .catch(() => {
+      // Falhar aqui não pode esconder a ficha do chamado.
+      montar(
+        corpo,
+        h("p", { class: "texto-sutil" }, "Não foi possível consultar agora."),
+      );
+    });
+
+  return cartao;
+}
+
+/** Da abertura ao resolvido. Sem resolução ainda, deixa em branco. */
+function duracaoDoIncidente(chamado: ChamadoEnriquecido): number | null {
+  if (!chamado.resolvido_em) return null;
+  const ms =
+    new Date(chamado.resolvido_em).getTime() -
+    new Date(chamado.aberto_em).getTime();
+  return ms > 0 ? Math.round(ms / 60000) : null;
 }
 
 /* Blocos de ação */

@@ -894,3 +894,71 @@ export interface PainelTempos {
   por_prioridade: TemposPorPrioridade[];
   por_equipe: TemposPorEquipe[];
 }
+
+/* ---------- Post-mortem ---------- */
+
+/** Um momento do incidente. `quando` é `YYYY-MM-DDTHH:mm` na hora local. */
+export interface EventoPostMortem {
+  quando: string;
+  o_que: string;
+}
+
+/** Responsável em texto livre: ação corretiva às vezes cai em time externo. */
+export interface AcaoCorretiva {
+  o_que: string;
+  responsavel: string;
+  prazo: string | null;
+  feita: boolean;
+}
+
+/**
+ * Post-mortem de incidente.
+ *
+ * Os campos `chamado_*` vêm da RPC, não da tabela: um post-mortem pode existir
+ * sem chamado (`chamado_id` é nulo), daí serem todos anuláveis.
+ */
+export interface PostMortem {
+  id: string;
+  chamado_id: string | null;
+  chamado_numero: string | null;
+  chamado_titulo: string | null;
+  chamado_prioridade: Prioridade | null;
+  titulo: string;
+  duracao_minutos: number | null;
+  impacto: string;
+  linha_do_tempo: EventoPostMortem[];
+  causa_raiz: string | null;
+  como_foi_detectado: string | null;
+  detectado_por_monitoramento: boolean | null;
+  o_que_funcionou: string | null;
+  o_que_falhou: string | null;
+  acoes_corretivas: AcaoCorretiva[];
+  prevencao_reincidencia: string | null;
+  responsavel_id: string;
+  responsavel_nome: string;
+  prazo: string;
+  publicado: boolean;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+/** O que o formulário consegue mudar. Fora daqui: `id`, datas e o chamado. */
+export type EdicaoPostMortem = Partial<
+  Pick<
+    PostMortem,
+    | "titulo"
+    | "duracao_minutos"
+    | "impacto"
+    | "linha_do_tempo"
+    | "causa_raiz"
+    | "como_foi_detectado"
+    | "detectado_por_monitoramento"
+    | "o_que_funcionou"
+    | "o_que_falhou"
+    | "acoes_corretivas"
+    | "prevencao_reincidencia"
+    | "responsavel_id"
+    | "prazo"
+    | "publicado"
+  >
+>;

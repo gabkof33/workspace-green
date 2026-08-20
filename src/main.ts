@@ -40,6 +40,8 @@ import { renderizarAtivos } from "@/pages/ativos";
 import { renderizarRotinas } from "@/pages/rotinas";
 import { renderizarConhecimento } from "@/pages/conhecimento";
 import { renderizarPainel } from "@/pages/painel";
+import { renderizarPostMortem } from "@/pages/postmortem";
+import { renderizarPostMortems } from "@/pages/postmortems";
 import { renderizarTempos } from "@/pages/tempos";
 import { renderizarConversas } from "@/pages/conversas";
 import type { Perfil } from "@/types/dominio";
@@ -78,6 +80,7 @@ const ABAS = new Set([
   "conhecimento",
   "painel",
   "tempos",
+  "postmortems",
 ]);
 
 // A fila fica fora da lista de propósito.
@@ -192,6 +195,26 @@ function resolverPagina(perfil: Perfil): Pagina {
           "Artigo ensina o que funciona; erro conhecido documenta o que está quebrado e ainda não tem correção.",
         conteudo,
       };
+
+    // Fora de ROTAS_DE_TI de propósito: post-mortem publicado é documento de
+    // aprendizado, e quem sofreu o incidente tem mais motivo que ninguém para
+    // ler. O RLS já esconde rascunho de terceiro.
+    case "postmortems":
+      renderizarPostMortems(conteudo, perfil);
+      return {
+        titulo: "Post-mortems",
+        subtitulo:
+          "O que aconteceu, por que aconteceu e o que muda para não repetir.",
+        conteudo,
+      };
+
+    case "postmortem":
+      if (!parametro) {
+        navegar("postmortems");
+        return { titulo: "Post-mortem", conteudo };
+      }
+      renderizarPostMortem(conteudo, perfil, parametro);
+      return { titulo: "Post-mortem", conteudo };
 
     case "tempos":
       renderizarTempos(conteudo, perfil);
