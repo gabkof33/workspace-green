@@ -679,12 +679,11 @@ export async function comentar(
 export async function listarNotificacoes(
   perfilId: string,
 ): Promise<Notificacao[]> {
-  const { data, error } = await supabase
-    .from("notificacoes")
-    .select("*")
-    .eq("destinatario_id", perfilId)
-    .order("criado_em", { ascending: false })
-    .limit(50);
+  // `perfilId` deixa de viajar: a função lê `auth.uid()` do próprio token.
+  void perfilId;
+  const { data, error } = await supabase.rpc("minhas_notificacoes", {
+    p_limite: 50,
+  });
 
   if (error) throw new Error(traduzirErro(error.message));
   return (data ?? []) as Notificacao[];

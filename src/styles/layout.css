@@ -4,10 +4,49 @@
   display: grid;
   grid-template-columns: var(--largura-rail) minmax(0, 1fr);
   min-height: 100vh;
+  /* `clip` e não `hidden`: recorta o painel que sai pela esquerda sem criar
+     caixa de rolagem, que quebraria o `position: sticky` do cabeçalho. */
+  overflow-x: clip;
+  transition: grid-template-columns 0.22s ease;
+}
+
+/* --- Gaveta do painel inteiro --- */
+
+/* A coluna fecha e o painel escorrega para fora dela ao mesmo tempo. */
+.shell--recolhido {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.shell--recolhido .rail {
+  translate: -100% 0;
+}
+
+/* Sem a coluna do menu, o conteúdo ganha a largura dela em vez de virar
+   espaço morto à direita — é o que faz recolher valer a pena numa tela larga. */
+.shell--recolhido .conteudo {
+  max-width: calc(var(--largura-conteudo) + var(--largura-rail));
+}
+
+/* Mesmas medidas do sino: os dois botões de ícone dividem a barra e uma
+   diferença de um pixel na altura aparece. */
+.topo__gaveta {
+  flex: none;
+  padding: 7px;
+  line-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .rail {
+    transition: none;
+  }
 }
 
 /* --- Navegação lateral --- */
 .rail {
+  /* Largura fixa, não a da coluna: encolher a coluna reflowaria o texto de
+     todos os itens durante a animação. Aqui ele sai inteiro, deslizando. */
+  width: var(--largura-rail);
+  transition: translate 0.22s ease;
   background: var(--c-menu-bg);
   border-right: 1px solid var(--c-menu-borda);
   padding: var(--s-5) var(--s-4);
@@ -387,6 +426,17 @@
 @media (max-width: 780px) {
   .shell {
     grid-template-columns: 1fr;
+  }
+  /* Uma coluna só: deslizar para o lado não devolve espaço nenhum, porque o
+     menu está empilhado acima do conteúdo. Aqui ele sai da grade. */
+  .shell--recolhido {
+    grid-template-columns: 1fr;
+  }
+  .shell--recolhido .rail {
+    display: none;
+  }
+  .rail {
+    width: auto;
   }
   .rail {
     border-right: none;

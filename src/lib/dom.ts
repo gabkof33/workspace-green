@@ -163,6 +163,8 @@ export const ICONES = {
   sair: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
   tema: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
   voltar: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  lateral:
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
 } as const;
 
 /** Notificação efêmera no canto da tela. */

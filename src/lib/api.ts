@@ -57,12 +57,11 @@ export async function obterSessao(): Promise<EstadoSessao> {
   const usuario = sessao.session?.user;
   if (!usuario) return { tipo: "anonimo" };
 
-  // As abas vêm junto com o perfil, na mesma ida: elas decidem o menu, e
-  // buscá-las depois faria a navegação piscar entre dois estados.
-  const [{ data: perfil, error }, { data: abas }] = await Promise.all([
-    supabase.from("perfis").select("*").eq("id", usuario.id).maybeSingle(),
-    supabase.rpc("minhas_abas"),
-  ]);
+  // Uma chamada só, sem parâmetro e sem `select *`. O id sai do próprio
+  // token, então não viaja na URL, e a resposta não carrega e-mail, telefone,
+  // data de nascimento nem matrícula — nada disso é usado por nenhuma tela.
+  const { data: linhas, error } = await supabase.rpc("meu_perfil");
+  const perfil = (linhas ?? [])[0] ?? null;
 
   if (error) {
     return {
@@ -80,17 +79,34 @@ export async function obterSessao(): Promise<EstadoSessao> {
     return { tipo: "sem_perfil", email: usuario.email ?? "" };
   }
 
-  return {
-    tipo: "autenticado",
-    perfil: { ...perfil, abas: (abas as string[] | null) ?? null } as Perfil,
-  };
+  return { tipo: "autenticado", perfil: perfil as Perfil };
 }
 
 /** Avisa quando a sessão entra ou sai — inclusive por outra aba do navegador. */
-export function aoMudarSessao(ouvinte: (autenticado: boolean) => void): void {
-  supabase.auth.onAuthStateChange((evento) => {
-    if (evento === "SIGNED_OUT") ouvinte(false);
-    if (evento === "SIGNED_IN") ouvinte(true);
+/**
+ * Avisa quando a sessão muda — inclusive de identidade.
+ *
+ * O Supabase guarda a sessão em `localStorage`, compartilhado entre as abas.
+ * Entrar com outra conta numa aba troca o token de todas: a que ficou aberta
+ * segue com o perfil antigo em memória e passa a assinar requisições com o id
+ * de outra pessoa. A RLS recusa, e a tela dizia \"você não tem permissão\" sem
+ * explicar que o dono da sessão havia mudado.
+ *
+ * Por isso o ouvinte recebe o id de quem está na sessão, e não apenas se há
+ * sessão: cabe a quem escuta comparar com o perfil que tem em mãos.
+ */
+export function aoMudarSessao(
+  ouvinte: (idNaSessao: string | null) => void,
+): void {
+  supabase.auth.onAuthStateChange((evento, sessao) => {
+    if (evento === "SIGNED_OUT") return ouvinte(null);
+    if (
+      evento === "SIGNED_IN" ||
+      evento === "TOKEN_REFRESHED" ||
+      evento === "USER_UPDATED"
+    ) {
+      ouvinte(sessao?.user.id ?? null);
+    }
   });
 }
 
@@ -232,6 +248,12 @@ function traduzirErroAuth(mensagem: string): string {
   if (mensagem.includes("valid email")) {
     return "Informe um e-mail válido.";
   }
+  // Dois limites diferentes, com esperas diferentes. Dizer "aguarde um
+  // minuto" no de e-mail faz a pessoa tentar de novo e falhar igual — o teto
+  // é por hora, e vale para o projeto todo, não para ela.
+  if (mensagem.includes("email rate limit")) {
+    return "O envio de e-mails atingiu o limite da hora — e o limite é do sistema, não seu. Peça a um coordenador para disparar a redefinição pelo painel, ou tente novamente na próxima hora.";
+  }
   if (
     mensagem.includes("rate limit") ||
     mensagem.includes("For security purposes")
@@ -257,12 +279,7 @@ export function podeGerirPessoas(perfil: Perfil): boolean {
 /* Pessoas */
 
 export async function listarDiretorio(): Promise<PessoaDiretorio[]> {
-  const { data, error } = await supabase
-    .from("vw_diretorio")
-    .select(
-      "id, nome_completo, cargo, papel, hierarquia, senioridade, departamento, unidade, gestor_direto_id, gestor_direto_nome, equipe_nome, ativo",
-    )
-    .order("nome_completo");
+  const { data, error } = await supabase.rpc("diretorio");
 
   if (error) throw new Error(traduzirErro(error.message));
   return (data ?? []) as PessoaDiretorio[];
@@ -443,8 +460,30 @@ export function agruparServicosPorCategoria(): Map<string, ServicoCatalogo[]> {
 
 /* Chamados */
 
+/**
+ * Detalhe: a ficha usa quase tudo, então aqui `*` se justifica.
+ */
 const SELECAO_CHAMADO =
   "*, catalogo_servicos(nome), equipes(nome), " +
+  "solicitante:perfis!chamados_solicitante_id_fkey(nome_completo, hierarquia), " +
+  "responsavel:perfis!chamados_responsavel_id_fkey(nome_completo, hierarquia), " +
+  "excluidor:perfis!chamados_excluido_por_fkey(nome_completo)";
+
+/**
+ * Lista: a tabela mostra número, título, prioridade, status e prazo. Descrição,
+ * causa raiz, solução aplicada e `campos_extras` — que guardam o conteúdo do
+ * formulário, às vezes com dado pessoal de terceiro — não aparecem em lista e
+ * não precisam sair do banco para montá-la.
+ */
+const SELECAO_LISTA =
+  "id, numero, tipo, titulo, servico_id, solicitante_id, responsavel_id, " +
+  "equipe_id, impacto, urgencia, prioridade, status, canal, aberto_em, " +
+  "primeira_resposta_em, resolvido_em, fechado_em, prazo_resposta, " +
+  "prazo_solucao, minutos_pausados, pausado_desde, sla_resposta_ok, " +
+  "sla_solucao_ok, reaberturas, tags, excluido_em, excluido_por, " +
+  "motivo_exclusao, categoria_encerramento, csat_nota, atualizado_em, " +
+  "setor_id, erro_conhecido_id, " +
+  "catalogo_servicos(nome), equipes(nome), " +
   "solicitante:perfis!chamados_solicitante_id_fkey(nome_completo, hierarquia), " +
   "responsavel:perfis!chamados_responsavel_id_fkey(nome_completo, hierarquia), " +
   "excluidor:perfis!chamados_excluido_por_fkey(nome_completo)";
@@ -504,7 +543,7 @@ export async function listarChamados(
 ): Promise<ChamadoEnriquecido[]> {
   let consulta = supabase
     .from("chamados")
-    .select(SELECAO_CHAMADO)
+    .select(SELECAO_LISTA)
     .order("aberto_em", { ascending: false })
     .limit(500);
 

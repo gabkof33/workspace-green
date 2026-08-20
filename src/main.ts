@@ -21,6 +21,12 @@ import { aplicarTemaSalvo, renderizarShell } from "@/components/shell";
 import { fecharDialogos } from "@/components/dialogo";
 import { pararFundoPontilhado } from "@/components/fundo-pontilhado";
 import { renderizarLogin, renderizarNovaSenha } from "@/pages/login";
+import { entrarNaPresenca, sairDaPresenca } from "@/lib/presenca";
+import {
+  escutarNotificacoes,
+  pararNotificacoes,
+} from "@/lib/notificacoes-tempo-real";
+import { iniciarMarcador, zerarNaoLidos } from "@/lib/marcador-aba";
 import { renderizarAbrir } from "@/pages/abrir";
 import { renderizarFila } from "@/pages/fila";
 import { renderizarMeus } from "@/pages/meus";
@@ -394,6 +400,9 @@ function desenharApp(): void {
       ...(pagina.subtitulo ? { subtitulo: pagina.subtitulo } : {}),
       conteudo: pagina.conteudo,
       aoSair: () => {
+        sairDaPresenca();
+        pararNotificacoes();
+        zerarNaoLidos();
         perfilAtual = null;
         location.hash = "";
         desenharApp();
@@ -420,13 +429,30 @@ if (new URLSearchParams(location.search).has("recuperacao")) {
 }
 
 // Sessão encerrada em outra aba, ou token revogado: a tela acompanha.
-aoMudarSessao((autenticado) => {
-  if (!autenticado) {
+aoMudarSessao((idNaSessao) => {
+  if (idNaSessao === null) {
+    sairDaPresenca();
+    pararNotificacoes();
+    zerarNaoLidos();
     perfilAtual = null;
     falhaSessao = null;
     location.hash = "";
     desenharApp();
+    return;
   }
+
+  // Sem perfil em mãos ainda: o arranque está em curso e vai resolver. Sem
+  // esta guarda o evento inicial não casaria com nada e recarregaria a página
+  // em laço — `onAuthStateChange` dispara antes de `obterSessao` responder.
+  if (!perfilAtual) return;
+
+  // Mesma pessoa: nada a fazer. Renovação de token cai aqui a cada hora.
+  if (perfilAtual.id === idNaSessao) return;
+
+  // Trocou de dono, com perfil anterior carregado. Recarregar é o único
+  // caminho seguro: há estado de tela espalhado — canal aberto, listas,
+  // presença — e remendar peça por peça deixaria resquício da conta anterior.
+  location.reload();
 });
 
 void obterSessao()
@@ -436,6 +462,12 @@ void obterSessao()
     switch (estado.tipo) {
       case "autenticado":
         perfilAtual = estado.perfil;
+        // "Online" é ter a Central Green aberta, não estar na tela de
+        // conversas: quem está num chamado também está disponível.
+        entrarNaPresenca(estado.perfil.id);
+        // Menção e atribuição avisam em qualquer tela, não só no chat.
+        escutarNotificacoes(estado.perfil.id);
+        iniciarMarcador();
         // Catálogo é conteúdo, não credencial: falhar aqui avisa, não desloga.
         await carregarCatalogo().catch((e: unknown) => {
           avisar(

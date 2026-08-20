@@ -16,6 +16,15 @@ import {
 } from "@/lib/chat";
 import { criarCampoMencao, type CampoMencao } from "@/components/campo-mencao";
 import { insigniaHierarquia } from "@/components/insignia";
+import { bolinha, repintarBolinhas } from "@/components/presenca";
+import { aoMudarPresenca, quantosOnline } from "@/lib/presenca";
+import { somarNaoLido } from "@/lib/marcador-aba";
+import {
+  avisarNavegador,
+  desligar as desligarAvisos,
+  estado as estadoAvisos,
+  ligar as ligarAvisos,
+} from "@/lib/aviso-navegador";
 import { renderizarTexto } from "@/components/texto-mencao";
 import { confirmar } from "@/components/dialogo";
 import { criarDemanda, ROTULOS_PRIORIDADE, ROTULOS_TIPO } from "@/lib/demandas";
@@ -44,11 +53,88 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   const rolagem = h("div", { class: "conversa__rolagem" });
   const rodape = h("div", { class: "conversa__composer" });
 
+  const contagemOnline = h("span", {
+    class: "conversa__online",
+    title: "Pessoas com a Central Green aberta agora",
+  });
+
+  /**
+   * Interruptor dos avisos.
+   *
+   * A permissão é pedida daqui, num clique — pedir no carregamento é o
+   * caminho mais curto para o "Bloquear", e a recusa do navegador é
+   * definitiva: não há como pedir de novo pela página.
+   */
+  const botaoAvisos = h("button", {
+    class: "btn btn--sm btn--sutil",
+    type: "button",
+  });
+
+  const montarBotaoAvisos = (): void => {
+    const st = estadoAvisos();
+    const textos: Record<string, [string, string]> = {
+      indisponivel: ["Avisos indisponíveis", "Este navegador não os suporta"],
+      negado: [
+        "Avisos bloqueados",
+        "Libere nas permissões do site, no ícone à esquerda da barra de endereço",
+      ],
+      desligado: [
+        "Ativar avisos",
+        "Receber notificação quando chegar mensagem",
+      ],
+      ligado: ["Avisos ligados", "Clique para desligar"],
+    };
+    const [rotulo, dica] = textos[st] as [string, string];
+
+    botaoAvisos.textContent = rotulo;
+    botaoAvisos.title = dica;
+    botaoAvisos.disabled = st === "indisponivel" || st === "negado";
+    botaoAvisos.classList.toggle("btn--primario", st === "ligado");
+  };
+
+  botaoAvisos.addEventListener("click", () => {
+    if (estadoAvisos() === "ligado") {
+      desligarAvisos();
+      montarBotaoAvisos();
+      avisar("Avisos do navegador desligados.", "info");
+      return;
+    }
+    void ligarAvisos().then((st) => {
+      montarBotaoAvisos();
+      if (st === "ligado") avisar("Avisos do navegador ligados.", "ok");
+      else if (st === "negado") {
+        avisar(
+          "O navegador bloqueou os avisos. Libere nas permissões do site.",
+          "erro",
+        );
+      }
+    });
+  });
+
+  montarBotaoAvisos();
+
+  const montarContagemOnline = (): void => {
+    montar(
+      contagemOnline,
+      h("span", { class: "presenca presenca--online" }),
+      `${quantosOnline()} online`,
+    );
+  };
+  montarContagemOnline();
+
   montar(alvo, h("div", { class: "conversa" }, listaCanais, thread));
 
-  // Sair da tela derruba o websocket.
+  // Alguém entrar ou sair repinta só as bolinhas. Redesenhar a conversa
+  // saltaria o scroll e apagaria o texto que estivesse sendo digitado.
+  const pararPresenca = aoMudarPresenca(() => {
+    repintarBolinhas(thread);
+    montarContagemOnline();
+  });
+
+  // Sair da tela derruba o websocket e a escuta de presença.
   const aoSair = (): void => {
     encerrarAssinatura();
+    pararPresenca();
     window.removeEventListener("hashchange", aoSair);
   };
   window.addEventListener("hashchange", aoSair);
@@ -169,6 +255,17 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
       desenharMensagens();
       rolarParaFim();
       void marcarLido(canal.id);
+
+      // Nunca para a própria mensagem: quem escreveu já sabe. O módulo cala
+      // sozinho quando a aba está à vista.
+      if (nova.autor_id === perfil.id) return;
+      somarNaoLido();
+      avisarNavegador({
+        titulo: `${nova.autor_nome} em #${canal.nome}`,
+        corpo: nova.corpo.slice(0, 140),
+        destino: "conversas",
+        chave: `canal:${canal.id}`,
+      });
     });
   }
 
@@ -255,6 +352,8 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
           ? h("span", { class: "texto-sutil" }, canalAtivo.descricao)
           : null,
         h("span", { class: "empurra" }),
+        botaoAvisos,
+        contagemOnline,
         h(
           "span",
           { class: "tag tag--verde" },
@@ -328,8 +427,13 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
         ? h("div", { class: "msg__hora-lateral" }, hora)
         : h(
             "div",
-            { class: `msg__avatar msg__avatar--${m.autor_hierarquia}` },
-            iniciais(m.autor_nome),
+            { class: "msg__avatar-caixa" },
+            h(
+              "div",
+              { class: `msg__avatar msg__avatar--${m.autor_hierarquia}` },
+              iniciais(m.autor_nome),
+            ),
+            bolinha(m.autor_id, m.autor_nome),
           ),
       h(
         "div",

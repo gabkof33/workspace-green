@@ -162,6 +162,20 @@ function gravarGaveta(rotulo: string, aberto: boolean): void {
   localStorage.setItem(CHAVE_GAVETAS, JSON.stringify([...conjunto]));
 }
 
+/* Gaveta do painel inteiro */
+
+const CHAVE_PAINEL = "central-green:menu-recolhido";
+
+/** Guarda só o estado recolhido: ausente significa aberto, que é o padrão. */
+function painelRecolhido(): boolean {
+  return localStorage.getItem(CHAVE_PAINEL) === "1";
+}
+
+function gravarPainel(recolhido: boolean): void {
+  if (recolhido) localStorage.setItem(CHAVE_PAINEL, "1");
+  else localStorage.removeItem(CHAVE_PAINEL);
+}
+
 /* Sino de notificações */
 
 /** `icone()` não define tamanho; sem classe o SVG nasce sem dimensão. */
@@ -362,7 +376,7 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
 
   const rail = h(
     "aside",
-    { class: "rail" },
+    { class: "rail", id: "menu-lateral" },
     h(
       "div",
       { class: "rail__marca" },
@@ -443,9 +457,37 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
     ),
   );
 
+  // Vazia primeiro: o botão do topo precisa da casca para alternar a classe,
+  // e a casca precisa do topo para existir.
+  const casca = h("div", { class: "shell" });
+  let recolhido = painelRecolhido();
+
+  const botaoPainel = h("button", {
+    class: "btn btn--sutil topo__gaveta",
+    type: "button",
+    aria: { label: "Menu lateral", controls: "menu-lateral" },
+  });
+  botaoPainel.append(icone(ICONES.lateral));
+
+  const aplicarPainel = (): void => {
+    casca.classList.toggle("shell--recolhido", recolhido);
+    botaoPainel.setAttribute("aria-expanded", String(!recolhido));
+    botaoPainel.title = recolhido ? "Mostrar menu" : "Recolher menu";
+    // Recolhido, o menu sai do Tab e do leitor de tela: continuar navegável
+    // enquanto invisível manda o foco para o nada.
+    rail.toggleAttribute("inert", recolhido);
+  };
+
+  botaoPainel.addEventListener("click", () => {
+    recolhido = !recolhido;
+    aplicarPainel();
+    gravarPainel(recolhido);
+  });
+
   const topo = h(
     "header",
     { class: "topo" },
+    botaoPainel,
     h(
       "div",
       { class: "topo__titulo" },
@@ -469,5 +511,7 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
     h("main", { class: "conteudo" }, opcoes.conteudo),
   );
 
-  return h("div", { class: "shell" }, rail, principal);
+  casca.append(rail, principal);
+  aplicarPainel();
+  return casca;
 }

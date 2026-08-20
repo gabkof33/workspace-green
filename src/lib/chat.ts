@@ -2,9 +2,7 @@
 
 import { supabase, traduzirErro } from "@/lib/supabase";
 import type {
-  Canal,
   CanalComContagem,
-  Hierarquia,
   Mensagem,
   MensagemEnriquecida,
   Perfil,
@@ -14,26 +12,14 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 /* Canais */
 
 export async function listarCanais(): Promise<CanalComContagem[]> {
-  const [canais, contagens] = await Promise.all([
-    supabase
-      .from("canais")
-      .select("*")
-      .eq("arquivado", false)
-      .order("tipo")
-      .order("nome"),
-    supabase.rpc("nao_lidas_por_canal"),
-  ]);
-
-  if (canais.error) throw new Error(traduzirErro(canais.error.message));
-
-  const mapa = new Map<string, number>();
-  for (const linha of contagens.data ?? []) {
-    mapa.set(linha.canal_id, Number(linha.nao_lidas));
-  }
+  // Uma chamada em vez de duas, campo a campo em vez de `*`: o que a função
+  // devolve é exatamente o que chega ao navegador.
+  const { data, error } = await supabase.rpc("canais_visiveis");
+  if (error) throw new Error(traduzirErro(error.message));
 
   return (
-    ((canais.data ?? []) as Canal[])
-      .map((c) => ({ ...c, nao_lidas: mapa.get(c.id) ?? 0 }))
+    (data ?? [])
+      .map((c) => ({ ...c, arquivado: false, nao_lidas: Number(c.nao_lidas) }))
       // Geral primeiro, depois as equipes em ordem alfabética.
       .sort((a, b) => {
         if (a.tipo !== b.tipo) return a.tipo === "geral" ? -1 : 1;
@@ -48,41 +34,23 @@ export async function marcarLido(canalId: string): Promise<void> {
 
 /* Mensagens */
 
-// Dica explícita pela constraint mesmo havendo só uma chave para `perfis`
-// hoje: acrescentar uma segunda (um `editado_por`, por exemplo) quebraria
-const SELECAO =
-  "*, autor:perfis!mensagens_autor_id_fkey(nome_completo, hierarquia, cargo)";
-
-function enriquecer(linha: unknown): MensagemEnriquecida {
-  const l = linha as Mensagem & {
-    autor: {
-      nome_completo: string;
-      hierarquia: Hierarquia;
-      cargo: string | null;
-    } | null;
-  };
-  return {
-    ...l,
-    autor_nome: l.autor?.nome_completo ?? "Desconhecido",
-    autor_hierarquia: l.autor?.hierarquia ?? "colaborador",
-    autor_cargo: l.autor?.cargo ?? null,
-  };
-}
+// Colunas cruas da mensagem, sem o autor. Usado só no envio, onde o autor é
+// quem está enviando e já está em mãos.
+const SELECAO_CRUA =
+  "id, canal_id, autor_id, corpo, mencionados, respondendo_a, editado_em, criado_em";
 
 /** Últimas mensagens do canal, já em ordem cronológica de leitura. */
 export async function listarMensagens(
   canalId: string,
   limite = 100,
 ): Promise<MensagemEnriquecida[]> {
-  const { data, error } = await supabase
-    .from("mensagens")
-    .select(SELECAO)
-    .eq("canal_id", canalId)
-    .order("criado_em", { ascending: false })
-    .limit(limite);
+  const { data, error } = await supabase.rpc("mensagens_do_canal", {
+    p_canal: canalId,
+    p_limite: limite,
+  });
 
   if (error) throw new Error(traduzirErro(error.message));
-  return (data ?? []).map(enriquecer).reverse();
+  return (data ?? []) as MensagemEnriquecida[];
 }
 
 export async function enviarMensagem(
@@ -105,11 +73,18 @@ export async function enviarMensagem(
       corpo: texto,
       mencionados,
     })
-    .select(SELECAO)
+    .select(SELECAO_CRUA)
     .single();
 
   if (error) throw new Error(traduzirErro(error.message));
-  return enriquecer(data);
+
+  // Nenhuma ida ao banco pelo nome: quem envia é quem está na sessão.
+  return {
+    ...(data as Mensagem),
+    autor_nome: autor.nome_completo,
+    autor_cargo: autor.cargo,
+    autor_hierarquia: autor.hierarquia,
+  };
 }
 
 export async function excluirMensagem(id: string): Promise<void> {
@@ -139,15 +114,13 @@ export function assinarCanal(
         filter: `canal_id=eq.${canalId}`,
       },
       (payload) => {
-        // O payload do realtime traz só a linha crua, sem o join do autor.
+        // O payload do realtime traz só a linha crua, sem o nome do autor.
         const nova = payload.new as Mensagem;
         void supabase
-          .from("mensagens")
-          .select(SELECAO)
-          .eq("id", nova.id)
-          .maybeSingle()
+          .rpc("mensagem_unica", { p_id: nova.id })
           .then(({ data }) => {
-            if (data) aoChegar(enriquecer(data));
+            const linha = (data ?? [])[0];
+            if (linha) aoChegar(linha as MensagemEnriquecida);
           });
       },
     )

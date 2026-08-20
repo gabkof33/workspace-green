@@ -3529,3 +3529,51 @@ button.tags__marca:hover {
   min-height: 64px;
   cursor: default;
 }
+
+/* --- Presença: online e offline --- */
+
+/* Verde para online, vermelho para offline. A cor vem sempre acompanhada de
+   `title` e de texto para leitor de tela: quem não distingue as duas vê duas
+   bolinhas iguais, e isso é comum. */
+.presenca {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  /* Anel na cor da superfície: separa a bolinha do avatar sob ela. */
+  box-shadow: 0 0 0 2px var(--c-surface);
+}
+.presenca--online {
+  background: var(--barra-verde);
+}
+.presenca--offline {
+  background: var(--barra-vermelho);
+}
+
+/* No avatar da mensagem a bolinha fica no canto, sobreposta. */
+/* A caixa assume o lugar do avatar no flex da linha; o avatar interno perde
+   a margem, que agora é da caixa. */
+.msg__avatar-caixa {
+  position: relative;
+  flex: none;
+  line-height: 0;
+  margin-top: 2px;
+}
+.msg__avatar-caixa .msg__avatar {
+  margin-top: 0;
+}
+.msg__avatar-caixa .presenca {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+}
+
+.conversa__online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-muted);
+}

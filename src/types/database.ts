@@ -1006,6 +1006,21 @@ type PostMortemsInsert = {
 
 export type TipoCanalDb = "geral" | "equipe";
 
+/** Forma que as RPCs do chat devolvem: mensagem mais o autor, sem PII. */
+export interface MensagemComAutorDb {
+  id: string;
+  canal_id: string;
+  autor_id: string;
+  corpo: string;
+  mencionados: string[];
+  respondendo_a: string | null;
+  editado_em: string | null;
+  criado_em: string;
+  autor_nome: string;
+  autor_cargo: string | null;
+  autor_hierarquia: HierarquiaDb;
+}
+
 type CanaisRow = {
   id: string;
   nome: string;
@@ -1356,6 +1371,72 @@ export type Database = {
       abas_do_setor: { Args: { p_setor: string }; Returns: string[] | null };
       painel_governanca: { Args: { p_dias?: number }; Returns: Json };
       painel_tempos: { Args: { p_dias?: number }; Returns: Json };
+      meu_perfil: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          nome_completo: string;
+          papel: PapelUsuarioDb;
+          hierarquia: HierarquiaDb;
+          senioridade: SenioridadeDb;
+          cargo: string | null;
+          departamento: string | null;
+          unidade: string | null;
+          setor_id: string | null;
+          equipe_id: string | null;
+          ativo: boolean;
+          abas: string[] | null;
+        }>;
+      };
+      diretorio: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          nome_completo: string;
+          cargo: string | null;
+          papel: PapelUsuarioDb;
+          hierarquia: HierarquiaDb;
+          senioridade: SenioridadeDb;
+          departamento: string | null;
+          unidade: string | null;
+          gestor_direto_id: string | null;
+          gestor_direto_nome: string | null;
+          equipe_nome: string | null;
+          ativo: boolean;
+          criado_em: string;
+        }>;
+      };
+      minhas_notificacoes: {
+        Args: { p_limite?: number };
+        Returns: Array<{
+          id: string;
+          titulo: string;
+          corpo: string | null;
+          destino: string | null;
+          lida: boolean;
+          criado_em: string;
+        }>;
+      };
+      canais_visiveis: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          nome: string;
+          slug: string;
+          tipo: TipoCanalDb;
+          equipe_id: string | null;
+          descricao: string | null;
+          nao_lidas: number;
+        }>;
+      };
+      mensagens_do_canal: {
+        Args: { p_canal: string; p_limite?: number };
+        Returns: Array<MensagemComAutorDb>;
+      };
+      mensagem_unica: {
+        Args: { p_id: string };
+        Returns: Array<MensagemComAutorDb>;
+      };
       setores_para_cadastro: {
         Args: Record<string, never>;
         Returns: Array<{ id: string; caminho: string }>;
