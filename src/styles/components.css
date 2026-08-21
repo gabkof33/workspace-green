@@ -3719,3 +3719,188 @@ button.tags__marca:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Observabilidade de APIs: grafo de serviços, cascata de tracing, pacotes.
+   ========================================================================== */
+
+.grafo__moldura {
+  height: 340px;
+  margin-bottom: var(--s-3);
+}
+.grafo__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.grafo__aresta {
+  stroke-linecap: round;
+  opacity: 0.75;
+  transition: stroke 0.2s ease;
+}
+.grafo__seta {
+  fill: var(--c-ink-2);
+  opacity: 0.7;
+}
+.grafo__no {
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
+}
+.grafo__no--origem {
+  stroke: var(--c-surface);
+  stroke-width: 2;
+}
+.grafo__rotulo {
+  fill: var(--c-ink-2);
+  font-family: var(--f-mono);
+  font-size: 3.6px;
+  text-transform: none;
+}
+.grafo__rotulo--origem {
+  font-weight: 700;
+  font-size: 4px;
+}
+/* Número dentro do anel — a leitura rápida de "quanto tráfego"; nome e taxa
+   de erro completos ficam no hover e na legenda abaixo. */
+.grafo__valor {
+  fill: var(--c-ink);
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 4.4px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+/* O pacote não recebe transição de cor/opacidade por CSS: quem anima é
+   `pacote-em-transito.ts`, quadro a quadro, para acompanhar exatamente a
+   latência real da chamada que ele representa. */
+.grafo__pacote {
+  pointer-events: none;
+}
+
+/* --- Mapa de ruas --- */
+
+.rua__asfalto {
+  stroke: var(--c-ink-2);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+/* Faixa central por cima do asfalto — as duas juntas é que leem como rua. */
+.rua__faixa {
+  stroke: var(--c-surface);
+  stroke-width: 0.5;
+  stroke-linecap: round;
+  stroke-dasharray: 2 1.6;
+  opacity: 0.9;
+}
+.rua__carro {
+  fill: var(--c-carvao);
+  opacity: 0.85;
+}
+.rua__predio {
+  fill: var(--c-surface-2);
+  stroke-width: 1.8;
+  transition: stroke 0.2s ease;
+}
+.rua__predio--hub {
+  fill: var(--c-accent);
+}
+.rua__predio-valor {
+  fill: var(--c-ink);
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 4.2px;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rua__carro {
+    opacity: 0.6;
+  }
+}
+
+/* A legenda em si virou tabela (`.tabela`, ver legenda-servicos.ts) — só o
+   ponto de cor de status sobra como peça própria. */
+.grafo__legenda-ponto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* --- Cascata de tracing --- */
+
+.cascata {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cascata__linha {
+  display: grid;
+  grid-template-columns: minmax(120px, 26%) 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+}
+.cascata__rotulo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--t-sm);
+}
+.cascata__metodo {
+  flex: none;
+  font-family: var(--f-mono);
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.cascata__endpoint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--f-mono);
+  font-size: 11px;
+}
+.cascata__trilha {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--c-surface-2);
+}
+.cascata__barra {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--g2);
+}
+.cascata__barra--erro {
+  background: var(--c-erro);
+}
+.cascata__duracao {
+  font-size: 11px;
+  color: var(--c-ink-2);
+  white-space: nowrap;
+}
+
+/* --- Linha clicável (lista de traços) --- */
+
+.linha-clicavel {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.linha-clicavel:hover {
+  background: var(--c-surface-2);
+}
+.linha-clicavel--ativa {
+  background: var(--c-accent-wash);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grafo__pacote {
+    display: none;
+  }
+}

@@ -389,6 +389,43 @@ type NotificacoesInsert = {
   criado_em?: string;
 };
 
+type EventosApiRow = {
+  id: number;
+  request_id: string;
+  trace_id: string;
+  parent_span_id: string | null;
+  nome_operacao: string | null;
+  servico_destino: string;
+  endpoint: string;
+  metodo_http: string;
+  status_code: number | null;
+  latencia_ms: number;
+  tempo_banco_ms: number | null;
+  qtd_registros: number | null;
+  usuario_id: string;
+  erro_tipo: string | null;
+  erro_mensagem: string | null;
+  criado_em: string;
+};
+type EventosApiInsert = {
+  id?: number;
+  request_id: string;
+  trace_id: string;
+  parent_span_id?: string | null;
+  nome_operacao?: string | null;
+  servico_destino: string;
+  endpoint: string;
+  metodo_http: string;
+  status_code?: number | null;
+  latencia_ms: number;
+  tempo_banco_ms?: number | null;
+  qtd_registros?: number | null;
+  usuario_id: string;
+  erro_tipo?: string | null;
+  erro_mensagem?: string | null;
+  criado_em?: string;
+};
+
 type AuditoriaRow = {
   id: number;
   tabela: string;
@@ -1166,6 +1203,16 @@ export type Database = {
         Update: Partial<DemandaParametrosInsert>;
         Relationships: [];
       };
+      eventos_api: {
+        Row: EventosApiRow;
+        Insert: EventosApiInsert;
+        // Ninguém chama `.update()` nesta tabela — é trilha, não cadastro —
+        // mas o tipo precisa existir: a ausência quebra a indexação
+        // genérica que o cliente Supabase faz sobre `Tables[N]["Update"]`
+        // para toda tabela, não só para esta.
+        Update: Partial<EventosApiInsert>;
+        Relationships: [];
+      };
       notificacoes: {
         Row: NotificacoesRow;
         Insert: NotificacoesInsert;
@@ -1480,6 +1527,18 @@ export type Database = {
       post_mortems_visiveis: {
         Args: { p_chamado?: string | null };
         Returns: Array<PostMortemComContextoDb>;
+      };
+      grafo_servicos_observabilidade: {
+        Args: { p_minutos?: number };
+        Returns: Json;
+      };
+      tracos_recentes_observabilidade: {
+        Args: { p_minutos?: number; p_limite?: number };
+        Returns: Json;
+      };
+      kpis_observabilidade: {
+        Args: { p_minutos?: number };
+        Returns: Json;
       };
     };
     Enums: {

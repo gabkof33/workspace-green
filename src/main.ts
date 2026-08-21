@@ -44,6 +44,7 @@ import { renderizarPostMortem } from "@/pages/postmortem";
 import { renderizarPostMortems } from "@/pages/postmortems";
 import { renderizarTempos } from "@/pages/tempos";
 import { renderizarConversas } from "@/pages/conversas";
+import { renderizarObservabilidade } from "@/pages/observabilidade";
 import type { Perfil } from "@/types/dominio";
 
 const raiz = document.getElementById("app");
@@ -64,6 +65,7 @@ const ROTAS_DE_TI = new Set([
   "rotinas",
   "painel",
   "tempos",
+  "observabilidade",
 ]);
 
 /** Rotas guardadas pela configuração de abas do setor. */
@@ -81,6 +83,7 @@ const ABAS = new Set([
   "painel",
   "tempos",
   "postmortems",
+  "observabilidade",
 ]);
 
 // A fila fica fora da lista de propósito.
@@ -231,6 +234,15 @@ function resolverPagina(perfil: Perfil): Pagina {
         titulo: "Painel de governança",
         subtitulo:
           "Cada indicador aparece ao lado da meta que deveria atingir, e pintado pela distância até ela.",
+        conteudo,
+      };
+
+    case "observabilidade":
+      renderizarObservabilidade(conteudo, perfil);
+      return {
+        titulo: "Observabilidade de APIs",
+        subtitulo:
+          "Chamadas reais deste app ao Supabase. Topologia em estrela de propósito — sem agente do lado do servidor, esta é a origem observável.",
         conteudo,
       };
 

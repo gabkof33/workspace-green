@@ -90,6 +90,12 @@ const NAV_OPERACAO: ItemNav[] = [
     icone: ICONES.painel,
     somenteAgente: true,
   },
+  {
+    caminho: "observabilidade",
+    rotulo: "Observabilidade de APIs",
+    icone: ICONES.observabilidade,
+    somenteAgente: true,
+  },
 ];
 
 function alternarTema(): void {

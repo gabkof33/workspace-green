@@ -970,3 +970,77 @@ export type EdicaoPostMortem = Partial<
     | "publicado"
   >
 >;
+
+/* ---------- Observabilidade de APIs ---------- */
+
+/**
+ * Um evento de chamada real ao Supabase, capturado pelo núcleo de
+ * instrumentação.
+ *
+ * Espelha `EventosApiRow` — sem campo de payload/headers/parâmetros de URL:
+ * só o que a tela de observabilidade tem permissão de guardar.
+ */
+export interface EventoApi {
+  id: number;
+  request_id: string;
+  trace_id: string;
+  parent_span_id: string | null;
+  nome_operacao: string | null;
+  servico_destino: string;
+  endpoint: string;
+  metodo_http: string;
+  status_code: number | null;
+  latencia_ms: number;
+  tempo_banco_ms: number | null;
+  qtd_registros: number | null;
+  usuario_id: string;
+  erro_tipo: string | null;
+  erro_mensagem: string | null;
+  criado_em: string;
+}
+
+export interface NoServico {
+  servico: string;
+  requisicoes: number;
+  erros: number;
+  taxa_erro: number;
+  p50_ms: number;
+  p95_ms: number;
+}
+
+export interface ArestaServico {
+  origem: string;
+  destino: string;
+  requisicoes: number;
+  erros: number;
+  taxa_erro: number;
+  p95_ms: number;
+}
+
+/** Retorno de `grafo_servicos_observabilidade` — topologia em estrela: este
+ * frontend é a única origem observável, sem agente do lado do servidor. */
+export interface GrafoServicos {
+  janela_minutos: number;
+  nos: NoServico[];
+  arestas: ArestaServico[];
+}
+
+export interface TracoResumo {
+  trace_id: string;
+  nome_operacao: string | null;
+  iniciado_em: string;
+  duracao_ms: number;
+  spans: number;
+  erros: number;
+  servicos: string[];
+}
+
+export interface KpisObservabilidade {
+  janela_minutos: number;
+  total_requisicoes: number;
+  total_erros: number;
+  taxa_erro: number;
+  p50_ms: number;
+  p95_ms: number;
+  usuarios_ativos: number;
+}

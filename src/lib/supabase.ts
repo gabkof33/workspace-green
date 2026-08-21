@@ -1,6 +1,11 @@
 /** Cliente Supabase tipado pelo schema do banco. */
 
 import { createClient } from "@supabase/supabase-js";
+import {
+  criarFetchInstrumentado,
+  definirContextoAuth,
+} from "@/lib/observabilidade-nucleo";
+import { configurarGravador, enfileirar } from "@/lib/observabilidade-fila";
 import type { Database } from "@/types/database";
 
 const url = import.meta.env["VITE_SUPABASE_URL"];
@@ -18,6 +23,24 @@ export const supabase = createClient<Database>(url, chave, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
+  // Observa toda chamada real do cliente para alimentar a observabilidade de
+  // APIs — sem tocar em nenhum ponto de chamada do resto do app.
+  global: {
+    fetch: criarFetchInstrumentado(window.fetch.bind(window), enfileirar),
+  },
+});
+
+configurarGravador({
+  gravar: async (linhas) => {
+    const { error } = await supabase.from("eventos_api").insert(linhas);
+    return { error: error ? { message: error.message } : null };
+  },
+});
+
+// Contexto de autenticação para a instrumentação: leitura em memória, sem
+// chamada de rede, atualizada a cada troca de sessão ou renovação de token.
+supabase.auth.onAuthStateChange((_evento, sessao) => {
+  definirContextoAuth(sessao?.user.id ?? null, sessao?.access_token ?? null);
 });
 
 /** Traduz mensagens do Postgres para linguagem de usuário. */
