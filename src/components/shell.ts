@@ -1,6 +1,13 @@
 /** Shell da Central Green — navegação lateral, cabeçalho e notificações. */
 
-import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
+import {
+  avisar,
+  h,
+  icone,
+  ICONES,
+  montar,
+  type MarcacaoEstatica,
+} from "@/lib/dom";
 import { navegar, rotaAtual } from "@/lib/router";
 import { abaVisivel, ehAgente, podeGerirPessoas, sair } from "@/lib/api";
 import {
@@ -10,6 +17,7 @@ import {
 } from "@/lib/demandas";
 import { tempoRelativo } from "@/lib/formato";
 import { insigniaHierarquia, ROTULOS_SENIORIDADE } from "@/components/insignia";
+import { gravar, ler, remover } from "@/lib/armazenamento";
 import type { Notificacao, Perfil } from "@/types/dominio";
 
 // Dois arquivos porque o menu muda de fundo com o tema: verde cheio no claro,
@@ -20,7 +28,7 @@ const LOGOTIPO_BRANCO = "/igreen-g-branco.png";
 interface ItemNav {
   caminho: string;
   rotulo: string;
-  icone: string;
+  icone: MarcacaoEstatica;
   somenteAgente?: boolean;
   somenteGestao?: boolean;
   emBreve?: boolean;
@@ -114,14 +122,12 @@ function alternarTema(): void {
           : "escuro";
 
   raiz.setAttribute("data-tema", proximo);
-  localStorage.setItem("central-green:tema", proximo);
+  gravar("tema", proximo);
 }
 
 export function aplicarTemaSalvo(): void {
-  const salvo = localStorage.getItem("central-green:tema");
-  if (salvo === "claro" || salvo === "escuro") {
-    document.documentElement.setAttribute("data-tema", salvo);
-  }
+  const salvo = ler("tema");
+  if (salvo) document.documentElement.setAttribute("data-tema", salvo);
 }
 
 function construirItem(item: ItemNav, ativo: boolean): HTMLElement {
@@ -149,17 +155,10 @@ function construirItem(item: ItemNav, ativo: boolean): HTMLElement {
 
 /* Gavetas do menu */
 
-const CHAVE_GAVETAS = "central-green:menu-fechado";
-
 /** Guarda só o que está **fechado**. */
 function fechadas(): Set<string> {
-  try {
-    const bruto = localStorage.getItem(CHAVE_GAVETAS);
-    return new Set(bruto ? (JSON.parse(bruto) as string[]) : []);
-  } catch {
-    // Preferência corrompida não pode derrubar o menu inteiro.
-    return new Set();
-  }
+  // Preferência corrompida não derruba o menu: `ler` valida e devolve null.
+  return new Set(ler("menu-fechado") ?? []);
 }
 
 function gavetaAberta(rotulo: string): boolean {
@@ -170,21 +169,19 @@ function gravarGaveta(rotulo: string, aberto: boolean): void {
   const conjunto = fechadas();
   if (aberto) conjunto.delete(rotulo);
   else conjunto.add(rotulo);
-  localStorage.setItem(CHAVE_GAVETAS, JSON.stringify([...conjunto]));
+  gravar("menu-fechado", [...conjunto]);
 }
 
 /* Gaveta do painel inteiro */
 
-const CHAVE_PAINEL = "central-green:menu-recolhido";
-
 /** Guarda só o estado recolhido: ausente significa aberto, que é o padrão. */
 function painelRecolhido(): boolean {
-  return localStorage.getItem(CHAVE_PAINEL) === "1";
+  return ler("menu-recolhido") === "1";
 }
 
 function gravarPainel(recolhido: boolean): void {
-  if (recolhido) localStorage.setItem(CHAVE_PAINEL, "1");
-  else localStorage.removeItem(CHAVE_PAINEL);
+  if (recolhido) gravar("menu-recolhido", "1");
+  else remover("menu-recolhido");
 }
 
 /* Sino de notificações */
@@ -543,13 +540,15 @@ function revelarItemAtivo(rail: HTMLElement): void {
     const ativo = rail.querySelector<HTMLElement>('[aria-current="page"]');
     if (!ativo) return;
 
-    const acima = ativo.offsetTop < rail.scrollTop;
-    const abaixo =
-      ativo.offsetTop + ativo.offsetHeight > rail.scrollTop + rail.clientHeight;
+    const painel = rail.getBoundingClientRect();
+    const item = ativo.getBoundingClientRect();
+    const margem = Math.min(80, rail.clientHeight / 3);
+    const acima = item.top < painel.top + margem;
+    const abaixo = item.bottom > painel.bottom - margem;
     if (!acima && !abaixo) return;
 
     // Um terço da altura acima do item, não no topo: mostrar o rótulo do grupo
     // junto situa quem olha.
-    rail.scrollTop = Math.max(0, ativo.offsetTop - rail.clientHeight / 3);
+    rail.scrollBy({ top: item.top - painel.top - margem, behavior: "auto" });
   });
 }

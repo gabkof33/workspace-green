@@ -1,6 +1,6 @@
 /** Acesso à Central Green — entrar ou cadastrar. */
 
-import { avisar, h, montar, icone } from "@/lib/dom";
+import { avisar, estatico, h, montar, icone } from "@/lib/dom";
 import {
   cadastrar,
   setoresParaCadastro,
@@ -726,10 +726,8 @@ function campo(
   };
 }
 
-const OLHO_ABERTO =
-  '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
-const OLHO_FECHADO =
-  '<path d="M2 12s3.6-7 10-7c2 0 3.8.7 5.2 1.6"/><path d="M21.4 9.2c.4.5.6 1 .6 1s-3.6 7-10 7c-1 0-2-.2-2.8-.5"/><path d="M3 3l18 18"/>';
+const OLHO_ABERTO = estatico`<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>`;
+const OLHO_FECHADO = estatico`<path d="M2 12s3.6-7 10-7c2 0 3.8.7 5.2 1.6"/><path d="M21.4 9.2c.4.5.6 1 .6 1s-3.6 7-10 7c-1 0-2-.2-2.8-.5"/><path d="M3 3l18 18"/>`;
 
 /**
  * Mostrar e esconder a senha.

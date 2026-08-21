@@ -426,6 +426,35 @@ type EventosApiInsert = {
   criado_em?: string;
 };
 
+type EventosSegurancaRow = {
+  id: number;
+  tipo: TipoEventoSeguranca;
+  severidade: SeveridadeSeguranca;
+  rota: string | null;
+  detalhe: Json;
+  usuario_id: string;
+  criado_em: string;
+};
+type EventosSegurancaInsert = {
+  id?: number;
+  tipo: TipoEventoSeguranca;
+  severidade?: SeveridadeSeguranca;
+  rota?: string | null;
+  detalhe?: Json;
+  usuario_id: string;
+  criado_em?: string;
+};
+
+/** Espelha o `check` da coluna: tipo novo exige migration, não só código. */
+export type TipoEventoSeguranca =
+  | "devtools_suspeito"
+  | "dom_mutado"
+  | "integridade_divergente"
+  | "armazenamento_invalido"
+  | "csp_violada";
+
+export type SeveridadeSeguranca = "info" | "aviso" | "alto";
+
 type AuditoriaRow = {
   id: number;
   tabela: string;
@@ -1213,6 +1242,14 @@ export type Database = {
         Update: Partial<EventosApiInsert>;
         Relationships: [];
       };
+      eventos_seguranca: {
+        Row: EventosSegurancaRow;
+        Insert: EventosSegurancaInsert;
+        // Trilha, igual a `eventos_api`: ninguém chama `.update()`, mas o
+        // tipo tem de existir para a indexação genérica do cliente.
+        Update: Partial<EventosSegurancaInsert>;
+        Relationships: [];
+      };
       notificacoes: {
         Row: NotificacoesRow;
         Insert: NotificacoesInsert;
@@ -1463,6 +1500,17 @@ export type Database = {
           equipe_nome: string | null;
           ativo: boolean;
           criado_em: string;
+        }>;
+      };
+      // Só o necessário para resolver @menção. Se uma tela precisa de cargo,
+      // hierarquia ou equipe, ela precisa de `diretorio` — e do papel que
+      // `diretorio` exige.
+      diretorio_mencoes: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          nome_completo: string;
+          avatar_url: string | null;
         }>;
       };
       minhas_notificacoes: {

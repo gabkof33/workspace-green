@@ -5,7 +5,7 @@ import { corDaTag } from "@/lib/api";
 import { avisar, h, montar } from "@/lib/dom";
 import { navegar } from "@/lib/router";
 import { dataCurta, dataHora } from "@/lib/formato";
-import { listarDiretorio } from "@/lib/api";
+import { listarDiretorioMencoes } from "@/lib/api";
 import {
   adicionarItem,
   adicionarParametro,
@@ -47,7 +47,7 @@ import type {
   ParametroEnriquecido,
   ParametroSugerido,
   Perfil,
-  PessoaDiretorio,
+  PessoaMencao,
   PrioridadeDemanda,
   StatusDemanda,
   TipoDemanda,
@@ -72,7 +72,7 @@ export function renderizarDemanda(
   montar(alvo, area);
   aguardando(area, "ficha");
 
-  let diretorio: PessoaDiretorio[] = [];
+  let diretorio: PessoaMencao[] = [];
   let editando = false;
 
   let itens: ItemDemandaEnriquecido[] = [];
@@ -88,7 +88,7 @@ export function renderizarDemanda(
             listarComentarios(demanda.id),
             diretorio.length > 0
               ? Promise.resolve(diretorio)
-              : listarDiretorio(),
+              : listarDiretorioMencoes(),
             listarItens(demanda.id),
             listarParametros(demanda.id),
             sugestoesParam.length > 0

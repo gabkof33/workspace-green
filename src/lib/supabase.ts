@@ -4,8 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 import {
   criarFetchInstrumentado,
   definirContextoAuth,
+  usuarioAtual,
 } from "@/lib/observabilidade-nucleo";
 import { configurarGravador, enfileirar } from "@/lib/observabilidade-fila";
+import { configurarGravadorSeguranca } from "@/lib/sentinela";
 import type { Database } from "@/types/database";
 
 const url = import.meta.env["VITE_SUPABASE_URL"];
@@ -35,6 +37,17 @@ configurarGravador({
     const { error } = await supabase.from("eventos_api").insert(linhas);
     return { error: error ? { message: error.message } : null };
   },
+});
+
+// Trilha de eventos suspeitos. Mesma inversão da fila acima: quem sabe falar
+// com o banco é este arquivo. O id sai do contexto em memória — sem chamada
+// de rede para descobrir quem está logado.
+configurarGravadorSeguranca({
+  gravar: async (linhas) => {
+    const { error } = await supabase.from("eventos_seguranca").insert(linhas);
+    return { error: error ? { message: error.message } : null };
+  },
+  usuarioId: () => usuarioAtual().id,
 });
 
 // Contexto de autenticação para a instrumentação: leitura em memória, sem

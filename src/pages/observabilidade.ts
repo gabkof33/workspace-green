@@ -21,6 +21,7 @@ import {
   type RuaSegmento,
 } from "@/components/mapa-ruas";
 import { desenharCascataDeTraco } from "@/components/cascata-traco";
+import { desenharFluxoTermico } from "@/components/fluxo-termico";
 import { lancarPacote } from "@/components/pacote-em-transito";
 import { avisar, h, montar } from "@/lib/dom";
 import { tempoRelativo } from "@/lib/formato";
@@ -72,6 +73,14 @@ function rotuloJanela(minutos: number): string {
 
 /* ---------- Grafo: mesma RPC, duas maneiras de colorir ---------- */
 
+function piorSituacao(
+  primeira: "ok" | "alerta" | "critico",
+  segunda: "ok" | "alerta" | "critico",
+): "ok" | "alerta" | "critico" {
+  const peso = { ok: 0, alerta: 1, critico: 2 } as const;
+  return peso[primeira] >= peso[segunda] ? primeira : segunda;
+}
+
 function montarGrafo(
   dados: GrafoServicos,
   modo: "topologia" | "red",
@@ -81,7 +90,7 @@ function montarGrafo(
   const destinos: NoGrafo[] = dados.nos.map((n) => ({
     chave: n.servico,
     rotulo: n.servico,
-    cor: modo === "red" ? corDaSituacao(avaliarTaxaErro(n.taxa_erro)) : "var(--g2)",
+    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(n.taxa_erro), avaliarLatencia(n.p95_ms))) : "var(--g2)",
     valor: String(n.requisicoes),
     detalhe: `${n.requisicoes} chamada${n.requisicoes === 1 ? "" : "s"} · ${porcentagem(n.taxa_erro)} erro · p95 ${duracaoMs(n.p95_ms)}`,
   }));
@@ -89,7 +98,7 @@ function montarGrafo(
   const arestas: ArestaGrafo[] = dados.arestas.map((a) => ({
     origem: ORIGEM_CHAVE,
     destino: a.destino,
-    cor: modo === "red" ? corDaSituacao(avaliarTaxaErro(a.taxa_erro)) : "var(--g-eixo)",
+    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(a.taxa_erro), avaliarLatencia(a.p95_ms))) : "var(--g-eixo)",
     espessura: Math.max(0.4, Math.round((a.requisicoes / maxRequisicoes) * 2 * 10) / 10),
     detalhe: `${a.requisicoes} chamada${a.requisicoes === 1 ? "" : "s"} · p95 ${duracaoMs(a.p95_ms)}`,
   }));
@@ -226,6 +235,26 @@ export function renderizarObservabilidade(
         cor: "var(--g4)",
       }),
     );
+
+  const detalheDoNo = (no: NoGrafo): HTMLElement => {
+    const [chamadas, erro, p95] = no.detalhe.split(" · ");
+    return h(
+      "div",
+      { class: "cartao grafico" },
+      h(
+        "div",
+        { class: "grafico__cabecalho" },
+        h("h3", { class: "grafico__titulo" }, `Detalhes: ${no.rotulo}`),
+      ),
+      h(
+        "div",
+        { class: "grade-kpi" },
+        indicador({ rotulo: "Chamadas", valor: chamadas ?? "—", cor: no.cor }),
+        indicador({ rotulo: "Taxa de erro", valor: erro ?? "—", cor: no.cor }),
+        indicador({ rotulo: "Latência p95", valor: p95 ?? "—", cor: no.cor }),
+      ),
+    );
+  };
 
   /* ---------- Traços ---------- */
 
@@ -402,17 +431,28 @@ export function renderizarObservabilidade(
       ])
         .then(([grafo, kpis, eventos]) => {
           const montado = montarGrafo(grafo, "red");
-          const resultado = desenharGrafoServicos(
-            "Grafo de serviços (RED)",
-            montado.origem,
+          const painelDetalhe = h(
+            "div",
+            {},
+            h(
+              "p",
+              { class: "texto-sutil" },
+              "Selecione uma faixa do fluxo para ver as métricas do serviço.",
+            ),
+          );
+          const resultado = desenharFluxoTermico(
+            "Fluxo térmico (RED)",
             montado.destinos,
-            montado.arestas,
+            eventos,
+            minutos,
+            (no) => montar(painelDetalhe, detalheDoNo(no)),
           );
           montar(
             area,
             cabecalho(),
             indicadores(kpis),
-            resultado.elemento,
+            resultado,
+            painelDetalhe,
             tabelaDeChamadas(eventos, "Chamadas na janela"),
           );
         })
@@ -504,6 +544,14 @@ export function renderizarObservabilidade(
           montado.arestas,
           "Sem tráfego na última hora — use outra aba da Central Green para ver os pacotes chegarem aqui.",
         );
+        resultado.elemento.classList.add("fluxo__grafo");
+        const statusFluxo = h(
+          "div",
+          { class: "fluxo__status" },
+          h("span", { class: "fluxo__pulso" }),
+          h("span", {}, "Aguardando chamadas reais nesta sessão…"),
+        );
+        resultado.elemento.querySelector(".grafico__cabecalho")?.append(statusFluxo);
         const svg = resultado.elemento.querySelector<SVGSVGElement>(".grafo__svg");
 
         const containerTabela = h("div", {});
@@ -522,6 +570,8 @@ export function renderizarObservabilidade(
 
         iniciarFluxoTempoReal((evento) => {
           linhasFluxo = [evento, ...linhasFluxo].slice(0, 40);
+          resultado.destacarConexao(evento.servico_destino);
+          statusFluxo.lastElementChild!.textContent = `Agora: ${evento.servico_destino} · ${duracaoMs(evento.latencia_ms)}`;
 
           const origemCoord = resultado.coordenadaDoNo(ORIGEM_CHAVE);
           const destinoCoord = resultado.coordenadaDoNo(evento.servico_destino);

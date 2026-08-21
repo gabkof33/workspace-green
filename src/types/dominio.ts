@@ -104,6 +104,23 @@ export interface PessoaDiretorio {
   criado_em: string;
 }
 
+/**
+ * O mínimo para resolver @menção: casar um nome digitado com um id.
+ *
+ * Os campos extras são opcionais porque `PessoaDiretorio` — que tem todos —
+ * continua servindo aqui. Quem vem de `diretorio_mencoes` não os traz, e o
+ * componente de menção degrada a exibição em vez de quebrar: é a diferença
+ * entre o que a equipe de TI vê e o que um solicitante vê.
+ */
+export interface PessoaMencao {
+  id: string;
+  nome_completo: string;
+  cargo?: string | null;
+  hierarquia?: Hierarquia;
+  senioridade?: Senioridade;
+  equipe_nome?: string | null;
+}
+
 /** Campos que coordenador e gestor podem alterar em outra pessoa. */
 export interface AlteracaoPerfil {
   hierarquia?: Hierarquia;

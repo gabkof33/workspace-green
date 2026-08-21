@@ -2,7 +2,7 @@
 
 import { esqueleto } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
-import { listarDiretorio } from "@/lib/api";
+import { listarDiretorioMencoes } from "@/lib/api";
 import {
   assinarCanal,
   encerrarAssinatura,
@@ -33,7 +33,7 @@ import type {
   CanalComContagem,
   MensagemEnriquecida,
   Perfil,
-  PessoaDiretorio,
+  PessoaMencao,
   PrioridadeDemanda,
   RascunhoDemanda,
   TipoDemanda,
@@ -41,7 +41,7 @@ import type {
 
 export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   let canais: CanalComContagem[] = [];
-  let diretorio: PessoaDiretorio[] = [];
+  let diretorio: PessoaMencao[] = [];
   let canalAtivo: CanalComContagem | null = null;
   let mensagens: MensagemEnriquecida[] = [];
   let campo: CampoMencao | null = null;
@@ -141,7 +141,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
 
   /* ---------- Carga inicial ---------- */
 
-  void Promise.all([listarCanais(), listarDiretorio()])
+  void Promise.all([listarCanais(), listarDiretorioMencoes()])
     .then(([listaC, listaD]) => {
       canais = listaC;
       diretorio = listaD;

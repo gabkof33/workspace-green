@@ -1,7 +1,7 @@
 /** Renderização de texto com menções e referências. */
 
 import { h } from "@/lib/dom";
-import type { PessoaDiretorio } from "@/types/dominio";
+import type { PessoaMencao } from "@/types/dominio";
 
 const PADRAO_CODIGO = /^(DEM|INC|REQ)-\d{4}-\d{6}$/;
 
@@ -14,7 +14,7 @@ export interface OpcoesTexto {
 
 export function renderizarTexto(
   corpo: string,
-  diretorio: PessoaDiretorio[],
+  diretorio: PessoaMencao[],
   opcoes: OpcoesTexto = {},
 ): HTMLElement {
   const bloco = h("div", { class: opcoes.classe ?? "linha__corpo" });
@@ -55,7 +55,7 @@ export function renderizarTexto(
 /** Quebra o texto em trechos comuns, menções e códigos. */
 function particionar(
   corpo: string,
-  diretorio: PessoaDiretorio[],
+  diretorio: PessoaMencao[],
   comCodigos: boolean,
 ): string[] {
   const nomes = diretorio

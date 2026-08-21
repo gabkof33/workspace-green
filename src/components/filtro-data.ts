@@ -2,6 +2,7 @@
 
 import { h, montar } from "@/lib/dom";
 import { diasAtras, hojeIso, type Periodo } from "@/lib/periodo";
+import { gravar, ler } from "@/lib/armazenamento";
 
 export interface FiltroData {
   elemento: HTMLElement;
@@ -20,7 +21,6 @@ const OPCOES: Array<[string, string, number | null]> = [
 // grupo de rádio e um desmarcaria o outro.
 let sequencia = 0;
 
-const CHAVE_GAVETA = "central-green:filtro-aberto";
 
 /**
  * Guarda o que está **aberto** — o inverso do menu lateral.
@@ -30,12 +30,7 @@ const CHAVE_GAVETA = "central-green:filtro-aberto";
  * novo nascer recolhido, que é o que se quer.
  */
 function abertas(): Set<string> {
-  try {
-    const bruto = localStorage.getItem(CHAVE_GAVETA);
-    return new Set(bruto ? (JSON.parse(bruto) as string[]) : []);
-  } catch {
-    return new Set();
-  }
+  return new Set(ler("filtro-aberto") ?? []);
 }
 
 function gavetaAberta(chave: string): boolean {
@@ -46,7 +41,7 @@ function gravarGaveta(chave: string, aberta: boolean): void {
   const conjunto = abertas();
   if (aberta) conjunto.add(chave);
   else conjunto.delete(chave);
-  localStorage.setItem(CHAVE_GAVETA, JSON.stringify([...conjunto]));
+  gravar("filtro-aberto", [...conjunto]);
 }
 
 export function criarFiltroData(

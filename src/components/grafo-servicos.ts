@@ -43,6 +43,7 @@ export interface ResultadoGrafo {
   elemento: HTMLElement;
   /** Para quem anima pacotes por cima reaproveitar exatamente este layout. */
   coordenadaDoNo: (chave: string) => { x: number; y: number } | null;
+  destacarConexao: (destino: string) => void;
 }
 
 const RAIO_ORIGEM = 8;
@@ -56,12 +57,13 @@ export function desenharGrafoServicos(
   destinos: NoGrafo[],
   arestas: ArestaGrafo[],
   vazio = "Sem chamadas na janela escolhida.",
+  aoSelecionarNo?: (no: NoGrafo) => void,
 ): ResultadoGrafo {
   const n = destinos.length;
   const coords = posicionarEmColunas(
     origem.chave,
     destinos.map((d) => d.chave),
-    { xOrigem: 12, colunas: [62, 90] },
+    { xOrigem: 52, colunas: destinos.length > 5 ? [178, 256] : [230] },
   );
 
   const coordenadaDoNo = (chave: string): { x: number; y: number } | null =>
@@ -82,6 +84,7 @@ export function desenharGrafoServicos(
         h("p", { class: "texto-sutil" }, vazio),
       ),
       coordenadaDoNo,
+      destacarConexao: () => undefined,
     };
   }
 
@@ -89,10 +92,18 @@ export function desenharGrafoServicos(
 
   const svg = svgEl("svg", {
     class: "grafo__svg",
-    viewBox: "0 0 100 100",
+    viewBox: "0 0 300 100",
     preserveAspectRatio: "xMidYMid meet",
-    "aria-hidden": "true",
+    role: "img",
+    "aria-label": "Grafo de serviços; selecione um nó para ver as métricas.",
   });
+  const circulos = new Map<string, SVGCircleElement>();
+  const linhas = new Map<string, SVGLineElement>();
+  const selecionar = (no: NoGrafo, circulo: SVGCircleElement): void => {
+    circulos.forEach((item) => item.classList.remove("grafo__no--selecionado"));
+    circulo.classList.add("grafo__no--selecionado");
+    aoSelecionarNo?.(no);
+  };
 
   const defs = svgEl("defs");
   const marcador = svgEl("marker", {
@@ -122,6 +133,7 @@ export function desenharGrafoServicos(
 
     const linha = svgEl("line", {
       class: "grafo__aresta",
+      "data-destino": aresta.destino,
       x1: String(de.x),
       y1: String(de.y),
       x2: String(x2),
@@ -131,6 +143,7 @@ export function desenharGrafoServicos(
       "marker-end": `url(#${idMarcador})`,
     });
     linha.append(svgTitulo(aresta.detalhe));
+    linhas.set(aresta.destino, linha);
     svg.append(linha);
   }
 
@@ -166,8 +179,19 @@ export function desenharGrafoServicos(
       r: String(RAIO_DESTINO),
       fill: "var(--c-surface)",
       stroke: d.cor,
+      tabindex: "0",
+      role: "button",
+      "aria-label": `${d.rotulo}: ${d.detalhe}. Ver detalhes`,
     });
     circulo.append(svgTitulo(`${d.rotulo} — ${d.detalhe}`));
+    circulos.set(d.chave, circulo);
+    circulo.addEventListener("click", () => selecionar(d, circulo));
+    circulo.addEventListener("keydown", (evento) => {
+      if (evento.key === "Enter" || evento.key === " ") {
+        evento.preventDefault();
+        selecionar(d, circulo);
+      }
+    });
     svg.append(circulo);
 
     if (d.valor) {
@@ -192,5 +216,11 @@ export function desenharGrafoServicos(
       legenda,
     ),
     coordenadaDoNo,
+    destacarConexao: (destino: string): void => {
+      linhas.forEach((linha) => linha.classList.remove("grafo__aresta--ativa"));
+      circulos.forEach((circulo) => circulo.classList.remove("grafo__no--ativo"));
+      linhas.get(destino)?.classList.add("grafo__aresta--ativa");
+      circulos.get(destino)?.classList.add("grafo__no--ativo");
+    },
   };
 }

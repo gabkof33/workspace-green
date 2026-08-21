@@ -2,7 +2,7 @@
 
 import { h, montar } from "@/lib/dom";
 import { insigniaHierarquia } from "@/components/insignia";
-import type { PessoaDiretorio } from "@/types/dominio";
+import type { PessoaMencao } from "@/types/dominio";
 
 export interface CampoMencao {
   elemento: HTMLElement;
@@ -13,12 +13,12 @@ export interface CampoMencao {
 }
 
 export function criarCampoMencao(
-  diretorio: PessoaDiretorio[],
+  diretorio: PessoaMencao[],
   opcoes: { placeholder?: string; rotulo?: string } = {},
 ): CampoMencao {
-  const escolhidos = new Map<string, PessoaDiretorio>();
+  const escolhidos = new Map<string, PessoaMencao>();
   let indiceAtivo = 0;
-  let candidatos: PessoaDiretorio[] = [];
+  let candidatos: PessoaMencao[] = [];
 
   const area = h("textarea", {
     class: "area-texto",
@@ -134,14 +134,21 @@ export function criarCampoMencao(
               },
             },
           },
+          // Insígnia e cargo só aparecem para quem recebeu o diretório
+          // completo — a equipe de TI. Solicitante vem de
+          // `diretorio_mencoes`, que entrega apenas id e nome: sem esses
+          // campos a linha mostra o nome e nada mais, em vez de inventar
+          // hierarquia que a pessoa não tem permissão de saber.
           h(
             "span",
             { class: "mencao__nome" },
-            insigniaHierarquia(p.hierarquia, {
-              nome: p.nome_completo,
-              senioridade: p.senioridade,
-            }),
-            " ",
+            p.hierarquia
+              ? insigniaHierarquia(p.hierarquia, {
+                  nome: p.nome_completo,
+                  ...(p.senioridade ? { senioridade: p.senioridade } : {}),
+                })
+              : null,
+            p.hierarquia ? " " : null,
             p.nome_completo,
           ),
           h(
@@ -154,7 +161,7 @@ export function criarCampoMencao(
     );
   };
 
-  const selecionar = (pessoa: PessoaDiretorio): void => {
+  const selecionar = (pessoa: PessoaMencao): void => {
     const atual = termoAtual();
     if (!atual) return;
 

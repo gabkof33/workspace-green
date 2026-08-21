@@ -11,6 +11,7 @@ import type {
   Interacao,
   Perfil,
   PessoaDiretorio,
+  PessoaMencao,
   Prioridade,
   RascunhoChamado,
   SchemaFormulario,
@@ -278,11 +279,30 @@ export function podeGerirPessoas(perfil: Perfil): boolean {
 
 /* Pessoas */
 
+/**
+ * Diretório completo. Restrito à equipe de TI no banco: para solicitante a
+ * RPC devolve zero linhas, e a tela cai no estado vazio em vez de errar.
+ */
 export async function listarDiretorio(): Promise<PessoaDiretorio[]> {
   const { data, error } = await supabase.rpc("diretorio");
 
   if (error) throw new Error(traduzirErro(error.message));
   return (data ?? []) as PessoaDiretorio[];
+}
+
+/**
+ * Id e nome de quem está ativo — só o que @menção precisa.
+ *
+ * É esta que as telas de solicitante usam (chat, comentário de demanda).
+ * Não troque por `listarDiretorio` para "já ter os outros campos": era
+ * exatamente assim que o organograma inteiro vazava para qualquer sessão
+ * autenticada.
+ */
+export async function listarDiretorioMencoes(): Promise<PessoaMencao[]> {
+  const { data, error } = await supabase.rpc("diretorio_mencoes");
+
+  if (error) throw new Error(traduzirErro(error.message));
+  return (data ?? []) as PessoaMencao[];
 }
 
 /** Altera o perfil de outra pessoa. */

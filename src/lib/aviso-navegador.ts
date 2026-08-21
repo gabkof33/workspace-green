@@ -1,6 +1,6 @@
 /** Notificação do navegador. */
 
-const CHAVE = "central-green:avisos";
+import { gravar, ler } from "@/lib/armazenamento";
 
 export type EstadoAviso = "indisponivel" | "negado" | "desligado" | "ligado";
 
@@ -15,7 +15,7 @@ export function estado(): EstadoAviso {
   if (!("Notification" in window)) return "indisponivel";
   if (Notification.permission === "denied") return "negado";
   if (Notification.permission !== "granted") return "desligado";
-  return localStorage.getItem(CHAVE) === "0" ? "desligado" : "ligado";
+  return ler("avisos") === "0" ? "desligado" : "ligado";
 }
 
 /**
@@ -33,12 +33,12 @@ export async function ligar(): Promise<EstadoAviso> {
   }
   if (Notification.permission !== "granted") return estado();
 
-  localStorage.setItem(CHAVE, "1");
+  gravar("avisos", "1");
   return "ligado";
 }
 
 export function desligar(): void {
-  localStorage.setItem(CHAVE, "0");
+  gravar("avisos", "0");
 }
 
 export interface Aviso {

@@ -1,5 +1,31 @@
 /** Utilitários de DOM. */
 
+/**
+ * Marcação estática escrita no código, nunca vinda de dado.
+ *
+ * `h({ html })` e `icone()` atribuem `innerHTML`, que é o único caminho de XSS
+ * que esta aplicação tem — todo o resto do texto entra por `createTextNode`,
+ * que escapa por construção. O tipo ramificado fecha esse caminho no
+ * compilador: `string` não é atribuível a `MarcacaoEstatica`, então passar uma
+ * variável com conteúdo de banco, de URL ou de formulário não compila.
+ *
+ * A única forma de produzir o tipo é `estatico`, e por isso ela existe: quem
+ * chamar precisa dizer explicitamente que aquilo é literal do código.
+ */
+export type MarcacaoEstatica = string & { readonly __estatica: unique symbol };
+
+/**
+ * Promove um literal a marcação estática. Use como tag de template.
+ *
+ * Só aceita template **sem interpolação**: a assinatura recebe um argumento,
+ * então `estatico`\``<b>${x}</b>`\`` vira uma chamada de dois argumentos e o
+ * compilador recusa. É o que impede o padrão que causa XSS — montar HTML
+ * somando texto de origem externa.
+ */
+export function estatico(partes: TemplateStringsArray): MarcacaoEstatica {
+  return partes[0] as MarcacaoEstatica;
+}
+
 type Filho = Node | string | number | null | undefined | false;
 
 interface AtributosBase {
@@ -36,7 +62,8 @@ interface AtributosBase {
   on: Partial<{
     [K in keyof HTMLElementEventMap]: (ev: HTMLElementEventMap[K]) => void;
   }>;
-  html: string;
+  /** Vira `innerHTML`. Por isso não é `string` — ver `MarcacaoEstatica`. */
+  html: MarcacaoEstatica;
 }
 
 /**
@@ -122,7 +149,7 @@ export function $$<T extends HTMLElement = HTMLElement>(
 }
 
 /** Ícone SVG inline a partir do traçado. */
-export function icone(caminho: string): SVGSVGElement {
+export function icone(caminho: MarcacaoEstatica): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
@@ -135,7 +162,7 @@ export function icone(caminho: string): SVGSVGElement {
   return svg;
 }
 
-export const ICONES = {
+const TRACADOS_ICONES = {
   seta: '<path d="M9 6l6 6-6 6"/>',
   abrir: '<path d="M12 5v14M5 12h14"/>',
   fila: '<path d="M3 6h18M3 12h18M3 18h12"/>',
@@ -170,6 +197,17 @@ export const ICONES = {
   observabilidade:
     '<circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="19" cy="18" r="2.2"/><path d="M7 12h4M13.2 9.6l3.8-2.5M13.2 14.4l3.8 2.5"/>',
 } as const;
+
+/**
+ * A fronteira auditada: aqui, e só aqui, texto cru é promovido a marcação.
+ *
+ * São traçados SVG literais escritos neste arquivo — nada vem de banco, URL
+ * ou formulário. Do lado de fora `ICONES.x` já é `MarcacaoEstatica`, então
+ * `icone()` e `h({ html })` não aceitam mais nenhuma outra string.
+ */
+export const ICONES = TRACADOS_ICONES as {
+  readonly [K in keyof typeof TRACADOS_ICONES]: MarcacaoEstatica;
+};
 
 /** Notificação efêmera no canto da tela. */
 export function avisar(

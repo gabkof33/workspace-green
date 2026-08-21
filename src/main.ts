@@ -27,6 +27,7 @@ import {
   pararNotificacoes,
 } from "@/lib/notificacoes-tempo-real";
 import { iniciarMarcador, zerarNaoLidos } from "@/lib/marcador-aba";
+import { iniciarSentinela } from "@/lib/sentinela";
 import { renderizarAbrir } from "@/pages/abrir";
 import { renderizarFila } from "@/pages/fila";
 import { renderizarMeus } from "@/pages/meus";
@@ -64,6 +65,11 @@ const ROTAS_DE_TI = new Set([
   "ativos",
   "rotinas",
   "painel",
+  // `pessoas` entrou aqui junto com o fecho da RPC `diretorio`: a tela mostra
+  // papel, hierarquia e senioridade de todo mundo, e o banco agora só entrega
+  // isso para a equipe. Sem o gate, solicitante com a aba liberada abriria um
+  // organograma vazio e sem explicação.
+  "pessoas",
   "tempos",
   "observabilidade",
 ]);
@@ -448,6 +454,12 @@ function desenharApp(): void {
 }
 
 aplicarTemaSalvo();
+
+// Sentinela antes de qualquer desenho: os detectores precisam estar de pé
+// para ver a primeira mutação de DOM. Sem sessão os eventos são descartados
+// na entrada da fila, então chamar aqui não vaza nada de visitante anônimo.
+iniciarSentinela();
+
 aoMudarRota(desenharApp);
 
 // O link do e-mail abre uma sessão de recuperação; a tela vira a de senha
