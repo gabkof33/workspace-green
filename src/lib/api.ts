@@ -1,5 +1,6 @@
 /** Camada de dados: sessão, pessoas, catálogo e chamados. */
 
+import { descarregarAgora } from "@/lib/observabilidade-fila";
 import { limiteFinal } from "@/lib/periodo";
 import { supabase, traduzirErro } from "@/lib/supabase";
 import type {
@@ -175,6 +176,11 @@ export async function cadastrar(dados: DadosCadastro): Promise<{
 }
 
 export async function sair(): Promise<void> {
+  // Antes de derrubar a sessão, não depois: o lote pendente só é aceito pelo
+  // RLS enquanto o token de quem o gerou ainda vale. O evento do próprio
+  // `logout` fica de fora — ele é capturado durante a chamada abaixo e o
+  // descarte da troca de sessão o alcança primeiro.
+  await descarregarAgora();
   await supabase.auth.signOut();
 }
 

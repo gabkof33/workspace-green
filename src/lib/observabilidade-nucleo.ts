@@ -20,19 +20,40 @@ const CAMINHO_TOKEN_AUTH = "/auth/v1/token";
 export interface ContextoAuth {
   id: string | null;
   token: string | null;
+  /** Epoch em segundos do fim do token; `null` quando não há sessão. */
+  expiraEm: number | null;
 }
 
 let usuarioAtualId: string | null = null;
 let tokenAtual: string | null = null;
+let expiraEmAtual: number | null = null;
 
 /** Chamado por `supabase.ts` a cada mudança de sessão — nunca lido daqui. */
-export function definirContextoAuth(id: string | null, token: string | null): void {
+export function definirContextoAuth(
+  id: string | null,
+  token: string | null,
+  expiraEm: number | null,
+): void {
   usuarioAtualId = id;
   tokenAtual = token;
+  expiraEmAtual = expiraEm;
 }
 
 export function usuarioAtual(): ContextoAuth {
-  return { id: usuarioAtualId, token: tokenAtual };
+  return { id: usuarioAtualId, token: tokenAtual, expiraEm: expiraEmAtual };
+}
+
+/**
+ * A sessão que este contexto descreve ainda vale?
+ *
+ * `onAuthStateChange` é a única fonte deste contexto. Se algum caminho de
+ * falha não emitir evento, o id continua em memória apontando para uma sessão
+ * que já morreu, e quem gravar em nome dele leva 42501 do RLS. A expiração do
+ * token revela isso sem nenhuma ida à rede.
+ */
+export function sessaoEmMemoriaValida(): boolean {
+  if (!usuarioAtualId || expiraEmAtual === null) return false;
+  return Date.now() < expiraEmAtual * 1000;
 }
 
 /* ---------- Escopo de traço ---------- */

@@ -110,6 +110,7 @@ As abas Mapa, Grafo e Tracing aceitam janelas de 15 min, 1 h, 4 h ou 24 h. Os in
 - Não há agente no servidor; dependências internas do backend não aparecem.
 - Tempo de banco e quantidade de registros dependem de cabeçalhos expostos pela API e podem ser nulos.
 - Ajustes manuais do mapa são mantidos enquanto a visualização está aberta; ainda não são persistidos por usuário.
+- Eventos capturados nos últimos instantes de uma sessão são descartados. A política de RLS exige `usuario_id = auth.uid()`, e o lote sai até 5 s depois da chamada: se a sessão terminou ou trocou nesse intervalo, gravar seria recusa garantida. O evento do próprio `logout` cai sempre nessa janela.
 
 ## Como estender
 

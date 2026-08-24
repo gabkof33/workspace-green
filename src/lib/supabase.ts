@@ -4,9 +4,14 @@ import { createClient } from "@supabase/supabase-js";
 import {
   criarFetchInstrumentado,
   definirContextoAuth,
+  sessaoEmMemoriaValida,
   usuarioAtual,
 } from "@/lib/observabilidade-nucleo";
-import { configurarGravador, enfileirar } from "@/lib/observabilidade-fila";
+import {
+  configurarGravador,
+  descartarLote,
+  enfileirar,
+} from "@/lib/observabilidade-fila";
 import { configurarGravadorSeguranca } from "@/lib/sentinela";
 import type { Database } from "@/types/database";
 
@@ -34,7 +39,18 @@ export const supabase = createClient<Database>(url, chave, {
 
 configurarGravador({
   gravar: async (linhas) => {
-    const { error } = await supabase.from("eventos_api").insert(linhas);
+    // Última barreira contra 42501: o lote é estampado quando a chamada
+    // acontece, mas só sai daqui até 5 s depois. Se a sessão virou nesse
+    // intervalo, mandar o lote inteiro seria recusa garantida — o RLS não
+    // aceita linha com `usuario_id` diferente de `auth.uid()`, e a recusa
+    // vale para todas as linhas do INSERT, não só a divergente.
+    const { id } = usuarioAtual();
+    if (!sessaoEmMemoriaValida()) return { error: null };
+
+    const minhas = id ? linhas.filter((l) => l.usuario_id === id) : [];
+    if (minhas.length === 0) return { error: null };
+
+    const { error } = await supabase.from("eventos_api").insert(minhas);
     return { error: error ? { message: error.message } : null };
   },
 });
@@ -44,7 +60,15 @@ configurarGravador({
 // de rede para descobrir quem está logado.
 configurarGravadorSeguranca({
   gravar: async (linhas) => {
-    const { error } = await supabase.from("eventos_seguranca").insert(linhas);
+    // `eventos_seguranca` tem a mesma política `usuario_id = auth.uid()` e o
+    // mesmo lote atrasado — logo, a mesma guarda que o gravador acima.
+    const { id } = usuarioAtual();
+    if (!sessaoEmMemoriaValida()) return { error: null };
+
+    const minhas = id ? linhas.filter((l) => l.usuario_id === id) : [];
+    if (minhas.length === 0) return { error: null };
+
+    const { error } = await supabase.from("eventos_seguranca").insert(minhas);
     return { error: error ? { message: error.message } : null };
   },
   usuarioId: () => usuarioAtual().id,
@@ -53,7 +77,18 @@ configurarGravadorSeguranca({
 // Contexto de autenticação para a instrumentação: leitura em memória, sem
 // chamada de rede, atualizada a cada troca de sessão ou renovação de token.
 supabase.auth.onAuthStateChange((_evento, sessao) => {
-  definirContextoAuth(sessao?.user.id ?? null, sessao?.access_token ?? null);
+  const idNovo = sessao?.user.id ?? null;
+  const { id: idAnterior } = usuarioAtual();
+
+  // Só quando a identidade muda de fato. `TOKEN_REFRESHED` mantém o mesmo id
+  // e não descarta nada — é o caminho normal, que roda a cada hora.
+  if (idAnterior !== null && idAnterior !== idNovo) descartarLote();
+
+  definirContextoAuth(
+    idNovo,
+    sessao?.access_token ?? null,
+    sessao?.expires_at ?? null,
+  );
 });
 
 /** Traduz mensagens do Postgres para linguagem de usuário. */

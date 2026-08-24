@@ -9,6 +9,7 @@
  */
 
 import {
+  sessaoEmMemoriaValida,
   usuarioAtual,
   type EventoCapturado,
 } from "@/lib/observabilidade-nucleo";
@@ -93,6 +94,28 @@ export function enfileirar(evento: EventoCapturado): void {
   temporizador ??= setTimeout(() => void descarregar(), INTERVALO_MS);
 }
 
+/**
+ * Descarta o lote pendente sem tentar gravar.
+ *
+ * Chamado quando a sessão troca ou termina: as linhas foram estampadas com o
+ * `usuario_id` de quem fez a chamada, e o RLS exige `usuario_id =
+ * auth.uid()`. Depois da troca o cliente já assina com outra identidade (ou
+ * nenhuma), e uma única linha divergente faz o Postgres recusar o lote
+ * inteiro — 42501 no log, e nada gravado.
+ */
+export function descartarLote(): void {
+  lote = [];
+  if (temporizador) {
+    clearTimeout(temporizador);
+    temporizador = null;
+  }
+}
+
+/** Grava agora o que estiver pendente — usado antes de encerrar a sessão. */
+export async function descarregarAgora(): Promise<void> {
+  await descarregar();
+}
+
 async function descarregar(): Promise<void> {
   if (temporizador) {
     clearTimeout(temporizador);
@@ -129,7 +152,9 @@ function descarregarNaSaida(): void {
   const { token } = usuarioAtual();
   const url = import.meta.env["VITE_SUPABASE_URL"];
   const chave = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
-  if (!token || !url || !chave) return;
+  // Token vencido aqui daria 401/42501 numa aba que já está fechando, sem
+  // ninguém para tratar o erro — melhor perder o lote em silêncio.
+  if (!token || !url || !chave || !sessaoEmMemoriaValida()) return;
 
   const linhas = lote;
   lote = [];
