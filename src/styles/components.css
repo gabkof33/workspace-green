@@ -1561,14 +1561,51 @@
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 6px 8px;
+  /* 5px + 3px de faixa = os 8px originais. Sem esse desconto o nome andaria
+     3px para a direita e sairia do prumo do rótulo do grupo. */
+  padding: 6px 8px 6px 5px;
   border: none;
+  border-left: 3px solid var(--canal-cor, transparent);
   background: none;
-  border-radius: var(--r-sm);
+  /* Canto reto só à esquerda: o arredondamento cortaria a faixa em bisel nas
+     pontas, e ela deixaria de ler como faixa. */
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
   cursor: pointer;
   color: var(--c-ink-2);
   font-size: var(--t-base);
   text-align: left;
+}
+
+/**
+ * Cor da faixa por canal.
+ *
+ * Fica no CSS, não no TypeScript: a tela manda só um índice em `data-cor` e a
+ * cor continua sendo decisão do sistema de design — trocar a paleta não passa
+ * por código de aplicação.
+ *
+ * Decorativa por definição. O nome do canal está escrito ao lado, então quem
+ * não distingue as cores não perde informação nenhuma.
+ */
+.conversa__canal[data-cor="geral"] {
+  --canal-cor: var(--c-accent);
+}
+.conversa__canal[data-cor="0"] {
+  --canal-cor: var(--c-conversa-1);
+}
+.conversa__canal[data-cor="1"] {
+  --canal-cor: var(--c-conversa-2);
+}
+.conversa__canal[data-cor="2"] {
+  --canal-cor: var(--c-conversa-3);
+}
+.conversa__canal[data-cor="3"] {
+  --canal-cor: var(--c-conversa-4);
+}
+.conversa__canal[data-cor="4"] {
+  --canal-cor: var(--c-conversa-5);
+}
+.conversa__canal[data-cor="5"] {
+  --canal-cor: var(--c-conversa-6);
 }
 .conversa__canal:hover {
   background: var(--c-surface-2);
@@ -4184,4 +4221,161 @@ button.tags__marca:hover {
   .grafo__pacote {
     display: none;
   }
+}
+
+/* --- Histograma empilhado (volume de chamadas) --------------------------- */
+
+.hist__area {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s-2);
+  height: 190px;
+}
+
+.hist__eixo-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-muted);
+  /* Meia linha de texto para cima: o rótulo alinha com a grade, não com o
+     topo da própria caixa. */
+  margin: -0.5em 0;
+}
+
+.hist__plot {
+  position: relative;
+  height: 100%;
+}
+
+/* Grade atrás de tudo e discreta de propósito: ela orienta, não informa. */
+.hist__grade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.hist__grade span {
+  display: block;
+  border-top: 1px solid var(--g-grade);
+}
+
+.hist__colunas {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  /* Folga de 2px entre barras vizinhas, como entre segmentos: é o que separa
+     duas colunas altas sem precisar de contorno. */
+  gap: 2px;
+}
+
+.hist__coluna {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  /* `column-reverse` para a primeira série do array ficar na base. */
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 2px;
+  border-radius: 2px;
+}
+.hist__coluna--ativa {
+  background: var(--c-surface-2);
+}
+
+.hist__seg {
+  display: block;
+  width: 100%;
+  /* Uma chamada em mil não pode desaparecer. Erro raro é justamente o que se
+     está procurando, e altura proporcional o tornaria invisível. */
+  min-height: 2px;
+}
+/* Ponta arredondada só no topo da pilha, ancorada na linha de base. */
+.hist__seg--topo {
+  border-radius: 3px 3px 0 0;
+}
+
+.hist__eixo-x {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--s-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-muted);
+}
+
+.hist__dica {
+  position: absolute;
+  /* Dentro do plot, não acima dele. Com quatro linhas, `bottom: 100%` subia
+     por cima do cabeçalho do cartão e chegava a encostar no cartão anterior —
+     nada corta (nenhum ancestral tem `overflow: hidden`), mas flutuava solto
+     sobre outro conteúdo. */
+  top: var(--s-2);
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 148px;
+  padding: var(--s-2);
+  border: 1px solid var(--c-line);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  box-shadow: var(--sombra);
+  font-size: var(--t-xs);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.hist__area--ativa .hist__dica {
+  display: flex;
+}
+.hist__dica b {
+  font-family: var(--f-mono);
+  color: var(--c-ink);
+}
+
+.hist__dica-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hist__dica-rotulo {
+  flex: 1;
+  color: var(--c-muted);
+}
+
+.hist__legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--c-line);
+  font-size: var(--t-sm);
+  /* Texto em tinta de texto, nunca na cor da série: o ponto ao lado é que
+     carrega a identidade. */
+  color: var(--c-ink-2);
+}
+.hist__legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hist__legenda-item b {
+  font-family: var(--f-mono);
+  color: var(--c-ink);
+}
+
+.hist__ponto {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
 }

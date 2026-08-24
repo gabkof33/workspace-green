@@ -49,6 +49,47 @@ export interface ResultadoGrafo {
 const RAIO_ORIGEM = 8;
 const RAIO_DESTINO = 6.5;
 
+/** Folga mínima entre a borda de dois nós vizinhos, em unidades do viewBox. */
+const FOLGA_ENTRE_NOS = 3;
+
+/** Passo vertical mínimo para dois nós não se encostarem. */
+const PASSO_MINIMO = 2 * RAIO_DESTINO + FOLGA_ENTRE_NOS;
+
+const MARGEM_Y = 10;
+const LARGURA = 300;
+const ALTURA_BASE = 100;
+
+/**
+ * Colunas em função de quantos destinos existem.
+ *
+ * O limite é vertical e é aritmético: a faixa útil tem
+ * `ALTURA - 2 * MARGEM_Y` unidades e cada nó ocupa `2 * RAIO_DESTINO`. Com 16
+ * destinos em duas colunas davam 8 linhas e passo de 11,4 para nós de 13 — se
+ * sobrepunham, e o miolo opaco de cada um cobria o número do de cima.
+ *
+ * Mais coluna é o que reduz linha. Três é o teto: além disso as arestas que
+ * vão para a coluna do fundo cruzam nó de duas colunas antes, e o desenho
+ * fica pior do que ficaria mais alto.
+ */
+function colunasPara(n: number): number[] {
+  if (n <= 5) return [230];
+  if (n <= 12) return [178, 256];
+  return [150, 205, 262];
+}
+
+/**
+ * Altura do viewBox: cresce só quando as linhas não caberiam.
+ *
+ * Com poucos nós devolve `ALTURA_BASE` e a proporção 3:1 de sempre — nada
+ * muda nas abas de Mapa e Grafo. Passando do que três colunas absorvem, o
+ * desenho fica mais alto em vez de apertar os nós: encolher o anel deixaria o
+ * número de dentro ilegível, que é justamente a informação que ele carrega.
+ */
+function alturaPara(linhas: number): number {
+  const necessaria = 2 * MARGEM_Y + (linhas - 1) * PASSO_MINIMO;
+  return Math.max(ALTURA_BASE, Math.ceil(necessaria));
+}
+
 let contadorMarcador = 0;
 
 export function desenharGrafoServicos(
@@ -60,10 +101,15 @@ export function desenharGrafoServicos(
   aoSelecionarNo?: (no: NoGrafo) => void,
 ): ResultadoGrafo {
   const n = destinos.length;
+  const colunas = colunasPara(n);
+  // `linhasPorColuna`, não `linhas`: `linhas` já é o mapa de arestas por
+  // destino, mais abaixo.
+  const linhasPorColuna = Math.max(1, Math.ceil(n / colunas.length));
+  const altura = alturaPara(linhasPorColuna);
   const coords = posicionarEmColunas(
     origem.chave,
     destinos.map((d) => d.chave),
-    { xOrigem: 52, colunas: destinos.length > 5 ? [178, 256] : [230] },
+    { xOrigem: 52, colunas, margemY: MARGEM_Y, altura },
   );
 
   const coordenadaDoNo = (chave: string): { x: number; y: number } | null =>
@@ -92,7 +138,7 @@ export function desenharGrafoServicos(
 
   const svg = svgEl("svg", {
     class: "grafo__svg",
-    viewBox: "0 0 300 100",
+    viewBox: `0 0 ${LARGURA} ${altura}`,
     preserveAspectRatio: "xMidYMid meet",
     role: "img",
     "aria-label": "Grafo de serviços; selecione um nó para ver as métricas.",
@@ -168,6 +214,8 @@ export function desenharGrafoServicos(
     );
   }
 
+  const valores: SVGTextElement[] = [];
+
   for (const d of destinos) {
     const c = coords.get(d.chave);
     if (!c) continue;
@@ -194,10 +242,16 @@ export function desenharGrafoServicos(
     });
     svg.append(circulo);
 
-    if (d.valor) {
-      svg.append(svgTexto(c.x, c.y + 1.6, d.valor, "grafo__valor"));
-    }
+    if (d.valor) valores.push(svgTexto(c.x, c.y + 1.6, d.valor, "grafo__valor"));
   }
+
+  // Todos os números depois de todos os anéis, nunca intercalados.
+  //
+  // O anel tem miolo opaco (`fill: var(--c-surface)`), então intercalar fazia
+  // o nó seguinte cobrir o número do anterior sempre que dois se
+  // aproximassem. A geometria acima já impede a sobreposição, mas a ordem de
+  // pintura é o que garante que um encoste futuro não volte a esconder dado.
+  svg.append(...valores);
 
   // Tabela ao lado, não lista solta: a mesma razão da tabela em `tempos.ts`
   // — o SVG não é legível por leitor de tela nem dá para conferir o número
@@ -212,7 +266,19 @@ export function desenharGrafoServicos(
       "div",
       { class: "cartao grafico" },
       cabecalho,
-      h("div", { class: "grafo__moldura" }, svg),
+      // O quadro só troca a altura fixa por proporção quando o viewBox
+      // cresceu. No caso comum sai exatamente como antes — e `mapa-ruas`, que
+      // divide esta classe e anima o próprio viewBox, não é afetado.
+      h(
+        "div",
+        {
+          class: "grafo__moldura",
+          ...(altura > ALTURA_BASE
+            ? { style: `height:auto;aspect-ratio:${LARGURA} / ${altura}` }
+            : {}),
+        },
+        svg,
+      ),
       legenda,
     ),
     coordenadaDoNo,

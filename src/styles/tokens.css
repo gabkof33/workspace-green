@@ -25,6 +25,23 @@
   --c-canal-a: #4de3ff;
   --c-canal-b: #ff4d7d;
 
+  /* --- Identidade dos canais de conversa ---
+     Nome `conversa`, e não `canal`, de propósito: `--c-canal-a/b` acima são os
+     canais de *cor* do glitch da marca, e reaproveitar o prefixo faria dois
+     conceitos sem relação parecerem a mesma família.
+
+     Seis matizes de saturação e luminosidade parecidas, para lerem como um
+     conjunto categórico — é isso que impede a faixa de parecer status. Elas
+     não significam nada: são só identidade visual para achar o canal de
+     relance. Por isso nenhuma reaproveita `--c-p1`..`--c-p4`, que significam
+     prioridade. */
+  --c-conversa-1: #0e9384;
+  --c-conversa-2: #6938ef;
+  --c-conversa-3: #c11574;
+  --c-conversa-4: #a15c07;
+  --c-conversa-5: #0086c9;
+  --c-conversa-6: #3f7e0e;
+
   /* --- Preto de contraste (cabeçalhos, marca) --- */
   --c-carvao: #0a1410;
   --c-carvao-ink: #eef5f0;
@@ -109,6 +126,15 @@
     --c-canal-a: #5aeaff;
     --c-canal-b: #ff5c88;
 
+    /* Mais claras que no tema claro: a faixa vive sobre `--c-surface` escuro
+       (#0e1411), onde o tom fechado desapareceria. */
+    --c-conversa-1: #2ed3c6;
+    --c-conversa-2: #a48afb;
+    --c-conversa-3: #ee6fb0;
+    --c-conversa-4: #e5a636;
+    --c-conversa-5: #36bffa;
+    --c-conversa-6: #9fd356;
+
     --c-carvao: #000000;
     --c-carvao-ink: #e6efe9;
 
@@ -153,6 +179,13 @@
 
   --c-canal-a: #5aeaff;
   --c-canal-b: #ff5c88;
+
+  --c-conversa-1: #2ed3c6;
+  --c-conversa-2: #a48afb;
+  --c-conversa-3: #ee6fb0;
+  --c-conversa-4: #e5a636;
+  --c-conversa-5: #36bffa;
+  --c-conversa-6: #9fd356;
 
   --c-carvao: #000000;
   --c-carvao-ink: #e6efe9;
@@ -300,6 +333,21 @@
   --g5: #b02418;
   --g-grade: #e4ece7;
   --g-eixo: #8a9c92;
+
+  /* Histograma de volume: desfecho da chamada, não identidade. Por isso não
+     sai de `--g1..--g5` (categórica) nem de `--c-p1..--c-p4` (prioridade).
+
+     O cinza do "ok" é deliberado: o volume que respondeu é a linha de base, e
+     gastar cor saturada nele roubaria peso visual justamente do que precisa
+     ser visto. O validador reprova o croma dele por "reads gray" — é o que se
+     quer aqui, e é a única reprovação aceita de propósito.
+
+     Verde+vermelho foi descartado: ΔE 3,8 sob deuteranopia, indistinguível.
+     Cinza/azul/vermelho passa separação para daltonismo e visão normal nos
+     dois temas. */
+  --g-vol-ok: #5a6f62;
+  --g-vol-sem-resposta: #175cd3;
+  --g-vol-erro: #b42318;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -311,6 +359,12 @@
     --g5: #cf4f45;
     --g-grade: #1b241f;
     --g-eixo: #6b7d73;
+
+    /* Passos próprios do escuro, não um clareamento automático: os do tema
+       claro estouravam a banda de luminosidade sobre `--c-surface` #0e1411. */
+    --g-vol-ok: #7f948a;
+    --g-vol-sem-resposta: #2e90fa;
+    --g-vol-erro: #f04438;
   }
 }
 
@@ -322,6 +376,10 @@
   --g5: #cf4f45;
   --g-grade: #1b241f;
   --g-eixo: #6b7d73;
+
+  --g-vol-ok: #7f948a;
+  --g-vol-sem-resposta: #2e90fa;
+  --g-vol-erro: #f04438;
 }
 
 /* O tema forçado precisa levar o `color-scheme` com ele. Sem isto o

@@ -17,8 +17,14 @@ export interface OpcoesColunas {
   yOrigem?: number;
   /** Posição X de cada coluna — o número de colunas é `colunas.length`. */
   colunas: number[];
-  /** Margem superior/inferior, no espaço 0–100 do viewBox. */
+  /** Margem superior/inferior, nas unidades do viewBox. */
   margemY?: number;
+  /**
+   * Altura do viewBox. Assume 100 quando omitida, que era o valor fixo antes
+   * — quem desenha um grafo mais alto para caber mais linhas precisa dizer,
+   * senão os destinos se acumulariam na metade de cima.
+   */
+  altura?: number;
 }
 
 export function posicionarEmColunas(
@@ -27,7 +33,9 @@ export function posicionarEmColunas(
   opcoes: OpcoesColunas,
 ): Map<string, Coordenada> {
   const coords = new Map<string, Coordenada>();
-  coords.set(chaveOrigem, { x: opcoes.xOrigem, y: opcoes.yOrigem ?? 50 });
+  const altura = opcoes.altura ?? 100;
+  const meio = altura / 2;
+  coords.set(chaveOrigem, { x: opcoes.xOrigem, y: opcoes.yOrigem ?? meio });
 
   const numColunas = Math.max(1, opcoes.colunas.length);
   const margemY = opcoes.margemY ?? 10;
@@ -38,8 +46,8 @@ export function posicionarEmColunas(
     const linha = Math.floor(i / numColunas);
     const y =
       linhasPorColuna === 1
-        ? 50
-        : margemY + ((100 - 2 * margemY) * linha) / (linhasPorColuna - 1);
+        ? meio
+        : margemY + ((altura - 2 * margemY) * linha) / (linhasPorColuna - 1);
     coords.set(chave, { x: opcoes.colunas[coluna] ?? opcoes.xOrigem, y });
   });
 

@@ -291,3 +291,195 @@ export function barras(
         ),
   );
 }
+
+/* ==========================================================================
+   Histograma empilhado
+   ========================================================================== */
+
+export interface SerieEmpilhada {
+  chave: string;
+  rotulo: string;
+  cor: string;
+  /** Um valor por faixa, na mesma ordem de `faixas`. */
+  valores: number[];
+}
+
+export interface OpcoesHistograma {
+  titulo: string;
+  subtitulo?: string;
+  /** Rótulo de cada faixa no eixo x, já formatado. */
+  faixas: string[];
+  /** A ordem do array é a ordem do empilhamento, de baixo para cima. */
+  series: SerieEmpilhada[];
+  formatar?: (v: number) => string;
+  vazio?: string;
+}
+
+/**
+ * Barras empilhadas ao longo do tempo — volume e composição no mesmo desenho.
+ *
+ * Em HTML/CSS, não SVG. As outras peças deste arquivo usam um viewBox 0–100
+ * esticado por `preserveAspectRatio="none"`, o que é ótimo para área e linha e
+ * ruim para barra: a folga entre segmentos e o canto arredondado esticariam
+ * junto e sairiam deformados, cada um com largura diferente conforme a
+ * proporção do cartão. Em CSS a folga é 2px em qualquer largura.
+ *
+ * Puramente apresentacional: recebe séries com cor e rótulo já resolvidos.
+ * Quem chama decide o que cada série significa.
+ */
+export function histogramaEmpilhado(o: OpcoesHistograma): HTMLElement {
+  const formatar = o.formatar ?? ((v: number): string => String(v));
+  const n = o.faixas.length;
+
+  const totalDaFaixa = (i: number): number =>
+    o.series.reduce((soma, s) => soma + (s.valores[i] ?? 0), 0);
+
+  const totalGeral = o.series.reduce(
+    (soma, s) => soma + s.valores.reduce((a, b) => a + b, 0),
+    0,
+  );
+
+  const cabecalho = h(
+    "div",
+    { class: "grafico__cabecalho" },
+    h("h3", { class: "grafico__titulo" }, o.titulo),
+    o.subtitulo ? h("span", { class: "grafico__subtitulo" }, o.subtitulo) : null,
+  );
+
+  if (n === 0 || totalGeral === 0) {
+    return h(
+      "div",
+      { class: "cartao grafico" },
+      cabecalho,
+      h(
+        "p",
+        { class: "texto-sutil" },
+        o.vazio ?? "Sem chamadas na janela escolhida.",
+      ),
+    );
+  }
+
+  // Teto arredondado, pelo mesmo motivo de `areaTemporal`: rótulo de eixo
+  // quebrado ("2847") é mais difícil de ler que um redondo ("3000").
+  const maximo = Math.max(1, ...o.faixas.map((_, i) => totalDaFaixa(i)));
+  const passo = Math.pow(10, Math.floor(Math.log10(maximo)));
+  const topo = Math.max(passo, Math.ceil(maximo / passo) * passo);
+
+  const dica = h("div", { class: "hist__dica" });
+  const colunas = h("div", { class: "hist__colunas" });
+
+  o.faixas.forEach((_, i) => {
+    const coluna = h("div", { class: "hist__coluna" });
+
+    // Só as séries com valor entram no DOM. Segmento de altura zero ainda
+    // consumiria o `gap` da coluna e abriria um buraco de 2px no lugar dele.
+    const presentes = o.series.filter((s) => (s.valores[i] ?? 0) > 0);
+
+    presentes.forEach((s, ordem) => {
+      const valor = s.valores[i] ?? 0;
+      const segmento = h("span", {
+        class: `hist__seg${ordem === presentes.length - 1 ? " hist__seg--topo" : ""}`,
+        style: `height:${(valor / topo) * 100}%;background:${s.cor}`,
+      });
+      coluna.append(segmento);
+    });
+
+    colunas.append(coluna);
+  });
+
+  const eixoY = h(
+    "div",
+    { class: "hist__eixo-y" },
+    ...[4, 3, 2, 1, 0].map((i) => h("span", {}, formatar((topo / 4) * i))),
+  );
+
+  const grade = h(
+    "div",
+    { class: "hist__grade", aria: { hidden: "true" } },
+    ...[0, 1, 2, 3, 4].map(() => h("span", {})),
+  );
+
+  const plot = h("div", { class: "hist__plot" }, grade, colunas, dica);
+  const moldura = h("div", { class: "hist__area" }, eixoY, plot);
+
+  // O alvo é a faixa inteira da coluna, não o segmento pintado: exigir que o
+  // ponteiro acerte 3px de barra vermelha seria exigir mira.
+  plot.addEventListener("pointermove", (ev) => {
+    const caixa = plot.getBoundingClientRect();
+    const rel = (ev.clientX - caixa.left) / caixa.width;
+    const i = Math.min(Math.max(Math.floor(rel * n), 0), n - 1);
+
+    moldura.classList.add("hist__area--ativa");
+    colunas.querySelectorAll(".hist__coluna--ativa").forEach((el) =>
+      el.classList.remove("hist__coluna--ativa"),
+    );
+    colunas.children[i]?.classList.add("hist__coluna--ativa");
+
+    montar(
+      dica,
+      h("b", {}, o.faixas[i] ?? ""),
+      // Toda série aparece, inclusive em zero: "erro 0" é a informação de que
+      // não houve erro naquele minuto, e omitir a linha faria parecer que o
+      // dado não existe.
+      ...o.series.map((s) =>
+        h(
+          "span",
+          { class: "hist__dica-linha" },
+          h("i", { class: "hist__ponto", style: `background:${s.cor}` }),
+          h("span", { class: "hist__dica-rotulo" }, s.rotulo),
+          h("b", {}, formatar(s.valores[i] ?? 0)),
+        ),
+      ),
+    );
+
+    const posicao = ((i + 0.5) / n) * 100;
+    dica.style.left = `${Math.min(Math.max(posicao, 0), 100)}%`;
+    // Vira para o outro lado depois da metade, senão sai fora do cartão.
+    dica.style.transform =
+      posicao > 60 ? "translateX(-100%)" : "translateX(0)";
+  });
+
+  plot.addEventListener("pointerleave", () => {
+    moldura.classList.remove("hist__area--ativa");
+    colunas.querySelectorAll(".hist__coluna--ativa").forEach((el) =>
+      el.classList.remove("hist__coluna--ativa"),
+    );
+  });
+
+  const salto = Math.max(1, Math.ceil(n / 7));
+
+  // Legenda com total por série — a leitura que o gráfico não dá: a barra
+  // mostra a forma no tempo, o total mostra o tamanho do todo.
+  const legenda = h(
+    "div",
+    { class: "hist__legenda" },
+    ...o.series.map((s) =>
+      h(
+        "span",
+        { class: "hist__legenda-item" },
+        h("i", { class: "hist__ponto", style: `background:${s.cor}` }),
+        h("span", {}, s.rotulo),
+        h(
+          "b",
+          {},
+          formatar(s.valores.reduce((a, b) => a + b, 0)),
+        ),
+      ),
+    ),
+  );
+
+  return h(
+    "div",
+    { class: "cartao grafico" },
+    cabecalho,
+    moldura,
+    h(
+      "div",
+      { class: "hist__eixo-x" },
+      ...o.faixas
+        .filter((_, i) => i % salto === 0)
+        .map((r) => h("span", {}, r)),
+    ),
+    legenda,
+  );
+}

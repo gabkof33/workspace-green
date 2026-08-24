@@ -94,17 +94,82 @@ export async function excluirMensagem(id: string): Promise<void> {
 
 /* Tempo real */
 
+/**
+ * Assinatura do canal aberto, com reconexão.
+ *
+ * O `.subscribe()` sem callback de status — como estava aqui — falha em
+ * silêncio: quando o websocket cai (notebook que dorme, rede que oscila,
+ * servidor que reinicia) o canal vai para `CHANNEL_ERROR` ou `TIMED_OUT` e as
+ * mensagens simplesmente param de chegar. A tela continua desenhada, sem
+ * nenhum sinal, até alguém recarregar a página.
+ *
+ * Duas coisas são necessárias para consertar isso, e uma sem a outra não
+ * resolve:
+ *
+ *  1. **Reassinar** depois da queda, com espera crescente para não martelar
+ *     um servidor que já está em dificuldade.
+ *  2. **Buscar o que passou** ao reconectar. O Realtime entrega o que acontece
+ *     enquanto se está ouvindo; ele não tem histórico. Sem o recarregamento,
+ *     a reconexão deixa um buraco silencioso — exatamente o mesmo sintoma que
+ *     se estava tentando corrigir.
+ */
+
 // Uma assinatura por vez.
 let assinaturaAtiva: RealtimeChannel | null = null;
+
+/** Alvo e destinos atuais, lidos na reconexão para não ressuscitar closure
+ *  de um canal que a pessoa já fechou. */
+let canalAtivoId: string | null = null;
+let aoChegarAtivo: ((m: MensagemEnriquecida) => void) | null = null;
+let aoReconectarAtivo: (() => void) | null = null;
+
+/**
+ * Geração da assinatura. Incrementa a cada `assinarCanal` e a cada
+ * `encerrarAssinatura`.
+ *
+ * Comparar por `canalId` não bastava: reabrir o **mesmo** canal casaria o id,
+ * e o `CLOSED` da assinatura antiga chegaria depois da nova estar de pé,
+ * agendando uma reconexão que derrubaria justamente a assinatura boa. O
+ * contador não tem esse empate.
+ */
+let geracao = 0;
+
+let tentativas = 0;
+let temporizador: ReturnType<typeof setTimeout> | null = null;
+let jaConectou = false;
+let ouvindoVisibilidade = false;
+
+const ESPERA_BASE_MS = 1_000;
+const ESPERA_MAXIMA_MS = 30_000;
 
 export function assinarCanal(
   canalId: string,
   aoChegar: (mensagem: MensagemEnriquecida) => void,
+  /** Chamado a cada reconexão — não na primeira conexão. É onde a tela
+   *  recarrega o que chegou durante a queda. */
+  aoReconectar?: () => void,
 ): void {
   encerrarAssinatura();
 
-  assinaturaAtiva = supabase
-    .channel(`canal:${canalId}`)
+  geracao += 1;
+  canalAtivoId = canalId;
+  aoChegarAtivo = aoChegar;
+  aoReconectarAtivo = aoReconectar ?? null;
+  tentativas = 0;
+  jaConectou = false;
+
+  observarVisibilidade();
+  conectar(geracao);
+}
+
+function conectar(minhaGeracao: number): void {
+  const canalId = canalAtivoId;
+  if (canalId === null || minhaGeracao !== geracao) return;
+
+  // Nome único por tentativa: reaproveitar o nome de um canal que o servidor
+  // considera em erro faz a reassinatura ser recusada em silêncio.
+  const canal = supabase
+    .channel(`canal:${canalId}:${tentativas}`)
     .on(
       "postgres_changes",
       {
@@ -114,20 +179,110 @@ export function assinarCanal(
         filter: `canal_id=eq.${canalId}`,
       },
       (payload) => {
+        // Assinatura antiga que ainda respira depois de uma troca de canal
+        // não pode empurrar mensagem para a tela atual.
+        if (minhaGeracao !== geracao) return;
+
         // O payload do realtime traz só a linha crua, sem o nome do autor.
         const nova = payload.new as Mensagem;
         void supabase
           .rpc("mensagem_unica", { p_id: nova.id })
           .then(({ data }) => {
             const linha = (data ?? [])[0];
-            if (linha) aoChegar(linha as MensagemEnriquecida);
+            if (linha && minhaGeracao === geracao) {
+              aoChegarAtivo?.(linha as MensagemEnriquecida);
+            }
           });
       },
-    )
-    .subscribe();
+    );
+
+  assinaturaAtiva = canal;
+
+  canal.subscribe((status) => {
+    if (minhaGeracao !== geracao) return;
+
+    if (status === "SUBSCRIBED") {
+      tentativas = 0;
+      // Só na volta, nunca na primeira: `abrirCanal` já carregou a lista.
+      if (jaConectou) aoReconectarAtivo?.();
+      jaConectou = true;
+      return;
+    }
+
+    if (
+      status === "CHANNEL_ERROR" ||
+      status === "TIMED_OUT" ||
+      status === "CLOSED"
+    ) {
+      agendarReconexao(minhaGeracao);
+    }
+  });
+}
+
+function agendarReconexao(minhaGeracao: number): void {
+  if (canalAtivoId === null || temporizador !== null) return;
+  if (minhaGeracao !== geracao) return;
+
+  // Dobra a cada tentativa até o teto. O jitter evita que várias abas abertas
+  // na mesma máquina voltem todas no mesmo instante.
+  const espera = Math.min(
+    ESPERA_BASE_MS * 2 ** tentativas,
+    ESPERA_MAXIMA_MS,
+  );
+  const comJitter = espera * (0.75 + Math.random() * 0.5);
+  tentativas += 1;
+
+  temporizador = setTimeout(() => {
+    temporizador = null;
+    if (canalAtivoId === null || minhaGeracao !== geracao) return;
+
+    if (assinaturaAtiva) {
+      void supabase.removeChannel(assinaturaAtiva);
+      assinaturaAtiva = null;
+    }
+    conectar(minhaGeracao);
+  }, comJitter);
+}
+
+/**
+ * Aba que volta a ficar visível força a conferência.
+ *
+ * É o caso mais comum de todos — a máquina dorme, o socket morre sem evento
+ * de erro, e o navegador só descongela o timer quando a aba reaparece. Esperar
+ * o `TIMED_OUT` aqui pode custar minutos de mensagem faltando.
+ */
+function observarVisibilidade(): void {
+  if (ouvindoVisibilidade) return;
+  ouvindoVisibilidade = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (canalAtivoId === null || assinaturaAtiva === null) return;
+    if (assinaturaAtiva.state === "joined") return;
+
+    // Volta já, sem esperar a espera crescente: a pessoa está olhando.
+    tentativas = 0;
+    if (temporizador !== null) {
+      clearTimeout(temporizador);
+      temporizador = null;
+    }
+    agendarReconexao(geracao);
+  });
 }
 
 export function encerrarAssinatura(): void {
+  // Invalida tudo que estava em voo: callback pendente, timer e subscribe.
+  geracao += 1;
+  canalAtivoId = null;
+  aoChegarAtivo = null;
+  aoReconectarAtivo = null;
+  tentativas = 0;
+  jaConectou = false;
+
+  if (temporizador !== null) {
+    clearTimeout(temporizador);
+    temporizador = null;
+  }
   if (assinaturaAtiva) {
     void supabase.removeChannel(assinaturaAtiva);
     assinaturaAtiva = null;

@@ -141,10 +141,48 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
 
   /* ---------- Carga inicial ---------- */
 
-  void Promise.all([listarCanais(), listarDiretorioMencoes()])
-    .then(([listaC, listaD]) => {
-      canais = listaC;
-      diretorio = listaD;
+  // `allSettled`, não `all`.
+  //
+  // Com `Promise.all`, uma falha no diretório derrubava a lista de canais
+  // junto: o `.catch` mostrava um toast e a tela ficava sem canal nenhum —
+  // indistinguível de "não existe canal". São coisas diferentes e o diretório
+  // é a menos importante das duas: ele só enfeita a @menção, enquanto a lista
+  // de canais é a tela inteira.
+  void Promise.allSettled([listarCanais(), listarDiretorioMencoes()])
+    .then(([resCanais, resDiretorio]) => {
+      if (resCanais.status === "rejected") {
+        const erro: unknown = resCanais.reason;
+        avisar(
+          erro instanceof Error ? erro.message : "Falha ao carregar canais.",
+          "erro",
+        );
+        montar(
+          alvo,
+          h(
+            "div",
+            { class: "cartao" },
+            h(
+              "div",
+              { class: "vazio" },
+              h("h3", {}, "Não deu para carregar as conversas"),
+              h(
+                "p",
+                {},
+                erro instanceof Error
+                  ? erro.message
+                  : "Tente novamente em alguns instantes.",
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+
+      canais = resCanais.value;
+      // Diretório que falhou degrada a menção, não a tela: `PessoaMencao` tem
+      // os campos extras opcionais justamente para tolerar isto.
+      diretorio =
+        resDiretorio.status === "fulfilled" ? resDiretorio.value : [];
 
       if (canais.length === 0) {
         montar(
@@ -191,12 +229,24 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
             "div",
             { class: "conversa__grupo" },
             h("div", { class: "rail__rotulo" }, titulo),
-            ...itens.map((c) =>
+            ...itens.map((c, i) =>
               h(
                 "button",
                 {
                   class: `conversa__canal${canalAtivo?.id === c.id ? " conversa__canal--ativo" : ""}`,
                   type: "button",
+                  // Índice, não cor: a paleta mora em `components.css`.
+                  //
+                  // Geral fica com o verde da marca — ele não é uma equipe
+                  // entre as outras, é o canal de todas. As equipes recebem a
+                  // paleta pela posição na lista, que já vem ordenada por
+                  // nome: posição garante cor distinta para a vizinha, o que
+                  // um hash do slug não garantiria (seis canais em seis
+                  // baldes colidem com facilidade). O preço é que uma equipe
+                  // nova desloca a cor de quem vem depois dela no alfabeto.
+                  dataset: {
+                    cor: c.tipo === "geral" ? "geral" : String(i % 6),
+                  },
                   on: { click: () => abrirCanal(c) },
                 },
                 h("span", { class: "conversa__hash" }, "#"),
@@ -249,24 +299,46 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
         avisar(e instanceof Error ? e.message : "Falha ao abrir.", "erro"),
       );
 
-    assinarCanal(canal.id, (nova) => {
-      if (mensagens.some((m) => m.id === nova.id)) return;
-      mensagens.push(nova);
-      desenharMensagens();
-      rolarParaFim();
-      void marcarLido(canal.id);
+    assinarCanal(
+      canal.id,
+      (nova) => {
+        if (mensagens.some((m) => m.id === nova.id)) return;
+        mensagens.push(nova);
+        desenharMensagens();
+        rolarParaFim();
+        void marcarLido(canal.id);
 
-      // Nunca para a própria mensagem: quem escreveu já sabe. O módulo cala
-      // sozinho quando a aba está à vista.
-      if (nova.autor_id === perfil.id) return;
-      somarNaoLido();
-      avisarNavegador({
-        titulo: `${nova.autor_nome} em #${canal.nome}`,
-        corpo: nova.corpo.slice(0, 140),
-        destino: "conversas",
-        chave: `canal:${canal.id}`,
-      });
-    });
+        // Nunca para a própria mensagem: quem escreveu já sabe. O módulo cala
+        // sozinho quando a aba está à vista.
+        if (nova.autor_id === perfil.id) return;
+        somarNaoLido();
+        avisarNavegador({
+          titulo: `${nova.autor_nome} em #${canal.nome}`,
+          corpo: nova.corpo.slice(0, 140),
+          destino: "conversas",
+          chave: `canal:${canal.id}`,
+        });
+      },
+      // Reconectou. O Realtime não tem histórico: o que chegou enquanto o
+      // socket estava caído não passa por aqui, então a lista é buscada de
+      // novo em vez de continuar de onde parou.
+      () => {
+        void listarMensagens(canal.id)
+          .then((lista) => {
+            // A pessoa pode ter trocado de canal durante a queda.
+            if (canalAtivo?.id !== canal.id) return;
+            mensagens = lista;
+            desenharMensagens();
+            rolarParaFim();
+            return marcarLido(canal.id);
+          })
+          .catch(() => {
+            // Silencioso de propósito: a reconexão é automática e vai tentar
+            // outra vez. Um toast por oscilação de rede seria pior que a
+            // falha em si.
+          });
+      },
+    );
   }
 
   function montarThread(): void {

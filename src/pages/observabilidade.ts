@@ -9,7 +9,7 @@
  */
 
 import { aguardando } from "@/components/esqueleto";
-import { indicador } from "@/components/grafico";
+import { histogramaEmpilhado, indicador } from "@/components/grafico";
 import {
   desenharGrafoServicos,
   type ArestaGrafo,
@@ -26,6 +26,7 @@ import { lancarPacote } from "@/components/pacote-em-transito";
 import { avisar, h, montar } from "@/lib/dom";
 import { tempoRelativo } from "@/lib/formato";
 import {
+  agruparVolume,
   avaliarLatencia,
   avaliarTaxaErro,
   carregarEventosRecentes,
@@ -69,6 +70,73 @@ const PERIODOS: Array<[number, string]> = [
 
 function rotuloJanela(minutos: number): string {
   return PERIODOS.find(([v]) => v === minutos)?.[1] ?? `${minutos} min`;
+}
+
+/* ---------- Volume de chamadas no tempo ---------- */
+
+/**
+ * Quantas faixas o histograma usa, por janela.
+ *
+ * Não é um número fixo: 48 faixas em 15 minutos dariam baldes de 18 segundos,
+ * onde quase toda coluna é 0 ou 1 e a forma desaparece no ruído. O alvo é um
+ * balde que agregue o suficiente para ter forma.
+ */
+function faixasPara(minutos: number): number {
+  if (minutos <= 15) return 30;
+  if (minutos <= 60) return 40;
+  return 48;
+}
+
+/** Só a hora no eixo; a data completa fica no tooltip via `rotuloFaixa`. */
+function rotuloFaixa(iso: string, minutos: number): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    // Segundos só nas janelas curtas, onde o balde é menor que um minuto e
+    // duas faixas vizinhas mostrariam o mesmo rótulo.
+    ...(minutos <= 15 ? { second: "2-digit" } : {}),
+  });
+}
+
+/**
+ * Histograma de volume por desfecho.
+ *
+ * A ordem das séries é a ordem do empilhamento, de baixo para cima: o volume
+ * que respondeu forma a base em cinza recessivo, e o que falhou fica por cima,
+ * onde se vê contra ela. Gastar cor saturada na base roubaria peso visual de
+ * exatamente o que se procura num gráfico de observabilidade.
+ */
+function volumeNoTempo(eventos: EventoApi[], minutos: number): HTMLElement {
+  const faixas = agruparVolume(eventos, minutos, faixasPara(minutos));
+
+  return histogramaEmpilhado({
+    titulo: "Volume de chamadas",
+    subtitulo: `${faixas.length} faixas na janela de ${rotuloJanela(minutos)}`,
+    faixas: faixas.map((f) => rotuloFaixa(f.inicio, minutos)),
+    series: [
+      {
+        chave: "ok",
+        rotulo: "Respondeu",
+        cor: "var(--g-vol-ok)",
+        valores: faixas.map((f) => f.ok),
+      },
+      {
+        chave: "sem-resposta",
+        rotulo: "Sem resposta",
+        cor: "var(--g-vol-sem-resposta)",
+        valores: faixas.map((f) => f.semResposta),
+      },
+      {
+        chave: "erro",
+        rotulo: "Erro (4xx/5xx)",
+        cor: "var(--g-vol-erro)",
+        valores: faixas.map((f) => f.erro),
+      },
+    ],
+    vazio:
+      "Nenhuma chamada nesta janela — use outra tela da Central Green para gerar tráfego.",
+  });
 }
 
 /* ---------- Grafo: mesma RPC, duas maneiras de colorir ---------- */
@@ -453,6 +521,7 @@ export function renderizarObservabilidade(
             indicadores(kpis),
             resultado,
             painelDetalhe,
+            volumeNoTempo(eventos, minutos),
             tabelaDeChamadas(eventos, "Chamadas na janela"),
           );
         })

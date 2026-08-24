@@ -127,3 +127,71 @@ export function duracaoMs(ms: number | null): string {
 export function porcentagem(fracao: number): string {
   return `${(fracao * 100).toFixed(1)}%`;
 }
+
+/* ---------- Volume por faixa de tempo ---------- */
+
+/**
+ * Uma coluna do histograma: quantas chamadas caíram naquele intervalo, já
+ * separadas por desfecho.
+ *
+ * Três séries, não quatro. Separar 4xx de 5xx era o desejável, mas as cores
+ * de alerta e de erro deste sistema ficam a ΔE 6,1 uma da outra para visão
+ * normal — no empilhamento seriam a mesma faixa. O recorte por código fica no
+ * tooltip e na tabela, onde é número e não cor.
+ */
+export interface FaixaVolume {
+  /** Início do intervalo, em ISO. */
+  inicio: string;
+  /** Respondeu com status abaixo de 400. */
+  ok: number;
+  /** Não houve resposta — falha de rede, requisição não chegou ao fim. */
+  semResposta: number;
+  /** Respondeu com 4xx ou 5xx. */
+  erro: number;
+}
+
+/**
+ * Distribui os eventos em faixas de tempo iguais dentro da janela.
+ *
+ * A janela é relativa a agora, não ao evento mais antigo recebido: faixa
+ * vazia no fim é informação — significa que parou de chegar chamada — e
+ * encolher o eixo até o último evento esconderia justamente isso.
+ */
+export function agruparVolume(
+  eventos: EventoApi[],
+  minutos: number,
+  quantidade = 48,
+): FaixaVolume[] {
+  const baldes = Math.max(1, quantidade);
+  const fim = Date.now();
+  const inicio = fim - minutos * 60_000;
+  const largura = (fim - inicio) / baldes;
+
+  const faixas: FaixaVolume[] = Array.from({ length: baldes }, (_, i) => ({
+    inicio: new Date(inicio + i * largura).toISOString(),
+    ok: 0,
+    semResposta: 0,
+    erro: 0,
+  }));
+
+  for (const evento of eventos) {
+    const t = new Date(evento.criado_em).getTime();
+    if (!Number.isFinite(t)) continue;
+
+    const indice = Math.floor((t - inicio) / largura);
+    // Evento fora da janela é descartado, não empurrado para a borda:
+    // acumulá-lo na primeira faixa inventaria um pico que não houve.
+    if (indice < 0 || indice >= baldes) continue;
+
+    const faixa = faixas[indice];
+    if (!faixa) continue;
+
+    if (evento.erro_tipo === "rede") faixa.semResposta += 1;
+    else if (evento.status_code !== null && evento.status_code >= 400) {
+      faixa.erro += 1;
+    } else if (evento.erro_tipo !== null) faixa.erro += 1;
+    else faixa.ok += 1;
+  }
+
+  return faixas;
+}
