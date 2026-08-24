@@ -661,16 +661,6 @@ function formCadastro(
 
     erro,
     botao,
-    h("div", { class: "separador" }, "já tem conta?"),
-    h(
-      "button",
-      {
-        class: "btn btn--bloco",
-        type: "button",
-        on: { click: aoVoltarParaEntrar },
-      },
-      "Entrar",
-    ),
   );
 }
 
