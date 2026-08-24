@@ -870,6 +870,7 @@ function rotularChave(chave: string, chamado: ChamadoEnriquecido): string {
     mensagem_erro: "Mensagem de erro",
     frequencia: "Frequência",
     contorno_aplicado: "O que já foi tentado",
+    observacoes: "Observações",
     local: "Local",
     telefone_contato: "Telefone de contato",
   };

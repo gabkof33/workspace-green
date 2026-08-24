@@ -59,6 +59,7 @@ function rascunhoVazio(perfil: Perfil): RascunhoChamado {
     quantos_afetados: "",
     consegue_trabalhar: "",
     contorno_aplicado: "",
+    observacoes: "",
     tags: [],
     campos_extras: {},
   };
@@ -528,6 +529,7 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
       { class: "pilha" },
       cabecalhoServico(servico),
       blocoCamposDinamicos(servico),
+      campoObservacoes(),
       avisoAprovacao(servico),
       navegacao(true),
     );
@@ -568,12 +570,36 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
           `Prazo definido pelo catálogo para “${servico.nome}”, atendido pela fila ${servico.equipe_padrao}.`,
         ),
       ),
+      campoObservacoes(),
       avisoAprovacao(servico),
       navegacao(true),
     );
   }
 
   /* ---------- Peças compartilhadas ---------- */
+
+  /**
+   * Observações — o campo de sobra.
+   *
+   * Último input dos dois fluxos (incidente e requisição): é onde cabe o que
+   * os campos estruturados não perguntaram. Teto de 500 para não virar um
+   * segundo campo de descrição, que dividiria a leitura em duas.
+   */
+  function campoObservacoes(): HTMLElement {
+    return campoArea({
+      chave: "observacoes",
+      rotulo: "Observações",
+      valor: rascunho.observacoes,
+      placeholder:
+        "Ex.: só acontece quando estou pela VPN, e abri um chamado parecido no mês passado.",
+      ajuda:
+        "Opcional. O que não couber nos campos acima — máximo de 500 caracteres.",
+      maxlength: 500,
+      aoMudar: (v) => {
+        rascunho.observacoes = v;
+      },
+    });
+  }
 
   function blocoCamposDinamicos(servico: ServicoCatalogo): HTMLElement {
     const container = h("div", { class: "pilha" });
@@ -857,20 +883,29 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
     const erro = erros.get(o.chave);
     const contador = h("span", { class: "campo__contador" });
 
+    // Havendo teto, o contador mostra o teto: "480 caracteres" não diz quanto
+    // ainda cabe, e o `maxlength` para de aceitar tecla sem explicar por quê.
+    const contagem = (v: string): string =>
+      o.maxlength
+        ? `${v.trim().length}/${o.maxlength}`
+        : `${v.trim().length} caracteres`;
+
     const area = h("textarea", {
       class: "area-texto",
       placeholder: o.placeholder ?? "",
+      maxlength: o.maxlength ?? 0,
       aria: erro ? { invalid: "true" } : {},
       on: {
         input: (ev: Event) => {
           const v = (ev.target as HTMLTextAreaElement).value;
           o.aoMudar(v);
-          contador.textContent = `${v.trim().length} caracteres`;
+          contador.textContent = contagem(v);
         },
       },
     }) as HTMLTextAreaElement;
+    if (!o.maxlength) area.removeAttribute("maxlength");
     area.value = o.valor;
-    contador.textContent = `${o.valor.trim().length} caracteres`;
+    contador.textContent = contagem(o.valor);
 
     return h(
       "div",

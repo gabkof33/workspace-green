@@ -850,6 +850,7 @@ export interface RascunhoChamado {
   quantos_afetados: "so_eu" | "minha_equipe" | "varios_setores" | "";
   consegue_trabalhar: "sim" | "com_dificuldade" | "nao" | "";
   contorno_aplicado: string;
+  observacoes: string;
   tags: string[];
   campos_extras: Record<string, unknown>;
 }

@@ -657,6 +657,9 @@ export async function criarChamado(
     ...(rascunho.primeira_ocorrencia
       ? { primeira_ocorrencia: rascunho.primeira_ocorrencia }
       : {}),
+    ...(rascunho.observacoes.trim()
+      ? { observacoes: rascunho.observacoes.trim() }
+      : {}),
     local: rascunho.local,
   };
 
