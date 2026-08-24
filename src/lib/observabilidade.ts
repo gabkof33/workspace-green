@@ -84,12 +84,28 @@ export async function carregarEventosRecentes(
 
 /* ---------- Limiares e formatação ---------- */
 
-export type Situacao = "ok" | "alerta" | "critico";
+export type Situacao = "ok" | "alerta" | "critico" | "amostra-curta";
 
 const LIMITE_TAXA_ERRO_ALERTA = 0.01;
 const LIMITE_TAXA_ERRO_CRITICO = 0.05;
 
-export function avaliarTaxaErro(taxa: number): Situacao {
+// Abaixo disso uma única falha já passa de 5% — a taxa não conclui nada.
+const VOLUME_MINIMO_DA_JANELA = 20;
+
+/** Volume insuficiente para a taxa de erro significar alguma coisa. */
+export function amostraCurta(chamadas: number): boolean {
+  return chamadas < VOLUME_MINIMO_DA_JANELA;
+}
+
+/**
+ * Situação pela taxa de erro, com o volume que a produziu.
+ *
+ * `chamadas` é obrigatório de propósito: com 3 requisições a menor taxa
+ * possível diferente de zero é 33%, sete vezes o limiar de crítico. Serviço
+ * de baixo volume — `auth:login` é o caso típico — viveria vermelho.
+ */
+export function avaliarTaxaErro(taxa: number, chamadas: number): Situacao {
+  if (amostraCurta(chamadas)) return "amostra-curta";
   if (taxa >= LIMITE_TAXA_ERRO_CRITICO) return "critico";
   if (taxa >= LIMITE_TAXA_ERRO_ALERTA) return "alerta";
   return "ok";
@@ -107,12 +123,14 @@ export function avaliarLatencia(p95Ms: number): Situacao {
 export function corDaSituacao(situacao: Situacao): string {
   if (situacao === "critico") return "var(--c-erro)";
   if (situacao === "alerta") return "var(--c-alerta)";
+  if (situacao === "amostra-curta") return "var(--c-neutro)";
   return "var(--c-ok)";
 }
 
 export function corWashDaSituacao(situacao: Situacao): string {
   if (situacao === "critico") return "var(--c-erro-wash)";
   if (situacao === "alerta") return "var(--c-alerta-wash)";
+  if (situacao === "amostra-curta") return "var(--c-neutro-wash)";
   return "var(--c-ok-wash)";
 }
 

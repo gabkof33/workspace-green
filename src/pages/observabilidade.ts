@@ -27,6 +27,7 @@ import { avisar, h, montar } from "@/lib/dom";
 import { tempoRelativo } from "@/lib/formato";
 import {
   agruparVolume,
+  amostraCurta,
   avaliarLatencia,
   avaliarTaxaErro,
   carregarEventosRecentes,
@@ -37,6 +38,7 @@ import {
   corDaSituacao,
   duracaoMs,
   porcentagem,
+  type Situacao,
 } from "@/lib/observabilidade";
 import {
   iniciarFluxoTempoReal,
@@ -141,11 +143,8 @@ function volumeNoTempo(eventos: EventoApi[], minutos: number): HTMLElement {
 
 /* ---------- Grafo: mesma RPC, duas maneiras de colorir ---------- */
 
-function piorSituacao(
-  primeira: "ok" | "alerta" | "critico",
-  segunda: "ok" | "alerta" | "critico",
-): "ok" | "alerta" | "critico" {
-  const peso = { ok: 0, alerta: 1, critico: 2 } as const;
+function piorSituacao(primeira: Situacao, segunda: Situacao): Situacao {
+  const peso = { "amostra-curta": 0, ok: 0, alerta: 1, critico: 2 } as const;
   return peso[primeira] >= peso[segunda] ? primeira : segunda;
 }
 
@@ -158,15 +157,15 @@ function montarGrafo(
   const destinos: NoGrafo[] = dados.nos.map((n) => ({
     chave: n.servico,
     rotulo: n.servico,
-    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(n.taxa_erro), avaliarLatencia(n.p95_ms))) : "var(--g2)",
+    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(n.taxa_erro, n.requisicoes), avaliarLatencia(n.p95_ms))) : "var(--g2)",
     valor: String(n.requisicoes),
-    detalhe: `${n.requisicoes} chamada${n.requisicoes === 1 ? "" : "s"} · ${porcentagem(n.taxa_erro)} erro · p95 ${duracaoMs(n.p95_ms)}`,
+    detalhe: `${n.requisicoes} chamada${n.requisicoes === 1 ? "" : "s"} · ${porcentagem(n.taxa_erro)} erro${amostraCurta(n.requisicoes) ? " (amostra curta)" : ""} · p95 ${duracaoMs(n.p95_ms)}`,
   }));
 
   const arestas: ArestaGrafo[] = dados.arestas.map((a) => ({
     origem: ORIGEM_CHAVE,
     destino: a.destino,
-    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(a.taxa_erro), avaliarLatencia(a.p95_ms))) : "var(--g-eixo)",
+    cor: modo === "red" ? corDaSituacao(piorSituacao(avaliarTaxaErro(a.taxa_erro, a.requisicoes), avaliarLatencia(a.p95_ms))) : "var(--g-eixo)",
     espessura: Math.max(0.4, Math.round((a.requisicoes / maxRequisicoes) * 2 * 10) / 10),
     detalhe: `${a.requisicoes} chamada${a.requisicoes === 1 ? "" : "s"} · p95 ${duracaoMs(a.p95_ms)}`,
   }));
@@ -192,9 +191,9 @@ function montarMapaRuas(
   const predios: PredioRua[] = dados.nos.map((n) => ({
     chave: n.servico,
     rotulo: n.servico,
-    situacao: avaliarTaxaErro(n.taxa_erro),
+    situacao: avaliarTaxaErro(n.taxa_erro, n.requisicoes),
     valor: String(n.requisicoes),
-    detalhe: `${n.requisicoes} chamada${n.requisicoes === 1 ? "" : "s"} · ${porcentagem(n.taxa_erro)} erro · p95 ${duracaoMs(n.p95_ms)}`,
+    detalhe: `${n.requisicoes} chamada${n.requisicoes === 1 ? "" : "s"} · ${porcentagem(n.taxa_erro)} erro${amostraCurta(n.requisicoes) ? " (amostra curta)" : ""} · p95 ${duracaoMs(n.p95_ms)}`,
   }));
 
   const ruas: RuaSegmento[] = dados.arestas.map((a) => ({
@@ -288,8 +287,8 @@ export function renderizarObservabilidade(
       indicador({
         rotulo: "Taxa de erro",
         valor: porcentagem(k.taxa_erro),
-        cor: corDaSituacao(avaliarTaxaErro(k.taxa_erro)),
-        nota: `${k.total_erros} erro${k.total_erros === 1 ? "" : "s"}`,
+        cor: corDaSituacao(avaliarTaxaErro(k.taxa_erro, k.total_requisicoes)),
+        nota: `${k.total_erros} erro${k.total_erros === 1 ? "" : "s"}${amostraCurta(k.total_requisicoes) ? " · amostra curta" : ""}`,
       }),
       indicador({
         rotulo: "Latência p95",

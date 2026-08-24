@@ -8,7 +8,7 @@ import type { Situacao } from "@/lib/observabilidade";
 export interface PredioRua { chave: string; rotulo: string; situacao: Situacao; valor: string; detalhe: string; }
 export interface RuaSegmento { destino: string; carros: number; detalhe: string; }
 
-const CORES_SITUACAO: Record<Situacao, string> = { ok: "var(--c-ok)", alerta: "var(--c-alerta)", critico: "var(--c-erro)" };
+const CORES_SITUACAO: Record<Situacao, string> = { ok: "var(--c-ok)", alerta: "var(--c-alerta)", critico: "var(--c-erro)", "amostra-curta": "var(--c-neutro)" };
 const LARGURA_SERVICO = 62;
 const ALTURA_SERVICO = 11;
 const LARGURA_MAPA = 300;

@@ -62,9 +62,12 @@ A cor de cada nó e aresta representa o pior estado entre taxa de erro e p95.
 
 | Estado | Taxa de erro | p95 |
 | --- | --- | --- |
+| Amostra curta | menos de 20 chamadas na janela | — |
 | OK | abaixo de 1% | abaixo de 300 ms |
 | Alerta | 1% a 4,99% | 300 ms a 999 ms |
 | Crítico | 5% ou mais | 1 s ou mais |
+
+Abaixo de 20 chamadas na janela o nó fica cinza e o tooltip diz "amostra curta", em vez de aplicar os limiares. Com 3 requisições a menor taxa de erro possível diferente de zero é 33% — sete vezes o limiar de crítico. Serviços de baixo volume por natureza, como `auth:login`, ficariam permanentemente vermelhos sem nada ter acontecido. O número real continua visível: só a cor é suspensa.
 
 Selecione um nó para abrir um painel com chamadas, taxa de erro e p95. A mesma ação pode ser feita pelo teclado com `Tab` e `Enter`/`Espaço`.
 
