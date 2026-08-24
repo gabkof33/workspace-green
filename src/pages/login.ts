@@ -235,6 +235,8 @@ function formEntrar(
           ev.preventDefault();
           erro.style.display = "none";
           reenvio.style.display = "none";
+          email.definirEstado("neutro");
+          senha.definirEstado("neutro");
           botao.disabled = true;
           botao.textContent = "Entrando…";
 
@@ -246,10 +248,21 @@ function formEntrar(
             .catch((e: unknown) => {
               const mensagem =
                 e instanceof Error ? e.message : "Não foi possível entrar.";
-              erro.textContent = mensagem;
-              erro.style.display = "flex";
-              if (mensagem.includes("Confirme seu e-mail")) {
+
+              if (mensagem.includes("e-mail válido")) {
+                email.definirEstado("erro", mensagem);
+              } else if (mensagem.includes("Confirme seu e-mail")) {
+                email.definirEstado("erro", mensagem);
                 reenvio.style.display = "flex";
+              } else if (mensagem.includes("incorretos")) {
+                // O servidor não diz qual dos dois está errado, de propósito.
+                // Marcar um só seria inventar a informação que ele recusou dar:
+                // os dois ficam em erro e a mensagem mora sob a senha.
+                email.definirEstado("erro");
+                senha.definirEstado("erro", mensagem);
+              } else {
+                erro.textContent = mensagem;
+                erro.style.display = "flex";
               }
               botao.disabled = false;
               botao.textContent = "Entrar";
@@ -688,16 +701,40 @@ function validarCadastro(
 
 /* Construtores de campo */
 
+/**
+ * Estados de um campo, espelhando o `FormFieldInput` do iGreen DS
+ * (`default`/`error`/`warning`/`success`) no vocabulário deste arquivo.
+ */
+type EstadoCampo = "neutro" | "erro" | "alerta" | "sucesso";
+
+const CLASSE_APOIO: Record<EstadoCampo, string> = {
+  neutro: "campo__ajuda",
+  erro: "campo__erro",
+  alerta: "campo__alerta",
+  sucesso: "campo__sucesso",
+};
+
 interface CampoMontado {
   elemento: HTMLElement;
   input: HTMLInputElement;
+  /**
+   * Troca o estado do campo e o texto abaixo dele.
+   *
+   * Sem `mensagem`, volta ao texto de ajuda — é o que limpa o campo depois de
+   * uma tentativa corrigida sem repetir a ajuda em cada ponto de chamada.
+   */
+  definirEstado: (estado: EstadoCampo, mensagem?: string) => void;
 }
 
 function campo(
   id: string,
   rotulo: string,
   tipo: string,
-  extras: { placeholder?: string; autocomplete?: string } = {},
+  extras: {
+    placeholder?: string;
+    autocomplete?: string;
+    ajuda?: string;
+  } = {},
 ): CampoMontado {
   const input = h("input", {
     class: "entrada",
@@ -715,13 +752,39 @@ function campo(
       ? h("div", { class: "campo__com-olho" }, input, olho(input))
       : input;
 
+  // Uma linha só de apoio: é a ajuda em repouso e vira a mensagem do estado
+  // quando há uma. Empilhar as duas faria o formulário mudar de altura a cada
+  // validação, e altura que pula move o botão debaixo do cursor.
+  const apoio = h("div", { id: `${id}-apoio`, aria: { live: "polite" } });
+
+  const definirEstado = (estado: EstadoCampo, mensagem?: string): void => {
+    const texto = mensagem ?? extras.ajuda ?? "";
+    apoio.textContent = texto;
+    apoio.className = CLASSE_APOIO[estado];
+    apoio.style.display = texto ? "" : "none";
+
+    input.classList.toggle("entrada--alerta", estado === "alerta");
+    input.classList.toggle("entrada--sucesso", estado === "sucesso");
+    // Erro reaproveita `aria-invalid`: a borda vermelha já está em
+    // components.css e é o que o leitor de tela anuncia como campo inválido.
+    if (estado === "erro") input.setAttribute("aria-invalid", "true");
+    else input.removeAttribute("aria-invalid");
+
+    if (texto) input.setAttribute("aria-describedby", apoio.id);
+    else input.removeAttribute("aria-describedby");
+  };
+
+  definirEstado("neutro");
+
   return {
     input,
+    definirEstado,
     elemento: h(
       "div",
       { class: "campo" },
       h("label", { class: "campo__rotulo", for: id }, rotulo),
       controle,
+      apoio,
     ),
   };
 }

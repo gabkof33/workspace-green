@@ -100,6 +100,21 @@
   align-items: center;
   gap: 5px;
 }
+/* Alerta e sucesso — mesmas medidas de `.campo__erro`, só a cor muda. */
+.campo__alerta,
+.campo__sucesso {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.campo__alerta {
+  color: var(--c-alerta);
+}
+.campo__sucesso {
+  color: var(--c-ok);
+}
 .campo__contador {
   font-family: var(--f-mono);
   font-size: var(--t-xs);
@@ -137,6 +152,14 @@
 .selecao[aria-invalid="true"],
 .area-texto[aria-invalid="true"] {
   border-color: var(--c-erro);
+}
+/* Erro fica no `aria-invalid` acima porque é estado de acessibilidade. Estes
+   dois não têm equivalente em ARIA — alerta e sucesso são informação visual. */
+.entrada--alerta {
+  border-color: var(--c-alerta);
+}
+.entrada--sucesso {
+  border-color: var(--c-ok);
 }
 .area-texto {
   min-height: 110px;
