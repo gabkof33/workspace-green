@@ -12,7 +12,7 @@ Cada chamada instrumentada gera um evento com metadados operacionais:
 
 | Campo | Descrição |
 | --- | --- |
-| Serviço de destino | Ex.: `rpc:kpis_observabilidade`, `tabela:chamados` ou `auth`. |
+| Serviço de destino | Ex.: `rpc:kpis_observabilidade`, `tabela:chamados` ou `auth:login`. |
 | Método e endpoint | Método HTTP e caminho da API, sem query string. |
 | Status | Código HTTP, quando disponível. |
 | Latência | Tempo total da chamada no navegador. |
@@ -21,7 +21,7 @@ Cada chamada instrumentada gera um evento com metadados operacionais:
 | Erro | Categoria (`rede`, `cliente` ou `servidor`) e mensagem resumida. |
 | Trace | Identificadores para agrupar chamadas disparadas por uma mesma ação. |
 
-Por privacidade, a instrumentação não lê corpo de requisição/resposta, token de autenticação, cabeçalhos sensíveis nem parâmetros de filtro da URL.
+Por privacidade, a instrumentação não lê corpo de requisição/resposta, token de autenticação, cabeçalhos sensíveis nem parâmetros de filtro da URL. A única exceção é `grant_type` em `/auth/v1/token`: sem ele, uma senha errada (`auth:login`) e uma sessão expirada (`auth:refresh`) apareceriam como o mesmo erro no mesmo endpoint. É um enum do protocolo OAuth, não dado da pessoa.
 
 ## Como o fluxo funciona
 
@@ -110,4 +110,4 @@ As abas Mapa, Grafo e Tracing aceitam janelas de 15 min, 1 h, 4 h ou 24 h. Os in
 
 ## Como estender
 
-Para incluir outro destino, mantenha a classificação em `servicoDestinoDoCaminho` e garanta que a chamada passe pelo cliente Supabase instrumentado. Para métricas de backend, seria necessário adicionar instrumentação no serviço correspondente e unificar os eventos em um formato compatível com `eventos_api`.
+Para incluir outro destino, mantenha a classificação em `servicoDestinoDaUrl` e garanta que a chamada passe pelo cliente Supabase instrumentado. Para métricas de backend, seria necessário adicionar instrumentação no serviço correspondente e unificar os eventos em um formato compatível com `eventos_api`.

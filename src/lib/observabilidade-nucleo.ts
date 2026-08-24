@@ -13,6 +13,7 @@
  */
 
 const CAMINHO_EVENTOS_API = "/rest/v1/eventos_api";
+const CAMINHO_TOKEN_AUTH = "/auth/v1/token";
 
 /* ---------- Contexto de autenticação ---------- */
 
@@ -82,15 +83,24 @@ const PADRAO_RPC = /^\/rest\/v1\/rpc\/([^/?]+)/;
 const PADRAO_TABELA = /^\/rest\/v1\/([^/?]+)/;
 
 /** Nome do "serviço" chamado — o rótulo que aparece nos nós do grafo. */
-function servicoDestinoDoCaminho(pathname: string): string {
-  const rpc = PADRAO_RPC.exec(pathname);
+function servicoDestinoDaUrl(url: URL): string {
+  const rpc = PADRAO_RPC.exec(url.pathname);
   if (rpc?.[1]) return `rpc:${rpc[1]}`;
 
-  const tabela = PADRAO_TABELA.exec(pathname);
+  const tabela = PADRAO_TABELA.exec(url.pathname);
   if (tabela?.[1]) return `tabela:${tabela[1]}`;
 
-  if (pathname.startsWith("/auth/v1/")) return "auth";
-  if (pathname.startsWith("/storage/v1/")) return "storage";
+  // `grant_type` separa login de renovação: mesmo endpoint, causas opostas
+  // quando dá 400. Único parâmetro lido da query, e não é dado sensível.
+  if (url.pathname === CAMINHO_TOKEN_AUTH) {
+    const concessao = url.searchParams.get("grant_type");
+    if (concessao === "password") return "auth:login";
+    if (concessao === "refresh_token") return "auth:refresh";
+    return "auth:token";
+  }
+
+  if (url.pathname.startsWith("/auth/v1/")) return "auth";
+  if (url.pathname.startsWith("/storage/v1/")) return "storage";
   return "desconhecido";
 }
 
@@ -229,7 +239,7 @@ export function criarFetchInstrumentado(
           traceId: escopo?.traceId ?? requestId,
           parentSpanId: escopo?.spanRaiz ?? null,
           nomeOperacao: escopo?.nome ?? null,
-          servicoDestino: servicoDestinoDoCaminho(info.url.pathname),
+          servicoDestino: servicoDestinoDaUrl(info.url),
           endpoint: info.url.pathname,
           metodoHttp: info.metodo,
           statusCode: parcial.statusCode,
