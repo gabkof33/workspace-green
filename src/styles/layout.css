@@ -305,15 +305,17 @@
   outline: 2px solid var(--c-chefe-ink);
   outline-offset: 1px;
 }
-/* Botão primário sobre o verde: inverte para não sumir dentro dele. */
+/* Contorno sobre o verde: a cor de destaque sumiria dentro do próprio fundo,
+   então aqui o contorno é feito com a tinta da barra, não com `--c-accent`. */
 .topo .btn--primario {
-  background: var(--c-chefe-ink);
+  background: transparent;
   border-color: var(--c-chefe-ink);
-  color: var(--c-chefe-bg);
+  color: var(--c-chefe-ink);
 }
 .topo .btn--primario:hover:not(:disabled) {
-  background: var(--c-chefe-ink-2);
+  background: var(--c-chefe-hover);
   border-color: var(--c-chefe-ink-2);
+  color: var(--c-chefe-ink-2);
 }
 .topo__acoes {
   margin-left: auto;

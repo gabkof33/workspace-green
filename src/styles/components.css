@@ -27,15 +27,18 @@
   cursor: not-allowed;
 }
 
+/* Contorno, não preenchido: a cor da marca fica na borda e no texto. O peso
+   maior e a cor são o que distinguem do `.btn` neutro. */
 .btn--primario {
-  background: var(--c-accent);
+  background: transparent;
   border-color: var(--c-accent);
-  color: var(--c-accent-ink);
+  color: var(--c-accent);
   font-weight: 600;
 }
 .btn--primario:hover:not(:disabled) {
-  background: var(--c-accent-hover);
+  background: var(--c-accent-wash);
   border-color: var(--c-accent-hover);
+  color: var(--c-accent-hover);
 }
 
 .btn--sutil {
