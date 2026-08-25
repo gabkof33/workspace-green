@@ -1,0 +1,1761 @@
+/**
+ * Peças recorrentes da Central Green na base do iGreen DS — layer OPT-IN.
+ *
+ * Por que este arquivo existe: tabela aparece em 14 arquivos (11 páginas + o
+ * `esqueleto`, a `legenda-servicos` e a `tabela-chamados` compartilhada), e
+ * chip de prioridade/status aparece em tabela E em card. O tratamento do DS
+ * nasceu dentro de `.fila-ds`, onde só a fila o alcançava — copiar pra cada
+ * página nova seria o começo de cinco versões divergentes da mesma tabela.
+ *
+ * Como usar: some a classe do layer ao contêiner raiz da página.
+ *
+ *   const area = h("div", { class: "pilha tabela-ds chips-ds formulario-ds" });
+ *
+ * Os layers, na ordem em que aparecem abaixo:
+ *   `tabela-ds`      grade de dados, tags da linha, barra de SLA
+ *   `chips-ds`       rótulos de prioridade e de status
+ *   `formulario-ds`  campo, entrada, área de texto, seleção e botão
+ *   `feedback-ds`    aviso e estado vazio
+ *
+ * Cada layer é independente — dá pra adotar a tabela numa página sem adotar os
+ * chips, e vice-versa. Nada aqui vale sem a classe, então acrescentar este
+ * arquivo ao projeto não muda **nenhuma** página que não o peça.
+ *
+ * A exceção são os componentes `.ds-*` no fim — `ds-alternancia` (ToggleGroup),
+ * `ds-selecao` (Select), `ds-periodo`/`ds-calendario` (DatePicker range),
+ * `ds-barra-filtros`/`ds-filtro-chip` (toolbar de filtros do DataTable) e a
+ * superfície `ds-flutuante` que os dois últimos painéis dividem. São nomes
+ * NOVOS, que nenhuma folha base conhece, então não precisam de opt-in pra não
+ * vazar — não há o que vazar. É a mesma regra dos presets `.ds-*` do
+ * `ds-tokens.css`, e é o que permite usá-los numa página ainda legada.
+ *
+ * Consome só `--ds-*` (ver `ds-tokens.css`).
+ *
+ * ⚠️ A `tabelaChamados` é dividida entre `fila.ts` e `meus.ts`. O opt-in é por
+ * PÁGINA, não pelo componente: é isso que permite converter uma e deixar a
+ * outra intacta, sem tocar no componente compartilhado nem passar flag por
+ * parâmetro.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .tabela-ds — grade de dados
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tabela-ds .tabela-envolucro {
+  border: 1px solid var(--ds-border-table);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-table);
+  box-shadow: var(--ds-sh-sm);
+}
+
+.tabela-ds .tabela {
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+}
+
+.tabela-ds .tabela th,
+.tabela-ds .tabela td {
+  padding: var(--ds-pad-lg) var(--ds-pad-2xl);
+  border-bottom: 1px solid var(--ds-border-table);
+}
+
+/* Cabeçalho de coluna é `caption` apagado. O original era mono 10px em caixa
+   alta com tracking de 0.11em — o cabeçalho pesava mais que o dado da linha,
+   invertendo a hierarquia da grade. */
+.tabela-ds .tabela thead th {
+  background: var(--ds-bg-table-head);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ds-fg-muted);
+}
+
+.tabela-ds .tabela tbody td {
+  color: var(--ds-fg-default);
+}
+
+.tabela-ds .tabela tbody tr:hover {
+  background: var(--ds-bg-table-row-hover);
+}
+
+/* Número de chamado, patrimônio, hash: identificador técnico → papel `code`,
+   que é um dos 7 papéis do DS e existe exatamente pra isto. */
+.tabela-ds .tabela__num {
+  font-family: var(--ds-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+.tabela-ds .tabela__titulo {
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--ds-fg-strong);
+}
+
+.tabela-ds .tabela__meta {
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+.tabela-ds .texto-sutil {
+  color: var(--ds-fg-subtle);
+}
+
+/* ── Tags dentro da linha ────────────────────────────────────────────────── */
+
+.tabela-ds .tags__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-gp-xs);
+  margin-top: var(--ds-gp-xs);
+}
+
+.tabela-ds .tags__marca {
+  border-radius: var(--ds-radius-full);
+  padding: 1px var(--ds-pad-md);
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tabela-ds .tags__marca:hover {
+  background: var(--ds-bg-brand-subtle);
+  border-color: var(--ds-border-brand-subtle);
+  color: var(--ds-fg-brand);
+}
+
+/* ── Barra de SLA (célula de progresso) ──────────────────────────────────── */
+
+.tabela-ds .sla__topo {
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela-ds .sla__trilho {
+  height: 6px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-emphasis);
+}
+
+.tabela-ds .sla__barra {
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-success);
+}
+
+.tabela-ds .sla__barra--atencao {
+  background: var(--ds-bg-warning);
+}
+
+.tabela-ds .sla__barra--critico {
+  background: var(--ds-bg-danger);
+}
+
+/* ── Cartão que envolve a grade ─────────────────────────────────────────────
+ * O estado vazio em si (`.vazio`) saiu pro `feedback-ds`: a busca do catálogo
+ * de serviços usa o mesmo, e não tem tabela nenhuma. */
+
+.tabela-ds .cartao {
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-sh-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .chips-ds — prioridade e status
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Mesma forma pros dois (pílula `soft`), cores semânticas do DS. Vale em
+   tabela e em card, e é por isso que não mora junto com nenhum dos dois. */
+
+.chips-ds .pri,
+.chips-ds .selo {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--ds-radius-full);
+  padding: 2px var(--ds-pad-md);
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.chips-ds .pri--P1 {
+  background: var(--ds-bg-danger-muted);
+  color: var(--ds-fg-danger);
+}
+
+.chips-ds .pri--P2 {
+  background: var(--ds-bg-warning-muted);
+  color: var(--ds-fg-warning);
+}
+
+.chips-ds .pri--P3 {
+  background: var(--ds-bg-info-muted);
+  color: var(--ds-fg-info);
+}
+
+.chips-ds .pri--P4 {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-muted);
+}
+
+.chips-ds .selo--aberto {
+  background: var(--ds-bg-info-muted);
+  color: var(--ds-fg-info);
+}
+
+.chips-ds .selo--andamento {
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
+}
+
+.chips-ds .selo--pausado {
+  background: var(--ds-bg-warning-muted);
+  color: var(--ds-fg-warning);
+}
+
+.chips-ds .selo--resolvido {
+  background: var(--ds-bg-success-muted);
+  color: var(--ds-fg-success);
+}
+
+.chips-ds .selo--encerrado {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-muted);
+}
+
+/* O ponto antes do rótulo sai: a cor da própria pílula já é o sinal, e o ponto
+   repetia a informação ocupando largura. */
+.chips-ds .selo::before {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .formulario-ds — campos e botões
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Nasceu dentro de `.fila-ds`, onde só a barra de filtros o alcançava. A
+   abertura de chamado é a segunda página a pedir o mesmo campo e o mesmo botão
+   — e é aqui que se decide entre uma definição ou duas que divergem. Campo e
+   botão andam juntos (todo formulário tem os dois, toda barra de filtros
+   também), por isso um layer só. */
+
+/* ── Campo: rótulo, ajuda, erro, contador ────────────────────────────────── */
+
+/* O ritmo vem do `gap` do contêiner. O `margin-bottom` do CSS base somava com
+   ele, e o espaço real variava conforme o campo tivesse ajuda ou não. */
+.formulario-ds .campo {
+  gap: var(--ds-gp-sm);
+  margin-bottom: 0;
+}
+
+/* Rótulo é `label` do DS: 13px/500, não 14px/600. Rótulo mais leve que o
+   título da seção é o que mantém a hierarquia de leitura do formulário. */
+.formulario-ds .campo__rotulo {
+  gap: var(--ds-gp-md);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--ds-fg-strong);
+}
+
+.formulario-ds .campo__obrigatorio {
+  color: var(--ds-fg-danger);
+}
+
+.formulario-ds .campo__ajuda {
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+.formulario-ds .campo__erro {
+  gap: var(--ds-gp-xs);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--ds-fg-danger);
+}
+
+.formulario-ds .campo__alerta {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ds-fg-warning);
+}
+
+.formulario-ds .campo__sucesso {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ds-fg-success);
+}
+
+/* Contagem de caracteres é número técnico: papel `code`, com `tabular-nums`
+   pra largura não pular a cada tecla. */
+.formulario-ds .campo__contador {
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  color: var(--ds-fg-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Controles ───────────────────────────────────────────────────────────────
+ * 40px de altura, radius 8 e o anel de foco de 4px cujo token já traz o alpha
+ * — aplicar opacidade por cima dele lava a cor. Os 44px do alvo de toque do
+ * WCAG ficam só no `.auth` (ver `layout.css`): aqui os formulários são densos
+ * e operados no desktop, e 44px por campo alongaria a tela sem ganho. */
+
+.formulario-ds .entrada,
+.formulario-ds .selecao,
+.formulario-ds .area-texto {
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-input);
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+}
+
+.formulario-ds .entrada,
+.formulario-ds .selecao {
+  min-height: var(--ds-form-lg);
+  padding: 0 var(--ds-pad-xl);
+}
+
+/* A área de texto mantém padding vertical: o texto começa no topo, não no
+   meio, então `min-height` sozinho não daria respiro à primeira linha. */
+.formulario-ds .area-texto {
+  min-height: 112px;
+  padding: var(--ds-pad-lg) var(--ds-pad-xl);
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.formulario-ds .entrada:hover,
+.formulario-ds .selecao:hover,
+.formulario-ds .area-texto:hover {
+  background: var(--ds-bg-input-hover);
+  border-color: var(--ds-border-input);
+}
+
+.formulario-ds .entrada:focus,
+.formulario-ds .selecao:focus,
+.formulario-ds .area-texto:focus {
+  outline: none;
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Inválido pinta borda E anel: só a borda vermelha, num campo em foco, ficava
+   escondida atrás do anel verde. */
+.formulario-ds .entrada[aria-invalid="true"],
+.formulario-ds .selecao[aria-invalid="true"],
+.formulario-ds .area-texto[aria-invalid="true"] {
+  border-color: var(--ds-danger);
+}
+
+.formulario-ds .entrada[aria-invalid="true"]:focus,
+.formulario-ds .selecao[aria-invalid="true"]:focus,
+.formulario-ds .area-texto[aria-invalid="true"]:focus {
+  border-color: var(--ds-danger);
+  box-shadow: 0 0 0 4px var(--ds-ring-danger);
+}
+
+.formulario-ds .entrada::placeholder,
+.formulario-ds .area-texto::placeholder {
+  color: var(--ds-fg-subtle);
+  opacity: 1;
+}
+
+.formulario-ds .entrada:disabled,
+.formulario-ds .selecao:disabled,
+.formulario-ds .area-texto:disabled {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-disabled);
+}
+
+/* Rede de proteção pra `<select>` nativo que ainda apareça numa página com
+   este opt-in: a lista dele é do SO e ignora o fundo translúcido do campo, o
+   que no escuro deixava texto claro sobre painel branco. O par abaixo é o
+   único que o navegador aplica lá dentro. Novo campo de escolha única deve
+   usar o `.ds-selecao` (ver `selecao-ds.ts`), que é estilizável de verdade. */
+.formulario-ds .selecao option {
+  background-color: var(--ds-bg-surface-elevated);
+  color: var(--ds-fg-default);
+}
+
+/* ── Botão ───────────────────────────────────────────────────────────────────
+ * Contorno é a variante primária deste sistema (ver o commit "Botão primário
+ * passa a ser de contorno"): a marca fica na borda e no texto. */
+
+.formulario-ds .btn {
+  min-height: var(--ds-form-lg);
+  padding: 0 var(--ds-pad-2xl);
+  gap: var(--ds-gp-md);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-surface);
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+}
+
+.formulario-ds .btn:hover:not(:disabled) {
+  background: var(--ds-bg-muted);
+}
+
+.formulario-ds .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.formulario-ds .btn--primario {
+  border-color: var(--ds-border-brand);
+  background: transparent;
+  color: var(--ds-fg-brand);
+  font-weight: 600;
+}
+
+.formulario-ds .btn--primario:hover:not(:disabled) {
+  background: var(--ds-bg-brand-subtle);
+}
+
+.formulario-ds .btn--sutil {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ds-fg-muted);
+}
+
+.formulario-ds .btn--sutil:hover:not(:disabled) {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-default);
+}
+
+.formulario-ds .btn--perigo {
+  border-color: var(--ds-border-danger-muted);
+  background: transparent;
+  color: var(--ds-fg-danger);
+}
+
+.formulario-ds .btn--perigo:hover:not(:disabled) {
+  background: var(--ds-bg-danger-muted);
+}
+
+.formulario-ds .btn--sm {
+  min-height: var(--ds-form-md);
+  padding: 0 var(--ds-pad-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .feedback-ds — aviso e estado vazio
+   ═══════════════════════════════════════════════════════════════════════════
+
+   As duas formas de a tela falar com quem está nela: a faixa de contexto e a
+   lista sem resultado. O estado vazio veio do `tabela-ds` — não é peça da
+   grade, a busca do catálogo de serviços usa o mesmo. */
+
+/* ── Aviso ───────────────────────────────────────────────────────────────── */
+
+.feedback-ds .aviso {
+  align-items: center;
+  gap: var(--ds-gp-md);
+  padding: var(--ds-pad-lg) var(--ds-pad-xl);
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--ds-fg-default);
+}
+
+.feedback-ds .aviso b {
+  color: var(--ds-fg-strong);
+  font-weight: 600;
+}
+
+/* Cada variante é `soft`: fundo lavado + borda da mesma família. Sem faixa
+   sólida — o aviso informa, não interrompe a tela. */
+.feedback-ds .aviso--info {
+  background: var(--ds-bg-brand-subtle);
+  border: 1px solid var(--ds-border-brand-subtle);
+}
+
+.feedback-ds .aviso--alerta {
+  background: var(--ds-bg-warning-muted);
+  border: 1px solid var(--ds-border-warning-muted);
+}
+
+.feedback-ds .aviso--critico {
+  background: var(--ds-bg-danger-muted);
+  border: 1px solid var(--ds-border-danger-muted);
+}
+
+/* `--ok` estava na marcação da recuperação de senha sem regra nenhuma em CSS
+   — o aviso de "e-mail enviado" saía neutro, do jeito de qualquer outro. */
+.feedback-ds .aviso--ok {
+  background: var(--ds-bg-success-muted);
+  border: 1px solid var(--ds-border-success-muted);
+}
+
+.feedback-ds .aviso__icone {
+  font-family: var(--ds-font-mono);
+  color: var(--ds-fg-brand);
+}
+
+.feedback-ds .aviso--alerta .aviso__icone {
+  color: var(--ds-fg-warning);
+}
+
+.feedback-ds .aviso--critico .aviso__icone {
+  color: var(--ds-fg-danger);
+}
+
+.feedback-ds .aviso--ok .aviso__icone {
+  color: var(--ds-fg-success);
+}
+
+/* ── Estado vazio ────────────────────────────────────────────────────────── */
+
+.feedback-ds .vazio {
+  gap: var(--ds-gp-sm);
+  padding: var(--ds-pad-6xl) var(--ds-pad-4xl);
+}
+
+.feedback-ds .vazio h3 {
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  color: var(--ds-fg-strong);
+}
+
+/* 360px é o limite de linha do EmptyState do DS: texto centralizado mais largo
+   que isso perde o eixo de leitura entre uma linha e a seguinte. */
+.feedback-ds .vazio p {
+  max-width: 360px;
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  color: var(--ds-fg-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-alternancia — o ToggleGroup do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Sem `-ds` no fim e sem opt-in porque não é classe legada sendo repintada: é
+   nome NOVO, que só existe aqui, como os presets `.ds-body-sm` do
+   `ds-tokens.css`. Nada no CSS base a alcança, então não há o que vazar.
+
+   Tradução direta do `toggleVariants` do DS (variante `outline`, tamanho
+   default), que em Tailwind é:
+
+     inline-flex items-center justify-center gap-gp-xs rounded-radius-md
+     border-border-default bg-transparent text-body-sm font-semibold
+     min-h-form-lg min-w-form-lg px-pad-lg transition-colors
+     hover:bg-bg-muted focus-visible:ring-4 focus-visible:ring-ring-brand
+     data-[state=on]:bg-bg-brand-subtle data-[state=on]:text-fg-brand
+     disabled:pointer-events-none disabled:opacity-50
+
+   Quem escreve o `data-state` é o `grupo-alternancia.ts`, com o mesmo valor
+   que o Radix usaria. */
+
+.ds-alternancia {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-xs);
+  /* Duas diferenças do DS, e as duas porque lá o grupo é uma barra de ícones
+     solta, e aqui ele é o controle de um campo: quebra linha (rótulo é texto
+     do `schema_formulario`, e seis opções não cabem na coluna) e começa na
+     esquerda, onde o rótulo do campo começa, em vez de centralizado. */
+  flex-wrap: wrap;
+}
+
+.ds-alternancia__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-gp-xs);
+  min-height: var(--ds-form-lg);
+  min-width: var(--ds-form-lg);
+  padding: 0 var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.003em;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.ds-alternancia__item:hover {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-default);
+}
+
+/* Anel de 4px, e o token já vem com alpha — nunca aplicar opacidade por cima.
+   `focus-visible` e não `focus`: o clique do mouse não deve deixar anel. */
+.ds-alternancia__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Ligado é `soft` da marca. A borda fica na cor neutra, como no DS: o que
+   distingue é o preenchimento, e trocar a borda também dobraria o contraste
+   entre um item ligado e o vizinho desligado. */
+.ds-alternancia__item[data-state="on"] {
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
+}
+
+.ds-alternancia__item[data-state="on"]:hover {
+  background: var(--ds-bg-brand-subtle-hover);
+}
+
+.ds-alternancia__item:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-selecao — o Select do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Nome NOVO e sem opt-in, como o `.ds-alternancia` acima: nada no CSS base
+   alcança estas classes, então não há o que vazar.
+
+   Tradução do `SelectTrigger` / `SelectContent` / `SelectItem` do DS. Em
+   Tailwind o gatilho é:
+
+     flex min-h-form-lg w-full items-center justify-between gap-gp-md
+     rounded-radius-lg px-pad-xl bg-bg-input dark:bg-bg-muted
+     border border-border-input text-body-sm font-normal text-fg-default
+     data-[placeholder]:text-fg-muted data-[placeholder]:opacity-70
+     focus-visible:border-border-brand data-[state=open]:shadow-sh-ring
+
+   Quem escreve `data-state`, `data-placeholder` e `aria-selected` é o
+   `selecao-ds.ts`, com os mesmos valores que o Radix usaria. */
+
+.ds-selecao {
+  width: 100%;
+}
+
+.ds-selecao__gatilho,
+.ds-periodo__gatilho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-gp-md);
+  width: 100%;
+  min-height: var(--ds-form-lg);
+  padding: 0 var(--ds-pad-xl);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-input);
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.ds-selecao__gatilho:hover,
+.ds-periodo__gatilho:hover {
+  background: var(--ds-bg-input-hover);
+}
+
+/* Foco e aberto compartilham o anel: uma vez aberta a lista, o foco está nela
+   e o gatilho perderia qualquer marca de que é ele que está sendo operado. */
+.ds-selecao__gatilho:focus-visible,
+.ds-selecao__gatilho[data-state="open"],
+.ds-periodo__gatilho:focus-visible,
+.ds-periodo__gatilho[data-state="open"] {
+  outline: none;
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Lista que ainda não chegou (os setores vêm de consulta) ou campo sem opção
+   nenhuma: o gatilho fica inerte e diz isso pela cor. */
+.ds-selecao__gatilho:disabled {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-disabled);
+  cursor: not-allowed;
+}
+
+.ds-selecao__gatilho:disabled .ds-selecao__seta {
+  color: var(--ds-fg-disabled);
+}
+
+/* Sem escolha o gatilho lê como placeholder — mesma cor e opacidade do
+   `data-[placeholder]` do DS, não a do texto de verdade. */
+.ds-selecao__gatilho[data-placeholder] .ds-selecao__valor {
+  color: var(--ds-fg-muted);
+  opacity: 0.7;
+}
+
+.ds-selecao__valor {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ds-selecao__seta {
+  flex-shrink: 0;
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+  color: var(--ds-fg-muted);
+  transition: transform 0.15s ease;
+}
+
+.ds-selecao__gatilho[data-state="open"] .ds-selecao__seta {
+  transform: rotate(180deg);
+}
+
+/* A lista é filha do `<body>` e posicionada em `fixed` pelo componente — daí
+   `top`/`left`/`width` virem inline. `radius` 12px e o contorno de 6px são o
+   `SelectContent` do DS (`rounded-[12px]` + `outline-float`). */
+/* Superfície flutuante — no DS são 14 componentes sobre a mesma base (Select,
+   Popover, DatePicker, DropdownMenu…). Aqui vale pra lista do select e pro
+   calendário; o posicionamento é do `flutuante.ts`, daí `top`/`left`/`width`
+   chegarem inline. */
+.ds-flutuante {
+  position: fixed;
+  /* Acima do diálogo (200): o painel sai no `<body>`, então empilha contra a
+     tela inteira, e um campo dentro de um diálogo abriria por baixo dele. */
+  z-index: 210;
+  border: 1px solid var(--ds-border-default);
+  border-radius: 12px;
+  outline: 6px solid var(--ds-overlay-float);
+  outline-offset: 0;
+  background: var(--ds-bg-dropdown);
+  /* No escuro o fundo é o canvas a 70%: sem o desfoque, o conteúdo da página
+     aparece através do painel. */
+  backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: var(--ds-sh-lg);
+  font-family: var(--ds-font-sans);
+  color: var(--ds-fg-default);
+}
+
+.ds-selecao__lista {
+  overflow-y: auto;
+  padding: var(--ds-pad-sm);
+}
+
+.ds-selecao__item {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-pad-md);
+  padding: var(--ds-pad-md) var(--ds-pad-lg);
+  border-radius: var(--ds-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-fg-muted);
+  cursor: pointer;
+}
+
+/* Um destaque só, escrito pelo componente tanto no teclado quanto no
+   ponteiro. `:hover` em paralelo daria duas linhas realçadas ao mesmo tempo. */
+.ds-selecao__item[data-ativo="sim"] {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+}
+
+/* Escolhido é o "✓" na canaleta, como no DS — não um preenchimento, que se
+   confundiria com o destaque de navegação acima. */
+.ds-selecao__marca {
+  display: flex;
+  flex-shrink: 0;
+  width: 14px;
+  color: var(--ds-fg-brand);
+  visibility: hidden;
+}
+
+.ds-selecao__item[aria-selected="true"] {
+  color: var(--ds-fg-default);
+}
+
+.ds-selecao__item[aria-selected="true"] .ds-selecao__marca {
+  visibility: visible;
+}
+
+.ds-selecao__marca svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-periodo / .ds-calendario — o DatePicker mode="range" do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   O gatilho reaproveita as regras do `.ds-selecao__gatilho` acima, e isso é
+   dito no próprio DS: o trigger do DatePicker "espelha o SelectTrigger, que é
+   o precedente do DS pra botão que tem que parecer input". Só o que difere
+   fica aqui — ícone à esquerda, sem seta, texto alinhado ao início.
+
+   A grade é a tradução do `Calendar` (react-day-picker) do DS: célula de
+   2.5rem, dia redondo, ponta do intervalo preenchida na marca e miolo em
+   `brand-subtle` com canto reto. Quem escreve `data-range-start`,
+   `data-range-middle`, `data-selected-single` e `data-hoje` é o
+   `periodo-ds.ts`, com os mesmos nomes do `CalendarDayButton`. */
+
+.ds-periodo__gatilho {
+  justify-content: flex-start;
+}
+
+.ds-periodo__icone {
+  flex-shrink: 0;
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+  color: var(--ds-fg-muted);
+}
+
+.ds-periodo__valor {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Sem intervalo o gatilho lê como placeholder. Sem a opacidade que o select
+   usa: lá o texto é o valor do campo, aqui é uma instrução. */
+.ds-periodo__gatilho[data-placeholder] .ds-periodo__valor {
+  color: var(--ds-fg-muted);
+}
+
+.ds-calendario {
+  --ds-celula: 2.5rem;
+  padding: var(--ds-pad-xl);
+  /* Rola só se a janela for baixa demais pro painel — o `flutuante.ts` corta a
+     altura pelo espaço disponível. */
+  overflow-y: auto;
+}
+
+.ds-calendario__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+}
+
+.ds-calendario__nav {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-celula);
+  height: var(--ds-celula);
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ds-calendario__nav svg {
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+}
+
+.ds-calendario__nav:hover {
+  background: var(--ds-bg-muted-hover);
+}
+
+.ds-calendario__nav:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* As legendas dividem a largura entre si, cada uma centrada sobre a sua grade
+   — é o `month_caption` do DS, que é centrado dentro do mês. */
+.ds-calendario__legendas {
+  display: flex;
+  flex: 1;
+  gap: var(--ds-gp-4xl);
+}
+
+/* Botão, não rótulo: é por ele que se escolhe mês e ano (ver `periodo-ds.ts`).
+   Sem moldura em repouso — a moldura apareceria doze vezes na mesma tela. */
+.ds-calendario__legenda {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-gp-xs);
+  padding: var(--ds-pad-xs) var(--ds-pad-md);
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  /* Mês em pt-BR vem minúsculo ("agosto de 2026"). */
+  text-transform: capitalize;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ds-calendario__legenda:hover {
+  background: var(--ds-bg-muted-hover);
+}
+
+.ds-calendario__legenda:focus-visible,
+.ds-calendario__legenda[data-state="open"] {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-calendario__legenda-seta {
+  width: 14px;
+  height: 14px;
+  color: var(--ds-fg-muted);
+}
+
+.ds-calendario__legenda[data-state="open"] .ds-calendario__legenda-seta {
+  transform: rotate(180deg);
+}
+
+/* ── Seletor de mês e ano ───────────────────────────────────────────────────
+ * Painel DENTRO do painel do calendário (por isso a pilha de abertos no
+ * `flutuante.ts`). O ano é campo em vez de lista: lista precisa de um começo e
+ * de um fim, e não há limite de ano nenhum aqui. */
+
+.ds-calendario__seletor {
+  padding: var(--ds-pad-lg);
+  width: 216px;
+}
+
+.ds-calendario__ano {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-xs);
+  padding-bottom: var(--ds-pad-md);
+  margin-bottom: var(--ds-pad-md);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-calendario__nav--pequeno {
+  width: 28px;
+  height: 28px;
+}
+
+.ds-calendario__ano-campo {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--ds-pad-md);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-input);
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-calendario__ano-campo:focus {
+  outline: none;
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-calendario__meses-lista {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ds-gp-xs);
+}
+
+.ds-calendario__opcao {
+  height: 30px;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ds-calendario__opcao:hover {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+}
+
+.ds-calendario__opcao[aria-selected="true"] {
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
+  font-weight: 600;
+}
+
+.ds-calendario__opcao:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-calendario__meses {
+  display: flex;
+  gap: var(--ds-gp-4xl);
+  margin-top: var(--ds-gp-2xl);
+}
+
+.ds-calendario__grade {
+  border-collapse: collapse;
+  /* 7 células fixas: mês que começa no sábado tem uma semana a mais e, sem
+     largura fixa, as duas grades ficariam de tamanhos diferentes. */
+  width: calc(var(--ds-celula) * 7);
+  table-layout: fixed;
+}
+
+.ds-calendario__semana-rotulo {
+  padding: 0 0 var(--ds-gp-md);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+  text-align: center;
+  user-select: none;
+}
+
+.ds-calendario__celula {
+  padding: 0;
+  height: var(--ds-celula);
+  text-align: center;
+}
+
+.ds-calendario__dia {
+  width: 100%;
+  height: var(--ds-celula);
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.ds-calendario__dia:hover {
+  background: var(--ds-bg-muted-hover);
+}
+
+.ds-calendario__dia:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Dia de fora do mês continua clicável, como o `showOutsideDays` do DS. */
+.ds-calendario__dia[data-fora] {
+  color: var(--ds-fg-subtle);
+  opacity: 0.4;
+}
+
+.ds-calendario__dia:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Hoje é preenchido na marca, como no `CalendarDayButton`. Vem antes das
+   regras de intervalo de propósito: qualquer papel no intervalo ganha dele. */
+.ds-calendario__dia[data-hoje] {
+  background: var(--ds-bg-brand);
+  color: var(--ds-fg-on-brand);
+  font-weight: 600;
+}
+
+.ds-calendario__dia[data-range-middle] {
+  /* Canto reto: é o miolo que costura início e fim numa faixa contínua. */
+  border-radius: 0;
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
+  font-weight: 500;
+}
+
+.ds-calendario__dia[data-selected-single],
+.ds-calendario__dia[data-range-start],
+.ds-calendario__dia[data-range-end] {
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-brand);
+  color: var(--ds-fg-on-brand);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Hover não apaga a pinta do intervalo — sem isto, passar o ponteiro por cima
+   do início do período o devolvia à cor neutra. */
+.ds-calendario__dia[data-selected-single]:hover,
+.ds-calendario__dia[data-range-start]:hover,
+.ds-calendario__dia[data-range-end]:hover,
+.ds-calendario__dia[data-hoje]:hover {
+  background: var(--ds-bg-brand);
+  color: var(--ds-fg-on-brand);
+}
+
+.ds-calendario__dia[data-range-middle]:hover {
+  background: var(--ds-bg-brand-subtle-hover);
+  color: var(--ds-fg-brand);
+}
+
+/* Dois meses lado a lado passam de 600px, mais que a tela de um celular. Ali o
+   calendário volta a UM mês — o default do DS fora do modo range — e a
+   navegação do topo cobre o intervalo que atravessa a virada. Empilhar os dois
+   foi descartado: a legenda de cada mês ficaria longe da sua grade. */
+@media (max-width: 680px) {
+  .ds-calendario__legendas > :nth-child(2),
+  .ds-calendario__meses > :nth-child(2) {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-barra-filtros — a toolbar de filtros aplicados do DataTable do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Tradução do `toolbarApplied*` (`TableToolbar/table-toolbar.styles.ts`), que
+   em Tailwind é:
+
+     chip      inline-flex items-center gap-gp-md h-form-md pl-pad-sm pr-pad-lg
+               bg-bg-surface dark:bg-bg-muted border border-dashed
+               border-border-input rounded-radius-lg text-body-xs text-fg-default
+     nome      font-semibold text-fg-default
+     operador  text-fg-muted text-caption-sm
+     valor     inline-flex h-[22px] px-pad-md rounded-radius-sm bg-bg-muted
+               text-body-xs font-medium
+     ✕         grid place-items-center size-[18px] rounded-radius-full
+               text-fg-subtle hover:text-fg-default [&_svg]:size-[14px]
+     limpar    text-body-xs font-medium text-fg-brand
+
+   A borda TRACEJADA é o que separa filtro de conteúdo na barra: chip de dado
+   (prioridade, status) é sólido e preenchido, chip de filtro é contorno vazado.
+
+   Quem monta é o `barra-filtros.ts`; o chip de período vem do `periodo-ds.ts`
+   em `aparencia: "chip"`, e por isso as classes são compartilhadas. */
+
+.ds-barra-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  font-family: var(--ds-font-sans);
+}
+
+.ds-filtro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-xs);
+  height: var(--ds-form-md);
+  padding: 0 var(--ds-pad-sm) 0 var(--ds-pad-lg);
+  border: 1px dashed var(--ds-border-input);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  color: var(--ds-fg-default);
+  font-size: 0.75rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ds-filtro-chip:hover {
+  background: var(--ds-bg-muted-hover);
+  border-color: var(--ds-border-default);
+}
+
+/* O corpo é o gatilho do painel daquele filtro; a moldura é do chip, então
+   aqui não há borda nem fundo próprios. */
+.ds-filtro-chip__corpo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ds-filtro-chip__corpo:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+  border-radius: var(--ds-radius-sm);
+}
+
+/* A agenda no chip de período: 14px, o mesmo tamanho do ✕ do outro lado. */
+.ds-filtro-chip__icone {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--ds-fg-muted);
+}
+
+.ds-filtro-chip__nome {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ds-filtro-chip__op {
+  color: var(--ds-fg-muted);
+  font-size: 0.6875rem;
+}
+
+/* O valor é uma pílula dentro do chip: é o que se lê primeiro quando a barra
+   tem quatro filtros, e o nome já está dito ao lado. */
+.ds-filtro-chip__valor {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--ds-pad-md);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Chip sem valor ainda — o nome sozinho, apagado. */
+.ds-filtro-chip__corpo[data-placeholder] .ds-filtro-chip__nome {
+  color: var(--ds-fg-muted);
+}
+
+.ds-filtro-chip__x {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-subtle);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.ds-filtro-chip__x:hover {
+  color: var(--ds-fg-default);
+}
+
+.ds-filtro-chip__x:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-filtro-chip__x svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Contorno SÓLIDO, ao contrário dos chips: é comando, não recorte aplicado. */
+.ds-barra-filtros__adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  height: var(--ds-form-md);
+  padding: 0 var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-lg);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ds-barra-filtros__adicionar:hover {
+  background: var(--ds-bg-muted-hover);
+}
+
+.ds-barra-filtros__adicionar:focus-visible,
+.ds-barra-filtros__adicionar[data-state="open"] {
+  outline: none;
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-barra-filtros__adicionar svg {
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+  color: var(--ds-fg-muted);
+}
+
+.ds-barra-filtros__limpar {
+  margin-left: var(--ds-pad-sm);
+  border: 0;
+  background: transparent;
+  color: var(--ds-fg-brand);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ds-barra-filtros__limpar:focus-visible {
+  outline: none;
+  border-radius: var(--ds-radius-sm);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* ── As duas pontas do intervalo ─────────────────────────────────────────────
+ * Ficam no topo do painel porque são o ESTADO do filtro — o que a lista está
+ * recortando agora —, e a grade abaixo é só o meio de mudá-lo. O ✕ de cada uma
+ * é o que abre o intervalo daquele lado ("desde 01/08, sem fim"). */
+
+.ds-calendario__pontas {
+  display: flex;
+  gap: var(--ds-gp-md);
+  padding-bottom: var(--ds-pad-md);
+  margin-bottom: var(--ds-pad-md);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-calendario__ponta {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--ds-gp-sm);
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--ds-pad-sm) 0 var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-input);
+  font-size: 0.75rem;
+}
+
+.ds-calendario__ponta-rotulo {
+  color: var(--ds-fg-muted);
+  white-space: nowrap;
+}
+
+.ds-calendario__ponta-valor {
+  flex: 1;
+  overflow: hidden;
+  color: var(--ds-fg-default);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* "sem limite" é ausência de valor, não um valor: lê como o rótulo. */
+.ds-calendario__ponta[data-vazio="true"] .ds-calendario__ponta-valor {
+  color: var(--ds-fg-muted);
+  font-weight: 400;
+}
+
+.ds-calendario__ponta-x {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-subtle);
+  cursor: pointer;
+}
+
+.ds-calendario__ponta-x:hover {
+  color: var(--ds-fg-default);
+}
+
+.ds-calendario__ponta-x:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Ponta já aberta não tem o que limpar — some em vez de ficar clicável e
+   inerte, que é o que faz a pessoa clicar duas vezes esperando resposta. */
+.ds-calendario__ponta-x:disabled {
+  visibility: hidden;
+}
+
+.ds-calendario__ponta-x svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Atalhos do calendário — "7 dias", "30 dias". Ficam DENTRO do painel, acima
+   da navegação: são o mesmo intervalo por outro caminho, não um filtro à
+   parte, e é isso que a linha separadora diz. */
+.ds-calendario__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-gp-xs);
+  padding-bottom: var(--ds-pad-md);
+  margin-bottom: var(--ds-pad-md);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-calendario__atalho {
+  height: 28px;
+  padding: 0 var(--ds-pad-md);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.ds-calendario__atalho:hover {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+}
+
+.ds-calendario__atalho:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-tabela — a moldura do DataTable do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A GRADE em si não está aqui: o `tabela-dados.ts` emite
+   `.tabela-envolucro > table.tabela`, que o layer `tabela-ds` acima já veste.
+   O que este bloco acrescenta é o que envolve a grade e no DS são dois
+   componentes à parte — `TableToolbar` em cima e `FooterTable` embaixo — mais
+   o cabeçalho ordenável do `<Table>`.
+
+   Nome novo e sem opt-in, como os outros `.ds-*`. */
+
+.ds-tabela {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gp-xl);
+  font-family: var(--ds-font-sans);
+}
+
+/* ── Barra (TableToolbar) ────────────────────────────────────────────────── */
+
+.ds-tabela__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-gp-xl);
+}
+
+.ds-tabela__busca {
+  width: auto;
+  min-width: 220px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.ds-tabela__contagem {
+  color: var(--ds-fg-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Densidade cicla num botão só (compacta → padrão → confortável). No DS é um
+   menu de três opções; com três valores e o rótulo escrito no próprio botão,
+   o menu cobraria dois cliques para dizer o que um já diz. */
+.ds-tabela__densidade {
+  height: var(--ds-form-md);
+  padding: 0 var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ds-tabela__densidade:hover {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+}
+
+.ds-tabela__densidade:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* ── Cabeçalho ordenável ─────────────────────────────────────────────────── */
+
+.ds-tabela__ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-xs);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.ds-tabela__ordenar:hover {
+  color: var(--ds-fg-default);
+}
+
+.ds-tabela__ordenar:focus-visible {
+  outline: none;
+  border-radius: var(--ds-radius-xs);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-tabela__seta {
+  width: 12px;
+  height: 12px;
+  /* Invisível, não ausente: aparecendo só na coluna ordenada, o cabeçalho
+     mudava de largura a cada clique e as colunas dançavam. */
+  opacity: 0;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.ds-tabela__ordenar:hover .ds-tabela__seta {
+  opacity: 0.4;
+}
+
+/* Quem diz o estado é o `aria-sort` da célula — o mesmo atributo que o leitor
+   de tela anuncia. */
+.ds-tabela [aria-sort="ascending"] .ds-tabela__seta,
+.ds-tabela [aria-sort="descending"] .ds-tabela__seta {
+  opacity: 1;
+  color: var(--ds-fg-brand);
+}
+
+.ds-tabela [aria-sort="ascending"] .ds-tabela__seta {
+  transform: rotate(180deg);
+}
+
+.ds-tabela [aria-sort="ascending"] .ds-tabela__ordenar,
+.ds-tabela [aria-sort="descending"] .ds-tabela__ordenar {
+  color: var(--ds-fg-default);
+}
+
+/* ── Linhas ──────────────────────────────────────────────────────────────── */
+
+/* Altura por densidade, nos valores do `<Table>` do DS (40/56/64). O padding
+   vertical some: quem manda na altura é a linha, senão as duas medidas
+   brigam. */
+.ds-tabela .tabela tbody td {
+  height: var(--ds-tabela-altura, 56px);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ds-tabela__fim {
+  text-align: right;
+}
+
+/* Sem `aoClicarLinha` a linha não é alvo de clique — o cursor de mão prometia
+   um destino que não existe. */
+.ds-tabela .tabela tbody tr {
+  cursor: default;
+}
+
+.ds-tabela__estado {
+  padding: 0;
+}
+
+.ds-tabela__estado .vazio {
+  border: 0;
+}
+
+/* ── Rodapé (FooterTable) ────────────────────────────────────────────────── */
+
+.ds-tabela__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  font-size: 0.8125rem;
+  color: var(--ds-fg-muted);
+}
+
+.ds-tabela__faixa b {
+  color: var(--ds-fg-default);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-tabela__pagina {
+  height: var(--ds-form-md);
+  padding: 0 var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ds-tabela__pagina:hover:not(:disabled) {
+  background: var(--ds-bg-muted-hover);
+}
+
+.ds-tabela__pagina:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.ds-tabela__pagina:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ds-tabela__pagina-atual {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-avatar — o Avatar do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Do `avatar-ig`: círculo, iniciais em negrito, sem estado interativo (não é
+   controle). Tamanho e tipografia chegam em `--ds-avatar-*`, e fundo e cor do
+   texto vêm inline — são dado de quem é a pessoa, e o texto é calculado pelo
+   contraste WCAG no `avatar.ts`, não escolhido no CSS.
+
+   Sem borda: no DS a cor cheia é que separa o avatar do fundo, e um anel em
+   volta de um círculo colorido só some com o diâmetro útil. */
+
+.ds-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-avatar-lado, 28px);
+  height: var(--ds-avatar-lado, 28px);
+  border-radius: var(--ds-radius-full);
+  overflow: hidden;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-avatar-fonte, 0.6875rem);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Avatar mais nome na célula da tabela — a coluna `Nome` do quadro de pessoas
+   do setor. `min-width: 0` para o nome longo caber com reticências em vez de
+   empurrar a coluna. */
+.setores__pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  min-width: 0;
+}
+
+.setores__pessoa > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Copiar link ─────────────────────────────────────────────────────────────
+ * O botão compacto que fica ao lado do protocolo na tabela. Discreto em
+ * repouso e firme no hover: ele se repete em toda linha, e um ícone forte
+ * vezes vinte linhas compete com o dado.
+ *
+ * Sem opt-in de layer — a fila usa `tabela-ds` e "meus chamados" não, e o
+ * botão tem de ficar igual nas duas. */
+
+.tabela__protocolo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-sm);
+}
+
+.ds-copiar-link {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-fg-subtle);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.ds-copiar-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ds-copiar-link:hover {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-brand);
+}
+
+.ds-copiar-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}

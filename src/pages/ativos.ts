@@ -1,6 +1,6 @@
 /** CMDB — inventário de ativos. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
 import { confirmar } from "@/components/dialogo";
@@ -28,27 +28,55 @@ import type {
 } from "@/types/dominio";
 
 export function renderizarAtivos(alvo: HTMLElement, perfil: Perfil): void {
-  let texto = "";
-  let tipo: TipoAtivo | null = null;
-  let apenasSujos = false;
   let formAberto = false;
   let expandido: string | null = null;
 
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar(), { rotulo: "Cadastro" });
+  // `barraFiltros` e não `barra`: o nome já é da função que monta a linha.
+  const barraFiltros = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [
+      { chave: "data", rotulo: "Cadastro", tipo: "periodo" },
+      {
+        chave: "tipo",
+        rotulo: "Tipo",
+        tipo: "opcoes",
+        opcoes: (Object.keys(ROTULOS_TIPO_ATIVO) as TipoAtivo[]).map((t) => ({
+          valor: t,
+          texto: ROTULOS_TIPO_ATIVO[t],
+        })),
+      },
+      { chave: "sujos", rotulo: "Só inventário sujo", tipo: "liga" },
+    ],
+  });
+
+  // Criada uma vez: recriada a cada consulta, a busca perdia o foco a cada
+  // tecla digitada.
+  const busca = h("input", {
+    class: "entrada",
+    type: "search",
+    placeholder: "Buscar por nome, patrimônio, série ou modelo…",
+    style: "max-width:300px",
+    on: { input: () => desenhar() },
+  }) as HTMLInputElement;
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
-    void listarAtivos({ texto, tipo, apenasSujos, ...periodo.valor() })
+    void listarAtivos({
+      texto: busca.value,
+      tipo: barraFiltros.opcao("tipo") as TipoAtivo | null,
+      apenasSujos: barraFiltros.ligado("sujos"),
+      ...barraFiltros.periodo("data"),
+    })
       .then((ativos) => {
         montar(
           area,
           metricas(ativos),
           barra(),
           formAberto ? formNovo() : null,
-          apenasSujos
+          barraFiltros.ligado("sujos")
             ? h(
                 "div",
                 { class: "aviso aviso--alerta" },
@@ -114,62 +142,11 @@ export function renderizarAtivos(alvo: HTMLElement, perfil: Perfil): void {
   };
 
   const barra = (): HTMLElement => {
-    const selTipo = h(
-      "select",
-      {
-        class: "selecao",
-        style: "max-width:200px",
-        on: {
-          change: (ev: Event) => {
-            const v = (ev.target as HTMLSelectElement).value;
-            tipo = v ? (v as TipoAtivo) : null;
-            desenhar();
-          },
-        },
-      },
-      h("option", { value: "" }, "Todos os tipos"),
-      ...(Object.keys(ROTULOS_TIPO_ATIVO) as TipoAtivo[]).map((t) =>
-        h("option", { value: t }, ROTULOS_TIPO_ATIVO[t]),
-      ),
-    ) as HTMLSelectElement;
-    selTipo.value = tipo ?? "";
-
     return h(
       "div",
       { class: "grade-filtros" },
-      periodo.elemento,
-      h("input", {
-        class: "entrada",
-        type: "search",
-        value: texto,
-        placeholder: "Buscar por nome, patrimônio, série ou modelo…",
-        style: "max-width:300px",
-        on: {
-          input: (ev: Event) => {
-            texto = (ev.target as HTMLInputElement).value;
-            desenhar();
-          },
-        },
-      }),
-      selTipo,
-      h(
-        "label",
-        {
-          class: "linha-flex",
-          style: "gap:6px;font-size:var(--t-sm);cursor:pointer",
-        },
-        h("input", {
-          type: "checkbox",
-          checked: apenasSujos,
-          on: {
-            change: (ev: Event) => {
-              apenasSujos = (ev.target as HTMLInputElement).checked;
-              desenhar();
-            },
-          },
-        }),
-        "Só inventário sujo",
-      ),
+      busca,
+      barraFiltros.elemento,
       h(
         "button",
         {

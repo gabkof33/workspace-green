@@ -14,6 +14,7 @@ import {
   mesmoBloco,
   rotuloDia,
 } from "@/lib/chat";
+import { criarAvatar } from "@/components/avatar";
 import { criarCampoMencao, type CampoMencao } from "@/components/campo-mencao";
 import { insigniaHierarquia } from "@/components/insignia";
 import { bolinha, repintarBolinhas } from "@/components/presenca";
@@ -122,7 +123,21 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   };
   montarContagemOnline();
 
-  montar(alvo, h("div", { class: "conversa" }, listaCanais, thread));
+  // `conversas-ds` é o que é só desta tela (painéis, bolha, composer, lista de
+  // canais); campo/entrada/botão vêm do `formulario-ds`, os selos do
+  // `chips-ds` e o estado vazio do `feedback-ds`. Opt-in por página.
+  montar(
+    alvo,
+    h(
+      "div",
+      {
+        class:
+          "conversa conversas-ds formulario-ds chips-ds feedback-ds tabela-ds",
+      },
+      listaCanais,
+      thread,
+    ),
+  );
 
   // Alguém entrar ou sair repinta só as bolinhas. Redesenhar a conversa
   // saltaria o scroll e apagaria o texto que estivesse sendo digitado.
@@ -347,6 +362,9 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
     campo = criarCampoMencao(diretorio, {
       placeholder: `Mensagem para #${canalAtivo.nome}. Use @ para chamar alguém.`,
       rotulo: "Nova mensagem",
+      // Sem alça de arrastar no composer (ver `conversas-ds.css`), então o
+      // campo tem de abrir sozinho conforme a mensagem cresce.
+      autoCrescer: true,
     });
 
     const enviar = h(
@@ -399,17 +417,24 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
 
     montar(
       rodape,
-      campo.elemento,
+      // Moldura única em volta do campo e das ações — é o `root` do
+      // `MessageComposer` do DS, que acende no `focus-within` em vez de cada
+      // pedaço ter borda própria.
       h(
         "div",
-        { class: "linha-flex" },
+        { class: "conversa__moldura" },
+        campo.elemento,
         h(
-          "span",
-          { class: "texto-sutil" },
-          "Enter envia · Shift+Enter quebra linha",
+          "div",
+          { class: "conversa__acoes linha-flex" },
+          h(
+            "span",
+            { class: "texto-sutil" },
+            "Enter envia · Shift+Enter quebra linha",
+          ),
+          h("span", { class: "empurra" }),
+          enviar,
         ),
-        h("span", { class: "empurra" }),
-        enviar,
       ),
     );
 
@@ -495,16 +520,22 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
       {
         class: `msg${agrupada ? " msg--agrupada" : ""}${m.autor_id === perfil.id ? " msg--minha" : ""}`,
       },
+      // Agrupada não repete o avatar: fica o vão da coluna, que é o que
+      // costura o bloco visualmente. A hora não some com ele porque agora vive
+      // no rodapé da bolha, em toda mensagem.
       agrupada
-        ? h("div", { class: "msg__hora-lateral" }, hora)
+        ? h("div", { class: "msg__avatar-vao" })
         : h(
             "div",
             { class: "msg__avatar-caixa" },
-            h(
-              "div",
-              { class: `msg__avatar msg__avatar--${m.autor_hierarquia}` },
-              iniciais(m.autor_nome),
-            ),
+            // Cor do perfil, a mesma que o diretório e o quadro do setor
+            // mostram para esta pessoa. A hierarquia continua dita pela
+            // insígnia ao lado do nome, dentro da bolha.
+            criarAvatar({
+              nome: m.autor_nome,
+              id: m.autor_id,
+              tamanho: "lg",
+            }),
             bolinha(m.autor_id, m.autor_nome),
           ),
       h(
@@ -522,7 +553,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
               m.autor_cargo
                 ? h("span", { class: "texto-sutil" }, m.autor_cargo)
                 : null,
-              h("span", { class: "linha__quando" }, hora),
+
               h(
                 "span",
                 { class: "msg__acoes" },
@@ -586,6 +617,10 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
           classe: "msg__texto",
           aoAbrirRegistro: navegar,
         }),
+        // `meta` da `MessageBubble` do DS: hora no canto inferior. Sem o
+        // `MessageAck` ao lado — aqui não há entrega nem leitura por
+        // destinatário, e um glifo de status que não mede nada mente.
+        h("div", { class: "msg__meta" }, hora),
         convertendo === m.id ? formDemanda(m) : null,
       ),
     );
@@ -753,13 +788,6 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
 }
 
 /* Auxiliares */
-
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/);
-  const a = partes[0]?.charAt(0) ?? "?";
-  const b = partes.length > 1 ? (partes.at(-1)?.charAt(0) ?? "") : "";
-  return (a + b).toUpperCase();
-}
 
 function seletor(
   opcoes: Array<[string, string]>,

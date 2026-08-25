@@ -148,22 +148,53 @@ export function $$<T extends HTMLElement = HTMLElement>(
   return Array.from(raiz.querySelectorAll<T>(seletor));
 }
 
-/** Ícone SVG inline a partir do traçado. */
-export function icone(caminho: MarcacaoEstatica): SVGSVGElement {
+/**
+ * Ícone SVG inline a partir do traçado.
+ *
+ * `preenchido` é para os traçados vindos do DS: lá o ícone é uma silhueta com
+ * `fill: currentColor` e `fill-rule: evenodd`, não um contorno. Desenhá-lo
+ * como traço deixaria o símbolo sem o miolo.
+ */
+export function icone(
+  caminho: MarcacaoEstatica,
+  opcoes: { preenchido?: boolean } = {},
+): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "1.8");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
+
+  if (opcoes.preenchido) {
+    svg.setAttribute("fill", "currentColor");
+    svg.setAttribute("fill-rule", "evenodd");
+    svg.setAttribute("clip-rule", "evenodd");
+  } else {
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+  }
+
   svg.innerHTML = caminho;
   return svg;
 }
 
 const TRACADOS_ICONES = {
   seta: '<path d="M9 6l6 6-6 6"/>',
+  seta_baixo: '<path d="M6 9l6 6 6-6"/>',
+  seta_esquerda: '<path d="M15 6l-6 6 6 6"/>',
+  calendario:
+    '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M8 3v3M16 3v3M3.5 10h17"/>',
+  confere: '<path d="M20 6 9 17l-5-5"/>',
+  fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // `ExternalLink` do lucide, que é o conjunto que o DS usa nos componentes
+  // shadcn — o mesmo desenho do link da coluna `url` do DataTable.
+  link_externo:
+    '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  // Do próprio DS (`line-filter-add`), e por isso é silhueta e não contorno:
+  // usar com `icone(..., { preenchido: true })`.
+  filtro_adicionar:
+    '<path d="M19.93,6.9c0,0 0.13,-0.41 0.16,-0.63c0.2,-1.57 0.4,-2.06 0.03,-2.27c-0.18,-0.38 -0.72,-0.26 -2.35,-0.26h-11.53c-1.63,0 -2.17,-0.12 -2.35,0.26c-0.37,0.21 -0.17,0.69 0.03,2.27c0.04,0.37 0.05,0.44 0.29,0.69c0.96,1.15 2.68,3.13 5.11,4.94c0.33,0.29 0.63,0.84 0.7,1.29c0.28,3.41 0.53,5.74 0.67,6.89c-0.03,0.13 -0.01,0.09 0.1,0.15c0.01,0 0.01,0.01 0.01,0.01c0,0 0,0 0,-0.01c1,-0.69 2.58,-1.19 2.58,-2.14c0.11,-0.57 0.26,-1.55 0.44,-3.19c0.04,-0.41 0.41,-0.71 0.83,-0.67c0.41,0.04 0.71,0.41 0.67,0.83c-0.18,1.68 -0.34,2.71 -0.45,3.3c-0.45,1.5 -2.34,2.47 -3.19,3.09c-0.25,0.15 -0.6,0.28 -0.85,0.28c-0.25,0 -0.59,-0.1 -0.79,-0.21c-0.38,-0.22 -0.73,-0.8 -0.83,-1.27c-0.14,-1.15 -0.39,-3.51 -0.68,-6.94c0.02,-0.16 0.02,-0.17 -0.1,-0.22c-2.55,-1.92 -4.38,-4.02 -5.35,-5.18c-0.36,-0.47 -0.55,-0.92 -0.63,-1.46c-0.2,-1.57 -0.21,-2.66 0.35,-3.47c0.74,-0.63 1.83,-0.75 3.46,-0.75h11.53c1.63,0 2.72,0.12 3.46,0.75c0.56,0.81 0.55,1.89 0.35,3.47c-0.04,0.29 -0.16,0.63 -0.16,0.63c-0.05,0.41 -0.43,0.7 -0.84,0.65c-0.41,-0.05 -0.7,-0.43 -0.65,-0.84c0,0 0.01,-0.04 0,0zM17.5,7.25c0.41,0 0.75,0.34 0.75,0.75v2.75h2.75c0.41,0 0.75,0.34 0.75,0.75c0,0.41 -0.34,0.75 -0.75,0.75h-2.75v2.75c0,0.41 -0.34,0.75 -0.75,0.75c-0.41,0 -0.75,-0.34 -0.75,-0.75v-2.75h-2.75c-0.41,0 -0.75,-0.34 -0.75,-0.75c0,-0.41 0.34,-0.75 0.75,-0.75h2.75v-2.75c0,-0.41 0.34,-0.75 0.75,-0.75z"/>',
   abrir: '<path d="M12 5v14M5 12h14"/>',
   fila: '<path d="M3 6h18M3 12h18M3 18h12"/>',
   meus: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
@@ -208,6 +239,41 @@ const TRACADOS_ICONES = {
 export const ICONES = TRACADOS_ICONES as {
   readonly [K in keyof typeof TRACADOS_ICONES]: MarcacaoEstatica;
 };
+
+/**
+ * Copia texto para a área de transferência.
+ *
+ * Dois caminhos porque o primeiro não está sempre disponível: a Clipboard API
+ * exige contexto seguro (https ou localhost) e pode ser negada por permissão.
+ * Quando ela falha, sobra o caminho antigo — campo fora da tela, seleção e
+ * `execCommand`. É obsoleto, mas é o que funciona onde o novo não existe, e
+ * copiar um link não pode depender de como a página foi servida.
+ *
+ * Devolve `false` em vez de lançar: quem chama decide o que dizer.
+ */
+export async function copiar(texto: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    // Cai no plano B abaixo.
+  }
+
+  const campo = document.createElement("textarea");
+  campo.value = texto;
+  // Fora da tela, mas ainda focável: `display:none` não é selecionável.
+  campo.style.cssText = "position:fixed;top:-9999px;opacity:0";
+  document.body.append(campo);
+  campo.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    campo.remove();
+  }
+}
 
 /** Notificação efêmera no canto da tela. */
 export function avisar(

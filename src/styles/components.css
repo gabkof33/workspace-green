@@ -878,29 +878,6 @@
 .pessoa--inativa {
   opacity: 0.55;
 }
-.pessoa__avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--c-surface-2);
-  color: var(--c-ink-2);
-  font-family: var(--f-display);
-  font-size: var(--t-sm);
-  font-weight: 700;
-  border: 1px solid var(--c-line-2);
-}
-.pessoa__avatar--coordenador {
-  background: var(--c-accent-wash);
-  color: var(--c-accent);
-  border-color: var(--c-accent-borda);
-}
-.pessoa__avatar--gestor {
-  background: var(--c-p3-wash);
-  color: var(--c-p3);
-  border-color: transparent;
-}
 .pessoa__nome {
   display: flex;
   align-items: center;
@@ -1746,42 +1723,8 @@
 .msg:hover {
   background: var(--c-surface-2);
 }
-.msg:hover .msg__excluir,
-.msg:hover .msg__hora-lateral {
+.msg:hover .msg__excluir {
   opacity: 1;
-}
-.msg__avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--c-surface-3);
-  color: var(--c-ink-2);
-  font-family: var(--f-display);
-  font-size: 11.5px;
-  font-weight: 700;
-  border: 1px solid var(--c-line-2);
-  margin-top: 2px;
-}
-.msg__avatar--coordenador {
-  background: var(--c-accent-wash);
-  color: var(--c-accent);
-  border-color: var(--c-accent-borda);
-}
-.msg__avatar--gestor {
-  background: var(--c-p3-wash);
-  color: var(--c-p3);
-  border-color: transparent;
-}
-.msg__hora-lateral {
-  font-family: var(--f-mono);
-  font-size: 9.5px;
-  color: var(--c-muted);
-  text-align: right;
-  padding-top: 3px;
-  opacity: 0;
-  transition: opacity 0.12s ease;
 }
 .msg__corpo {
   min-width: 0;
@@ -3008,104 +2951,11 @@ button.tags__marca:hover {
   }
 }
 
-/* --- Filtro de período --- */
+/* --- Rótulo de recorte (janela de tempo em `tempos` e `observabilidade`) ---
 
-/* `fieldset` porque é grupo de rádio: o contêiner correto vem com a legenda
-   amarrada ao grupo, sem `aria-` nenhum. */
-.filtro-data {
-  border: 1px solid var(--c-line);
-  border-radius: var(--r-md);
-  padding: 2px var(--s-3) 7px;
-  margin: 0;
-  min-width: 0;
-  align-self: flex-start;
-}
-.filtro-data__legenda {
-  padding: 0;
-}
-
-/* O botão vive dentro da `legend`, que é válido e mantém a amarração da
-   legenda ao grupo de rádio. */
-.filtro-data__botao {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 2px 7px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: var(--r-sm);
-  font-family: var(--f-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--c-muted);
-  font-weight: 700;
-  transition: color 0.12s ease;
-}
-.filtro-data__botao:hover {
-  color: var(--c-ink-2);
-}
-.filtro-data__botao:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 1px;
-}
-.filtro-data__seta {
-  display: inline-block;
-  font-size: 11px;
-  transition: transform 0.2s ease;
-  transform: rotate(90deg);
-}
-.filtro-data--fechada .filtro-data__seta {
-  transform: rotate(0deg);
-}
-
-/* O que está valendo, no cabeçalho. Sem isto a gaveta fechada esconderia um
-   recorte ativo e a lista pareceria incompleta sem explicação. */
-.filtro-data__vigor {
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: var(--c-muted);
-  font-weight: 500;
-}
-.filtro-data__vigor--ativo {
-  color: var(--c-accent);
-  font-weight: 700;
-}
-
-/* Mesma mecânica do menu: 1fr → 0fr anima até a altura real do conteúdo, que
-   `max-height` não faz sem um teto chutado. */
-.filtro-data__gaveta {
-  display: grid;
-  grid-template-rows: 1fr;
-  overflow: hidden;
-  transition:
-    grid-template-rows 0.2s ease,
-    opacity 0.16s ease;
-}
-.filtro-data__gaveta > * {
-  min-height: 0;
-}
-.filtro-data--fechada .filtro-data__gaveta {
-  grid-template-rows: 0fr;
-  opacity: 0;
-}
-/* Fechada, a moldura encolhe até virar só o cabeçalho. */
-.filtro-data--fechada {
-  padding-bottom: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .filtro-data__gaveta,
-  .filtro-data__seta {
-    transition: none;
-  }
-}
-.filtro-data__linha {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+   Sobrou do filtro de período em gaveta, que saiu inteiro quando as listas
+   passaram pra barra de chips do DS (`ds-barra-filtros`). O nome ficou porque
+   ainda é o rótulo mono maiúsculo que aquelas duas telas usam. */
 .filtro-data__rotulo {
   font-family: var(--f-mono);
   font-size: 10px;
@@ -3114,22 +2964,7 @@ button.tags__marca:hover {
   color: var(--c-ink-2);
   font-weight: 700;
 }
-.filtro-data__resumo {
-  font-family: var(--f-mono);
-  font-size: 10px;
-  color: var(--c-accent);
-  letter-spacing: 0.04em;
-}
-.filtro-data__campo {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--f-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-muted);
-}
+
 /* Largura própria e sem encolher: dentro do flex do rótulo, `width: 100%`
    herdado de `.entrada` esticava, e `auto` deixava o navegador cortar o ícone
    do calendário. */
@@ -3395,61 +3230,6 @@ button.tags__marca:hover {
   overflow-x: auto;
 }
 
-/* --- Grupo de rádio --- */
-
-/* Rádio nativo à vista, uma opção por linha. Sem controle segmentado: com o
-   círculo visível, o estado se lê sem depender de cor de fundo. */
-.segmentos {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.segmento {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 0;
-  cursor: pointer;
-  font-family: var(--f-mono);
-  font-size: var(--t-sm);
-  color: var(--c-ink-2);
-  user-select: none;
-  transition: color 0.12s ease;
-}
-.segmento:hover {
-  color: var(--c-ink);
-}
-.segmento__radio {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  flex: none;
-  accent-color: var(--c-accent);
-  cursor: pointer;
-}
-.segmento:has(.segmento__radio:checked) {
-  color: var(--c-accent);
-  font-weight: 600;
-}
-.segmento:has(.segmento__radio:focus-visible) {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
-  border-radius: 3px;
-}
-
-/* Recuada até o texto das opções: o intervalo pertence a "Escolher", não ao
-   filtro inteiro. */
-.filtro-data__intervalo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2);
-  padding-left: 22px;
-}
-.filtro-data__intervalo:not(:empty) {
-  margin-top: 7px;
-}
-
 /* --- Olho do campo de senha --- */
 .campo__com-olho {
   position: relative;
@@ -3614,17 +3394,14 @@ button.tags__marca:hover {
   background: var(--barra-vermelho);
 }
 
-/* No avatar da mensagem a bolinha fica no canto, sobreposta. */
-/* A caixa assume o lugar do avatar no flex da linha; o avatar interno perde
-   a margem, que agora é da caixa. */
+/* No avatar da mensagem a bolinha fica no canto, sobreposta. A caixa é quem
+   ocupa o lugar na linha; o avatar dentro dela é o `.ds-avatar`, que traz o
+   próprio tamanho e a cor do perfil. */
 .msg__avatar-caixa {
   position: relative;
   flex: none;
   line-height: 0;
   margin-top: 2px;
-}
-.msg__avatar-caixa .msg__avatar {
-  margin-top: 0;
 }
 .msg__avatar-caixa .presenca {
   position: absolute;

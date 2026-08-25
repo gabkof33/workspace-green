@@ -11,6 +11,7 @@ import type {
   Equipe,
   Interacao,
   Perfil,
+  PerfilDoSetor,
   PessoaDiretorio,
   PessoaMencao,
   Prioridade,
@@ -347,6 +348,31 @@ export async function atualizarMeuPerfil(
     .eq("id", perfilId);
 
   if (error) throw new Error(traduzirErro(error.message));
+}
+
+/**
+ * Quem está lotado num setor.
+ *
+ * Vai direto na tabela, e não por RPC: a policy `perfis_leitura` já é
+ * `id = auth.uid() OR sou_agente()`, então quem não é agente recebe no máximo
+ * a própria linha e a tela cai no estado vazio. Uma RPC `security definer`
+ * aqui só acrescentaria uma superfície nova para manter — foi o que precisou
+ * ser fechado em `diretorio()`.
+ *
+ * Inativos entram: o quadro do setor mostra quem foi desativado, e é o que
+ * explica um setor "vazio" que ainda aparece no organograma.
+ */
+export async function perfisDoSetor(setorId: string): Promise<PerfilDoSetor[]> {
+  const { data, error } = await supabase
+    .from("perfis")
+    .select(
+      "id, nome_completo, cargo, hierarquia, senioridade, papel, ativo, criado_em",
+    )
+    .eq("setor_id", setorId)
+    .order("nome_completo");
+
+  if (error) throw new Error(traduzirErro(error.message));
+  return (data ?? []) as PerfilDoSetor[];
 }
 
 export async function listarEquipes(): Promise<Equipe[]> {

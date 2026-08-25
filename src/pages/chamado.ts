@@ -3,6 +3,7 @@
 import { aguardando } from "@/components/esqueleto";
 import { confirmar, perguntar } from "@/components/dialogo";
 import { avisar, h, montar } from "@/lib/dom";
+import { botaoCopiarLink } from "@/components/copiar-link";
 import {
   corDaTag,
   ehAgente,
@@ -485,6 +486,10 @@ export function renderizarChamado(
           "← Voltar",
         ),
         h("span", { class: "mono texto-sutil" }, chamado.numero),
+        botaoCopiarLink({
+          caminho: `chamado/${chamado.numero}`,
+          rotulo: "Copiar link do chamado",
+        }),
       ),
       h("h2", { style: "margin-bottom:var(--s-5)" }, chamado.titulo),
       h("div", { class: "grade-2" }, principal, lateral),

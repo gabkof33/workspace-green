@@ -1,6 +1,7 @@
 /** Pessoas — organograma e gestão de perfis. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarAvatar } from "@/components/avatar";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
@@ -46,7 +47,10 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar(), { rotulo: "Cadastro" });
+  const barra = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [{ chave: "data", rotulo: "Cadastro", tipo: "periodo" }],
+  });
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
@@ -58,7 +62,7 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
         equipes = listaEquipes;
 
         const noPeriodo = pessoas.filter((p) =>
-          dentroDoPeriodo(p.criado_em, periodo.valor()),
+          dentroDoPeriodo(p.criado_em, barra.periodo("data")),
         );
 
         const filtradas = busca
@@ -96,7 +100,7 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
     h(
       "div",
       { class: "grade-filtros" },
-      periodo.elemento,
+      barra.elemento,
       h("input", {
         class: "entrada",
         type: "search",
@@ -168,11 +172,10 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
     return h(
       "div",
       { class: `pessoa${p.ativo ? "" : " pessoa--inativa"}` },
-      h(
-        "div",
-        { class: `pessoa__avatar pessoa__avatar--${p.hierarquia}` },
-        iniciais(p.nome_completo),
-      ),
+      // Cor do PERFIL, não da hierarquia: o nível já está dito na insígnia e
+      // no selo ao lado, e a cor por pessoa é o que faz reconhecer alguém de
+      // relance — a mesma no chat e no quadro do setor.
+      criarAvatar({ nome: p.nome_completo, id: p.id, tamanho: "lg" }),
       h(
         "div",
         { style: "min-width:0" },
@@ -375,13 +378,6 @@ function podeGerir(eu: Perfil, alvo: PessoaDiretorio): boolean {
   if (eu.hierarquia === "coordenador") return true;
   if (eu.hierarquia === "gestor") return alvo.hierarquia === "colaborador";
   return false;
-}
-
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/);
-  const primeira = partes[0]?.charAt(0) ?? "?";
-  const ultima = partes.length > 1 ? (partes.at(-1)?.charAt(0) ?? "") : "";
-  return (primeira + ultima).toUpperCase();
 }
 
 function normalizar(texto: string): string {

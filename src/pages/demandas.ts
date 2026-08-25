@@ -1,6 +1,6 @@
 /** Demandas — quadro de trabalho planejado. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
 import { corDaTag, listarTagsSugeridas } from "@/lib/api";
 import { criarCampoTags, type CampoTags } from "@/components/campo-tags";
@@ -34,8 +34,6 @@ type Aba = "todas" | "disponiveis" | "minhas" | "excluidas";
 
 export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
   let aba: Aba = "disponiveis";
-  let texto = "";
-  let tipo: TipoDemanda | null = null;
   let formAberto = false;
   let setores: SetorArvore[] = [];
 
@@ -53,15 +51,39 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
       // ele.
     });
 
-  const periodo = criarFiltroData(() => desenhar());
+  const barra = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [
+      { chave: "data", rotulo: "Período", tipo: "periodo" },
+      {
+        chave: "tipo",
+        rotulo: "Tipo",
+        tipo: "opcoes",
+        opcoes: (Object.keys(ROTULOS_TIPO) as TipoDemanda[]).map((t) => ({
+          valor: t,
+          texto: ROTULOS_TIPO[t],
+        })),
+      },
+    ],
+  });
+
+  // Criada uma vez: recriada a cada consulta, a busca perdia o foco a cada
+  // tecla digitada.
+  const busca = h("input", {
+    class: "entrada",
+    type: "search",
+    placeholder: "Buscar por título, código ou área…",
+    style: "max-width:280px",
+    on: { input: () => desenhar() },
+  }) as HTMLInputElement;
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
     void listarDemandas({
-      texto,
-      tipo,
+      texto: busca.value,
+      tipo: barra.opcao("tipo") as TipoDemanda | null,
       excluidas: aba === "excluidas",
-      ...periodo.valor(),
+      ...barra.periodo("data"),
     })
       .then((todas) => {
         const visiveis =
@@ -137,40 +159,6 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
         rotulo,
       );
 
-    const busca = h("input", {
-      class: "entrada",
-      type: "search",
-      value: texto,
-      placeholder: "Buscar por título, código ou área…",
-      style: "max-width:280px",
-      on: {
-        input: (ev: Event) => {
-          texto = (ev.target as HTMLInputElement).value;
-          desenhar();
-        },
-      },
-    });
-
-    const filtroTipo = h(
-      "select",
-      {
-        class: "selecao",
-        style: "max-width:180px",
-        on: {
-          change: (ev: Event) => {
-            const v = (ev.target as HTMLSelectElement).value;
-            tipo = v ? (v as TipoDemanda) : null;
-            desenhar();
-          },
-        },
-      },
-      h("option", { value: "" }, "Todos os tipos"),
-      ...(Object.keys(ROTULOS_TIPO) as TipoDemanda[]).map((t) =>
-        h("option", { value: t }, ROTULOS_TIPO[t]),
-      ),
-    ) as HTMLSelectElement;
-    filtroTipo.value = tipo ?? "";
-
     return h(
       "div",
       { class: "grade-filtros" },
@@ -179,8 +167,7 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
       botaoAba("todas", "Todas"),
       botaoAba("excluidas", "Excluídas"),
       busca,
-      periodo.elemento,
-      filtroTipo,
+      barra.elemento,
       h(
         "button",
         {

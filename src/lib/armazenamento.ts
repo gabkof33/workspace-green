@@ -29,7 +29,6 @@ const VALIDADORES = {
   tema: (v: unknown): v is "claro" | "escuro" => v === "claro" || v === "escuro",
   "menu-fechado": ehListaDeTexto,
   "menu-recolhido": (v: unknown): v is "1" => v === "1",
-  "filtro-aberto": ehListaDeTexto,
   avisos: (v: unknown): v is "0" | "1" => v === "0" || v === "1",
 } as const;
 

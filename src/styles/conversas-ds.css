@@ -1,0 +1,362 @@
+/**
+ * Conversas no iGreen DS — layer da PÁGINA, como `fila-ds` e `login-ds`.
+ *
+ * Transposto do exemplo de chat do DS e dos componentes que ele compõe:
+ *
+ *   MessageBubble        bolha, lado, rabeta, rodapé com a hora
+ *   DateSeparatorChip    pílula de dia, centrada
+ *   MessageComposer      moldura única que acende no `focus-within`
+ *   ConversationListItem linha de conversa com faixa de seleção
+ *
+ * A diferença de domínio, que explica o que NÃO veio: lá o chat é atendimento
+ * (um contato por conversa, canal externo, ack de entrega e leitura); aqui é
+ * chat interno por canal, com várias pessoas na mesma thread. Então a bolha
+ * mantém autor e cargo no topo — que no atendimento seriam redundantes — e não
+ * tem `MessageAck`, porque não existe entrega por destinatário para medir.
+ *
+ * Consome só `--ds-*`. Nada aqui vale sem `.conversas-ds`.
+ */
+
+.conversas-ds {
+  font-family: var(--ds-font-sans);
+  gap: var(--ds-gp-2xl);
+}
+
+/* ── Painéis ─────────────────────────────────────────────────────────────── */
+
+.conversas-ds .conversa__canais,
+.conversas-ds .conversa__thread {
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  box-shadow: var(--ds-sh-sm);
+}
+
+.conversas-ds .conversa__canais {
+  padding: var(--ds-pad-md);
+  gap: var(--ds-gp-2xl);
+}
+
+/* ── Lista de canais — o `ConversationListItem` ──────────────────────────────
+ * Do DS: `grid` com avatar/conteúdo/trailing, `rounded-radius-md`, hover em
+ * `bg-muted`, foco com anel de 4px e a faixa de 3px à esquerda.
+ *
+ * Uma diferença mantida de propósito: lá a faixa só aparece no item
+ * selecionado, e na cor da marca. Aqui ela tem a cor DO CANAL e aparece
+ * sempre — é o código de cor que já existia nesta tela, decorativo e com o
+ * nome do canal escrito ao lado (ver `components.css`). O selecionado se
+ * distingue pelo fundo e pelo peso do texto, como no DS. */
+
+.conversas-ds .conversa__canal {
+  gap: var(--ds-gp-md);
+  padding: var(--ds-pad-md) var(--ds-pad-lg) var(--ds-pad-md)
+    calc(var(--ds-pad-lg) - 3px);
+  border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.conversas-ds .conversa__canal:hover {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-default);
+}
+
+.conversas-ds .conversa__canal:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.conversas-ds .conversa__canal--ativo {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+  font-weight: 600;
+}
+
+.conversas-ds .conversa__hash {
+  color: var(--ds-fg-subtle);
+}
+
+.conversas-ds .conversa__canal--ativo .conversa__hash {
+  color: var(--ds-fg-brand);
+}
+
+/* Contador de não lidas — o slot `unread`: 18px, pílula, `bg-danger`. */
+.conversas-ds .conversa__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-danger);
+  color: var(--ds-fg-on-danger);
+  font-family: var(--ds-font-sans);
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cabeçalho da thread ─────────────────────────────────────────────────── */
+
+.conversas-ds .conversa__cabecalho {
+  gap: var(--ds-gp-md);
+  padding: var(--ds-pad-lg) var(--ds-pad-2xl);
+  border-bottom: 1px solid var(--ds-border-default);
+  background: var(--ds-bg-surface);
+  font-size: 0.875rem;
+}
+
+/* `bg-muted` e não `canvas`: a bolha recebida é `bg-surface`, e no claro
+   surface e canvas são os dois BRANCOS — o balão sumiria, sobrando só a
+   sombra. `muted` é cinza no claro e clareia sobre o painel no escuro, então
+   funciona nos dois. */
+.conversas-ds .conversa__rolagem {
+  gap: var(--ds-gp-sm);
+  padding: var(--ds-pad-2xl);
+  background: var(--ds-bg-muted);
+}
+
+/* ── Separador de dia — o `DateSeparatorChip` (variante `date`) ──────────────
+ * Pílula neutra centrada, sem réguas: no DS as réguas são a variante
+ * `boundary` ("conversa encerrada"), que aqui não existe. */
+
+.conversas-ds .conversa__dia {
+  justify-content: center;
+  margin: var(--ds-gp-2xl) 0 var(--ds-gp-md);
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ds-fg-muted);
+}
+
+.conversas-ds .conversa__dia::before,
+.conversas-ds .conversa__dia::after {
+  display: none;
+}
+
+/* Pílula em `surface` com borda, não em `muted`: `muted` é o fundo da própria
+   thread, e a pílula sumiria nele. */
+.conversas-ds .conversa__dia > span {
+  padding: 3px var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-surface);
+}
+
+/* ── Mensagem — a `MessageBubble` ────────────────────────────────────────────
+ * Do DS: `row` alinhada por lado, `column` limitada a 70% da largura, bolha em
+ * `px-pad-2xl py-pad-lg`, `rounded-radius-md`, `shadow-sh-sm`; recebida em
+ * `bg-surface`, enviada em `bg-success-muted`; a rabeta é o canto reto embaixo,
+ * do lado de quem enviou. */
+
+.conversas-ds .msg {
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--ds-gp-md);
+  padding: 0;
+  /* A linha inteira não acende mais no hover: com bolha, o realce da faixa
+     toda briga com o desenho do balão. As ações continuam aparecendo. */
+  background: transparent;
+}
+
+.conversas-ds .msg:hover {
+  background: transparent;
+}
+
+.conversas-ds .msg__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gp-xs);
+  width: fit-content;
+  max-width: 70%;
+  padding: var(--ds-pad-lg) var(--ds-pad-2xl);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  border-bottom-left-radius: 0;
+  background: var(--ds-bg-surface);
+  box-shadow: var(--ds-sh-sm);
+}
+
+/* Minha mensagem: avatar à direita e bolha antes dele, como o `side: sent` do
+   DS (que lá é `flex-row-reverse`). A coluna de cada filho é dita na mão — a
+   ordem no DOM é sempre [avatar, bolha], e inverter por `direction: rtl`
+   viraria junto a pontuação do texto dentro da bolha. */
+.conversas-ds .msg--minha {
+  grid-template-columns: minmax(0, 1fr) 32px;
+}
+
+.conversas-ds .msg--minha > :first-child {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.conversas-ds .msg--minha > .msg__corpo {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.conversas-ds .msg--minha .msg__corpo {
+  margin-left: auto;
+  background: var(--ds-bg-success-muted);
+  border-bottom-left-radius: var(--ds-radius-md);
+  border-bottom-right-radius: 0;
+}
+
+/* O formulário de "virar demanda" abre DENTRO da bolha, e ali 70% da coluna
+   não acomoda uma grade de campos. Enquanto ele está aberto, a bolha larga a
+   medida de balão e ocupa a linha. */
+.conversas-ds .msg__corpo:has(.msg__conversao) {
+  width: 100%;
+  max-width: none;
+}
+
+/* Bloco agrupado: sem avatar e sem rabeta — a rabeta marca o começo da fala. */
+.conversas-ds .msg--agrupada {
+  padding-top: 0;
+}
+
+.conversas-ds .msg--agrupada .msg__corpo {
+  border-bottom-left-radius: var(--ds-radius-md);
+}
+
+.conversas-ds .msg--agrupada.msg--minha .msg__corpo {
+  border-bottom-right-radius: var(--ds-radius-md);
+}
+
+/* O avatar da mensagem é o `.ds-avatar` (ver `avatar.ts`): tamanho e cor vêm
+   de lá, na cor do PERFIL de quem escreveu. As três regras que pintavam por
+   hierarquia saíram junto — o nível já está dito na insígnia ao lado do nome. */
+
+/* Autor no topo da bolha — o slot `author` do DS: caption semibold na marca. */
+.conversas-ds .msg__cabecalho {
+  gap: var(--ds-gp-sm);
+  margin-bottom: 0;
+}
+
+.conversas-ds .msg__cabecalho b {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ds-fg-brand);
+}
+
+.conversas-ds .msg__texto {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--ds-fg-default);
+}
+
+/* Rodapé da bolha: hora à direita, em caption tabular. */
+.conversas-ds .msg__meta {
+  align-self: flex-end;
+  font-size: 0.625rem;
+  line-height: 0.75rem;
+  color: var(--ds-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ações no canto superior direito da bolha, sobrepostas e só no hover — é o
+   `actionsTrigger` do DS. No fluxo elas esticavam a bolha: `margin-left: auto`
+   num balão de largura `fit-content` empurra a borda até caber o botão. */
+.conversas-ds .msg__corpo {
+  position: relative;
+}
+
+.conversas-ds .msg__acoes {
+  position: absolute;
+  top: var(--ds-pad-xs);
+  right: var(--ds-pad-md);
+  margin-left: 0;
+  gap: var(--ds-gp-sm);
+}
+
+.conversas-ds .msg__acao,
+.conversas-ds .msg__excluir {
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-fg-subtle);
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+}
+
+.conversas-ds .msg__acao:hover,
+.conversas-ds .msg__excluir:hover {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-default);
+}
+
+/* ── Composer — o `MessageComposer` ──────────────────────────────────────────
+ * Do DS: moldura em `rounded-radius-lg` + `border-subtle` + `shadow-sh-sm`,
+ * que acende inteira no `focus-within` (borda da marca + anel). A textarea se
+ * FUNDE nela — sem borda, fundo ou anel próprios —, senão haveria duas
+ * molduras concêntricas acendendo ao mesmo tempo. */
+
+.conversas-ds .conversa__composer {
+  padding: var(--ds-pad-lg) var(--ds-pad-2xl) var(--ds-pad-2xl);
+  border-top: 1px solid var(--ds-border-default);
+  background: var(--ds-bg-surface);
+}
+
+.conversas-ds .conversa__moldura {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-input);
+  box-shadow: var(--ds-sh-sm);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.conversas-ds .conversa__moldura:focus-within {
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* `resize: none` como a textarea do DS. A alça que o `.area-texto` traz do
+   `components.css` caía no canto inferior direito DO CAMPO, que dentro da
+   moldura é o meio dela — logo acima da linha do botão, parecendo um traço
+   solto. Quem abre espaço agora é o `autoCrescer` do `campo-mencao.ts`. */
+.conversas-ds .conversa__moldura .area-texto {
+  min-height: 64px;
+  max-height: 200px;
+  overflow-y: auto;
+  resize: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: var(--ds-pad-lg) var(--ds-pad-xl) var(--ds-pad-md);
+}
+
+.conversas-ds .conversa__moldura .area-texto:focus {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+
+/* O placeholder do campo já diz "use @ para chamar alguém", então a linha de
+   ajuda do `campo-mencao` repetia isso e empilhava DOIS textos de dica entre a
+   textarea e o botão, dentro da moldura. Na tela de demanda, onde o
+   placeholder não diz, ela continua aparecendo. */
+.conversas-ds .conversa__moldura .mencao > .campo__ajuda {
+  display: none;
+}
+
+.conversas-ds .conversa__acoes {
+  gap: var(--ds-gp-md);
+  padding: 0 var(--ds-pad-md) var(--ds-pad-md);
+}
+
+.conversas-ds .conversa__acoes .texto-sutil {
+  font-size: 0.6875rem;
+  color: var(--ds-fg-subtle);
+}

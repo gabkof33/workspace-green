@@ -10,6 +10,11 @@ import {
   reenviarConfirmacao,
   sistemaVazio,
 } from "@/lib/api";
+import {
+  criarSelecaoDs,
+  type OpcaoSelecao,
+  type SelecaoDs,
+} from "@/components/selecao-ds";
 import { criarRaio } from "@/components/raio";
 import { criarFundoPontilhado } from "@/components/fundo-pontilhado";
 import type { DadosCadastro, Perfil } from "@/types/dominio";
@@ -119,7 +124,10 @@ export function renderizarLogin(
       alvo,
       h(
         "div",
-        { class: "auth" },
+        // `login-ds` é o que é só desta tela (colunas, marca, abas, olho da
+        // senha); campo/entrada/botão vêm do `formulario-ds` e o aviso do
+        // `feedback-ds`. O opt-in é por página — ver `ds-componentes.css`.
+        { class: "auth login-ds formulario-ds feedback-ds" },
         aside(),
         // O raio mora atrás do formulário, no escuro à direita, onde a marca
         // "Central Green" já está.
@@ -472,7 +480,7 @@ export function renderizarNovaSenha(
     alvo,
     h(
       "div",
-      { class: "auth" },
+      { class: "auth login-ds formulario-ds feedback-ds" },
       aside(),
       h(
         "div",
@@ -521,22 +529,19 @@ function formCadastro(
    * devolve nulo e o menu inteiro aparece para todo mundo.
    */
   const setor = campoSelecao("setor", "Setor onde você trabalha", []);
-  setor.input.disabled = true;
-  montar(setor.input, h("option", { value: "" }, "Carregando setores…"));
+  setor.selecao.desabilitar(true);
+  setor.selecao.definirPlaceholder("Carregando setores…");
 
   void setoresParaCadastro().then((lista) => {
-    setor.input.disabled = false;
-    montar(
-      setor.input,
-      h("option", { value: "" }, "Selecione…"),
-      ...lista.map((s) => h("option", { value: s.id }, s.caminho)),
+    // Vazia, continua desabilitada: gatilho que abre uma lista sem nada dentro
+    // parece defeito.
+    setor.selecao.desabilitar(lista.length === 0);
+    setor.selecao.definirPlaceholder(
+      lista.length === 0 ? "Nenhum setor cadastrado ainda" : "Selecione…",
     );
-    if (lista.length === 0) {
-      montar(
-        setor.input,
-        h("option", { value: "" }, "Nenhum setor cadastrado ainda"),
-      );
-    }
+    setor.selecao.definirOpcoes(
+      lista.map((s) => ({ valor: s.id, texto: s.caminho })),
+    );
   });
   const telefone = campo("telefone", "Telefone", "tel", {
     placeholder: "(11) 90000-0000",
@@ -601,9 +606,9 @@ function formCadastro(
             email: email.input.value.trim(),
             senha: senha.input.value,
             cargo: cargo.input.value.trim(),
-            departamento: departamento.input.value,
+            departamento: departamento.selecao.valor(),
             telefone: telefone.input.value.trim(),
-            setor_id: setor.input.value,
+            setor_id: setor.selecao.valor(),
           };
 
           const problema = validarCadastro(dados, confirma.input.value);
@@ -835,28 +840,38 @@ function olho(input: HTMLInputElement): HTMLElement {
 
 interface SelecaoMontada {
   elemento: HTMLElement;
-  input: HTMLSelectElement;
+  selecao: SelecaoDs;
 }
 
+/**
+ * Escolha única no Select do DS, não em `<select>` nativo.
+ *
+ * O nativo desenha a lista pelo SISTEMA, e no tema escuro do app ela saía
+ * ilegível — texto claro sobre o painel branco que o Windows pinta quando o
+ * fundo do campo é translúcido. Era o caso dos dois campos daqui, Departamento
+ * e Setor. Mesma troca já feita na abertura de chamado (ver `selecao-ds.ts`).
+ */
 function campoSelecao(
   id: string,
   rotulo: string,
-  opcoes: string[],
+  opcoes: OpcaoSelecao[],
 ): SelecaoMontada {
-  const select = h(
-    "select",
-    { class: "selecao", id, name: id },
-    h("option", { value: "" }, "Selecione…"),
-    ...opcoes.map((o) => h("option", { value: o }, o)),
-  ) as HTMLSelectElement;
+  const selecao = criarSelecaoDs({
+    rotulo,
+    opcoes,
+    // O cadastro lê os campos no envio, então escolher não dispara nada.
+    aoMudar: () => {},
+  });
 
   return {
-    input: select,
+    selecao,
     elemento: h(
       "div",
       { class: "campo" },
-      h("label", { class: "campo__rotulo", for: id }, rotulo),
-      select,
+      // `span`, não `label`: o controle do DS é um botão com `aria-label`, e
+      // `for` só amarra rótulo a campo de formulário nativo.
+      h("span", { class: "campo__rotulo", id: `${id}-rotulo` }, rotulo),
+      selecao.elemento,
     ),
   };
 }

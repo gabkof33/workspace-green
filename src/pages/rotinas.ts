@@ -1,6 +1,6 @@
 /** Rotinas preventivas — catálogo, runbook e execução. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
@@ -52,7 +52,10 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar(), { rotulo: "Execução" });
+  const barra = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [{ chave: "data", rotulo: "Execução", tipo: "periodo" }],
+  });
 
   const desenhar = (): void => {
     aguardando(area, "lista");
@@ -66,7 +69,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
         // O recorte vale para a execução, não para o catálogo: rotina é
         // cadastro permanente, execução é o que acontece numa data.
         const execucoes = todasExecucoes.filter((e) =>
-          dentroDoPeriodo(e.iniciada_em, periodo.valor()),
+          dentroDoPeriodo(e.iniciada_em, barra.periodo("data")),
         );
         montar(
           area,
@@ -159,7 +162,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
     return h(
       "div",
       { class: "grade-filtros" },
-      periodo.elemento,
+      barra.elemento,
       botao("execucoes", "Execuções"),
       botao("catalogo", "Catálogo de rotinas"),
       h(

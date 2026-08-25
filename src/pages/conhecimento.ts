@@ -1,6 +1,6 @@
 /** Base de conhecimento e erros conhecidos. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
@@ -50,7 +50,11 @@ export function renderizarConhecimento(
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar(), { rotulo: "Publicado" });
+  // `barraFiltros` e não `barra`: o nome já é da função que monta a linha.
+  const barraFiltros = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [{ chave: "data", rotulo: "Publicado", tipo: "periodo" }],
+  });
 
   const desenhar = (): void => {
     aguardando(area, "lista");
@@ -61,7 +65,7 @@ export function renderizarConhecimento(
       .then(([todosArtigos, todosErros]) => {
         // No cliente: as duas listas já vêm inteiras, e um recorte no banco
         // exigiria duas consultas a mais sem ganho nenhum.
-        const p = periodo.valor();
+        const p = barraFiltros.periodo("data");
         const artigos = todosArtigos.filter((x) =>
           dentroDoPeriodo(x.publicado_em ?? x.criado_em, p),
         );
@@ -153,7 +157,7 @@ export function renderizarConhecimento(
     return h(
       "div",
       { class: "grade-filtros" },
-      periodo.elemento,
+      barraFiltros.elemento,
       botao("artigos", "Artigos"),
       agente ? botao("erros", "Erros conhecidos (KEDB)") : null,
       h("input", {

@@ -3,6 +3,7 @@
  */
 
 import { corDaTag } from "@/lib/api";
+import { botaoCopiarLink } from "@/components/copiar-link";
 import { h } from "@/lib/dom";
 import { navegar } from "@/lib/router";
 import {
@@ -89,7 +90,22 @@ export function tabelaChamados(opcoes: OpcoesTabela): HTMLElement {
       {
         on: { click: () => navegar(`chamado/${c.numero}`) },
       },
-      h("td", { class: "tabela__num" }, c.numero),
+      // O número é o protocolo do atendimento, e é ele que se manda para
+      // alguém — daí o botão de link morar aqui, e não numa coluna de ações.
+      h(
+        "td",
+        { class: "tabela__num" },
+        h(
+          "span",
+          { class: "tabela__protocolo" },
+          c.numero,
+          botaoCopiarLink({
+            caminho: `chamado/${c.numero}`,
+            rotulo: `Copiar link de ${c.numero}`,
+            compacto: true,
+          }),
+        ),
+      ),
       h(
         "td",
         {},

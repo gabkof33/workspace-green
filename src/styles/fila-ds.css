@@ -1,0 +1,120 @@
+/**
+ * Fila de atendimento — o que é específico DESTA página, na base do DS.
+ *
+ * Tabela, chips, tags, barra de SLA, estado vazio, campo, botão e aviso saíram
+ * daqui pro `ds-componentes.css`: são peças que outras 10 páginas também têm, e
+ * mantê-las aqui obrigaria a copiá-las na próxima conversão. A fila as recebe
+ * pelas classes `tabela-ds`, `chips-ds`, `formulario-ds` e `feedback-ds` no
+ * contêiner raiz (ver `fila.ts`).
+ *
+ * Ficou aqui só o que não se repete: ritmo da página, indicadores e a barra de
+ * filtros. Tudo escopado em `.fila-ds` — as classes são compartilhadas com o
+ * resto do app (`entrada` e `pilha` em 26 arquivos, `btn` em 24, `metrica` em
+ * 11), então sem o escopo isto repintaria metade da Central Green.
+ *
+ * O cabeçalho da página (título + subtítulo) NÃO está aqui: quem o renderiza é
+ * o shell, a partir do que o `main.ts` devolve. Repetir dentro da página daria
+ * dois títulos.
+ */
+
+/* ── Ritmo da página ─────────────────────────────────────────────────────────
+ * Um vão só, de 16px. O CSS base combina `gap` no `.pilha` com
+ * `margin-bottom` em cada bloco, então o espaço real variava de bloco pra
+ * bloco (12px aqui, 16+12 ali). Zerar as margens e deixar só o gap é o que
+ * torna o ritmo previsível. */
+
+.fila-ds {
+  gap: var(--ds-gp-2xl);
+  font-family: var(--ds-font-sans);
+}
+
+.fila-ds > .grade-metricas,
+.fila-ds > .grade-filtros,
+.fila-ds > .aviso {
+  margin-bottom: 0;
+}
+
+/* ── Indicadores (o papel Kpi do DS) ─────────────────────────────────────── */
+
+.fila-ds .grade-metricas {
+  gap: var(--ds-gp-lg);
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+}
+
+.fila-ds .metrica {
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-pad-card-md);
+  gap: var(--ds-gp-xs);
+  box-shadow: var(--ds-sh-sm);
+}
+
+/* O rótulo era mono 9.5px em caixa alta com tracking largo. O DS não grita
+   rótulo de métrica: é `caption`, caixa normal, cor apagada — o que sobressai
+   é o número. */
+.fila-ds .metrica__rotulo {
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ds-fg-muted);
+}
+
+.fila-ds .metrica__valor {
+  font-family: var(--ds-font-sans);
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-fg-strong);
+}
+
+.fila-ds .metrica__nota {
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 400;
+  color: var(--ds-fg-subtle);
+}
+
+/* Severidade entra pela cor do NÚMERO, não do cartão: cinco cartões pintados
+   competem entre si e nenhum se destaca. */
+.fila-ds .metrica--critica .metrica__valor {
+  color: var(--ds-fg-danger);
+}
+
+.fila-ds .metrica--alerta .metrica__valor {
+  color: var(--ds-fg-warning);
+}
+
+.fila-ds .metrica--ok .metrica__valor {
+  color: var(--ds-fg-success);
+}
+
+/* ── Barra de filtros ────────────────────────────────────────────────────── */
+
+.fila-ds .grade-filtros {
+  gap: var(--ds-gp-md);
+  padding: var(--ds-pad-xl);
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+}
+
+/* O campo e o botão do DS saíram daqui pro `formulario-ds`, junto com o aviso
+   e o estado vazio (a abertura de chamado pede os mesmos). Sobrou o que é da
+   barra de filtros: 320px é a largura de uma busca, não a de um campo de
+   formulário, que ocupa a coluna inteira. */
+.fila-ds .grade-filtros .entrada {
+  max-width: 320px;
+}
+
+/* Os chips de filtro desta barra (prioridade, lixeira, "ocultar encerrados")
+   saíram daqui: agora são a `ds-barra-filtros`, compartilhada com as outras
+   sete listas, e o desenho deles é o `toolbarAppliedChip` do DS. Sobrou só o
+   que é do enquadramento da barra, acima. */
+

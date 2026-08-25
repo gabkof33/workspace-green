@@ -87,6 +87,24 @@ export interface SetorOpcao {
   caminho: string;
 }
 
+/**
+ * Perfil visto pelo quadro de setores.
+ *
+ * Recorte estreito de propósito: nome, função e situação são o que o quadro
+ * responde ("quem está neste setor"). Telefone, e-mail, gestor e unidade
+ * ficam no diretório, que é outra tela e outro consentimento.
+ */
+export interface PerfilDoSetor {
+  id: string;
+  nome_completo: string;
+  cargo: string | null;
+  hierarquia: Hierarquia;
+  senioridade: Senioridade;
+  papel: PapelUsuario;
+  ativo: boolean;
+  criado_em: string;
+}
+
 /** Colega mencionável — vem de `vw_diretorio`, sem dados sensíveis. */
 export interface PessoaDiretorio {
   id: string;

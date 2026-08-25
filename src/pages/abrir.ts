@@ -8,6 +8,8 @@ import {
   obterServico,
 } from "@/lib/api";
 import { criarCampoTags, type CampoTags } from "@/components/campo-tags";
+import { criarGrupoAlternanciaMultipla } from "@/components/grupo-alternancia";
+import { criarSelecaoDs } from "@/components/selecao-ds";
 import {
   calcularPrioridade,
   deduzirImpacto,
@@ -66,6 +68,11 @@ function rascunhoVazio(perfil: Perfil): RascunhoChamado {
 }
 
 export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
+  // Liga o restyle desta página (src/styles/abrir-ds.css) e os layers
+  // compartilhados: chips de prioridade, campos e botões, avisos e estado
+  // vazio. Vai no contêiner da página, que o `main.ts` cria novo a cada rota
+  // — então não vaza pra próxima tela.
+  alvo.classList.add("abrir-ds", "chips-ds", "formulario-ds", "feedback-ds");
   let etapa = 0;
   let rascunho = rascunhoVazio(perfil);
   const erros = new Map<string, string>();
@@ -169,14 +176,7 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
           h(
             "div",
             {},
-            h(
-              "div",
-              {
-                style:
-                  "font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--c-muted);font-weight:700;margin-bottom:var(--s-2)",
-              },
-              categoria,
-            ),
+            h("div", { class: "abrir-ds__categoria" }, categoria),
             h(
               "div",
               { class: "escolhas" },
@@ -230,23 +230,17 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
           h("span", { class: "escolha__desc" }, s.descricao),
           h(
             "span",
-            {
-              class: "escolha__desc",
-              style: "margin-top:4px;display:flex;gap:8px;align-items:center",
-            },
+            { class: "escolha__desc abrir-ds__meta" },
             h("span", { class: `pri pri--${s.sla_politica}` }, s.sla_politica),
             h(
               "span",
-              { class: "mono", style: "font-size:11px" },
+              { class: "mono" },
               `${politica.rotulo} · fila ${s.equipe_padrao}`,
             ),
             s.artigo_kb
               ? h(
                   "span",
-                  {
-                    class: "mono",
-                    style: "font-size:11px;color:var(--c-accent)",
-                  },
+                  { class: "mono abrir-ds__kb" },
                   `${s.artigo_kb} disponível`,
                 )
               : null,
@@ -703,7 +697,9 @@ export function renderizarAbrir(alvo: HTMLElement, perfil: Perfil): void {
   function navegacao(ultima = false): HTMLElement {
     return h(
       "div",
-      { class: "linha-flex", style: "margin-top:var(--s-3)" },
+      // Separação e respiro saem do CSS escopado (`abrir-ds__acoes`): valor
+      // inline não é token, e ninguém o encontra depois.
+      { class: "linha-flex abrir-ds__acoes" },
       h(
         "button",
         {
@@ -1022,52 +1018,30 @@ function construirCampoDinamico(
     }
 
     case "selecao_unica": {
-      const select = h(
-        "select",
-        {
-          class: "selecao",
-          on: {
-            change: (ev: Event) =>
-              registrar((ev.target as HTMLSelectElement).value),
-          },
-        },
-        h("option", { value: "" }, "Selecione…"),
-        ...(campo.opcoes ?? []).map((op) => h("option", { value: op }, op)),
-      ) as HTMLSelectElement;
-      select.value = String(valores[campo.chave] ?? "");
-      controle = select;
+      // Select do DS (`selecao-ds.ts`) e não `<select>`: a lista do nativo é
+      // desenhada pelo SO e sumia no tema escuro.
+      controle = criarSelecaoDs({
+        rotulo: campo.rotulo,
+        opcoes: campo.opcoes ?? [],
+        valor: String(valores[campo.chave] ?? ""),
+        aoMudar: registrar,
+      }).elemento;
       break;
     }
 
     case "selecao_multipla": {
-      const marcados = new Set(
-        Array.isArray(valores[campo.chave])
+      // Grupo de alternância do DS (`ToggleGroup type="multiple"`) em vez de
+      // uma pilha de cartões com checkbox: aqui a opção é só um rótulo, sem
+      // descrição, e um cartão por linha dava a um "Windows / macOS / Linux"
+      // a mesma altura de tela que a pergunta inteira.
+      controle = criarGrupoAlternanciaMultipla({
+        rotulo: campo.rotulo,
+        opcoes: campo.opcoes ?? [],
+        valor: Array.isArray(valores[campo.chave])
           ? (valores[campo.chave] as string[])
           : [],
-      );
-      controle = h(
-        "div",
-        { class: "escolhas" },
-        ...(campo.opcoes ?? []).map((op) =>
-          h(
-            "label",
-            { class: "escolha" },
-            h("input", {
-              type: "checkbox",
-              value: op,
-              checked: marcados.has(op),
-              on: {
-                change: (ev: Event) => {
-                  if ((ev.target as HTMLInputElement).checked) marcados.add(op);
-                  else marcados.delete(op);
-                  registrar([...marcados]);
-                },
-              },
-            }),
-            h("span", {}, h("span", { class: "escolha__titulo" }, op)),
-          ),
-        ),
-      );
+        aoMudar: registrar,
+      }).elemento;
       break;
     }
 

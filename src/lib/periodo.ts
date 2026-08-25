@@ -14,8 +14,22 @@ export function hojeIso(): string {
 export function diasAtras(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
+  return isoDeData(d);
+}
+
+/** ISO local de um `Date` — `toISOString()` daria o dia em UTC. */
+export function isoDeData(d: Date): string {
   const dois = (x: number): string => String(x).padStart(2, "0");
   return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
+
+/** Meia-noite local do dia ISO. `new Date("2026-08-01")` seria UTC. */
+export function dataDeIso(iso: string): Date {
+  return new Date(
+    Number(iso.slice(0, 4)),
+    Number(iso.slice(5, 7)) - 1,
+    Number(iso.slice(8, 10)),
+  );
 }
 
 /**

@@ -1,0 +1,381 @@
+/**
+ * Base do iGreen Design System em CSS puro — camada ADITIVA.
+ *
+ * Por que existe: o DS é uma biblioteca React (Radix + Tailwind v4) e a Central
+ * Green é TypeScript puro. Os componentes dele não podem ser importados aqui,
+ * mas os VALORES podem: cor, tipografia, forma e elevação são só CSS.
+ *
+ * Por que não importar o `tailwind-theme.css` do DS direto: lá os tokens moram
+ * dentro de `@theme` e os presets de texto dentro de `@utility` — at-rules do
+ * Tailwind. Sem o Tailwind processando, o navegador **descarta os dois blocos
+ * inteiros sem erro nenhum**, e o arquivo não define nada. Então os valores
+ * abaixo foram transpostos pra `:root`, que é CSS de verdade.
+ *
+ * Fonte dos valores:
+ *   meu-produto/design-system/src/styles/theme/tailwind-theme.css
+ *   (gerado de tokens/brands/default — não editar lá nem aqui à mão)
+ *
+ * Prefixo `--ds-` de propósito: não colide com os `--c-` / `--s-` / `--t-` da
+ * Central Green, então esta camada não muda **nada** de quem não a consome.
+ * Ela hoje é lida só pela fila (`fila-ds.css`). Adotar no app todo depois é
+ * remapear os `--c-*` do `tokens.css` pra estes valores — não é reescrever.
+ *
+ * ⚠️ Tema escuro segue a convenção DESTE projeto (três estados: preferência do
+ * SO + `data-tema="escuro"` + escape por `data-tema="claro"`), NÃO o `.dark`
+ * do DS. Trocar isso faria o tema do SO vazar pro app.
+ */
+
+/* ── Geist — a fonte do DS ───────────────────────────────────────────────────
+ * Os `.woff2` foram copiados pra `public/fonts/`. O caminho é a raiz do SITE.
+ * Sem os arquivos não há erro: o navegador devolve o index.html no lugar do
+ * arquivo e tudo cai em system-ui, silenciosamente. Conferir com
+ * `document.fonts.check('16px Geist')` → true. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ds-font-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --ds-font-mono: "Geist Mono", "Fira Code", monospace;
+
+  /* ── Cor — claro ───────────────────────────────────────────────────────── */
+
+  /* A marca aparece em muitos tokens derivados (subtle, hover, ring, borda).
+     Fica numa var só pra o verde do DS ter um ponto de verdade neste arquivo. */
+  --ds-brand: oklch(0.5248 0.1415 150.9);
+  --ds-danger: oklch(0.6368 0.2078 25.33);
+  --ds-success: oklch(0.66 0.135 161);
+  --ds-warning: oklch(0.81 0.16 81);
+  --ds-info: oklch(0.62 0.21 280);
+
+  --ds-bg-canvas: oklch(1 0 0);
+  --ds-bg-surface: oklch(1 0 0);
+  --ds-bg-surface-elevated: oklch(1 0 0);
+  --ds-bg-subtle: oklch(0.973 0 0);
+  --ds-bg-muted: oklch(0.973 0 0);
+  --ds-bg-muted-hover: oklch(0.95 0 0);
+  --ds-bg-emphasis: oklch(0.94 0 0);
+  /* Superfície que sobe SOBRE o trilho — a aba ativa das Tabs segmented. */
+  --ds-bg-accent: oklch(1 0 0);
+  --ds-bg-input: oklch(1 0 0);
+  --ds-bg-input-hover: oklch(0.973 0 0);
+
+  /* Painel flutuante (lista de select, menu). No claro é opaco; no escuro é
+     o canvas a 70% com desfoque atrás — ver `.ds-selecao__lista`. */
+  --ds-bg-dropdown: var(--ds-bg-canvas);
+  --ds-overlay-float: oklch(0.55 0 0 / 0.12);
+
+  --ds-bg-table: oklch(1 0 0);
+  --ds-bg-table-head: oklch(0.973 0 0);
+  --ds-bg-table-row-hover: oklch(0.973 0 0);
+
+  --ds-bg-brand: var(--ds-brand);
+  --ds-bg-brand-subtle: color-mix(in oklch, var(--ds-brand) 14%, transparent);
+  --ds-bg-brand-subtle-hover: color-mix(
+    in oklch,
+    var(--ds-brand) 22%,
+    transparent
+  );
+  --ds-bg-brand-hover: color-mix(in oklch, var(--ds-brand) 90%, black);
+
+  /* Preenchimento sólido semântico, no mesmo padrão do `--ds-bg-brand`. Quem
+     precisa deles é indicador de progresso (a barra de SLA), onde a cor É o
+     dado — chip e faixa usam os `-muted`. */
+  --ds-bg-success: var(--ds-success);
+  --ds-bg-warning: var(--ds-warning);
+  --ds-bg-danger: var(--ds-danger);
+
+  --ds-bg-danger-muted: color-mix(in oklch, var(--ds-danger) 14%, transparent);
+  --ds-bg-success-muted: color-mix(in oklch, var(--ds-success) 14%, transparent);
+  --ds-bg-warning-muted: color-mix(in oklch, var(--ds-warning) 14%, transparent);
+  --ds-bg-info-muted: color-mix(in oklch, var(--ds-info) 14%, transparent);
+
+  --ds-fg-strong: oklch(0.15 0 0);
+  --ds-fg-default: oklch(0.15 0 0);
+  --ds-fg-muted: oklch(0.4997 0 0);
+  --ds-fg-subtle: oklch(0.7025 0 0);
+  --ds-fg-disabled: oklch(0.7025 0 0);
+  --ds-fg-brand: var(--ds-brand);
+  --ds-fg-danger: var(--ds-danger);
+  --ds-fg-success: var(--ds-success);
+  --ds-fg-warning: var(--ds-warning);
+  --ds-fg-info: var(--ds-info);
+  --ds-fg-on-brand: oklch(1 0 0);
+  --ds-fg-on-warning: oklch(0 0 0);
+  --ds-fg-on-danger: oklch(1 0 0);
+
+  --ds-border-default: oklch(0.9076 0 0);
+  --ds-border-subtle: oklch(0.931 0 0);
+  --ds-border-input: oklch(0.8761 0 0);
+  --ds-border-table: oklch(0.931 0 0);
+  --ds-border-brand: var(--ds-brand);
+  --ds-border-brand-subtle: color-mix(
+    in oklch,
+    var(--ds-brand) 36%,
+    transparent
+  );
+  --ds-border-danger-muted: color-mix(
+    in oklch,
+    var(--ds-danger) 36%,
+    transparent
+  );
+  --ds-border-success-muted: color-mix(
+    in oklch,
+    var(--ds-success) 36%,
+    transparent
+  );
+  --ds-border-warning-muted: color-mix(
+    in oklch,
+    var(--ds-warning) 36%,
+    transparent
+  );
+  --ds-border-info-muted: color-mix(in oklch, var(--ds-info) 36%, transparent);
+
+  /* Anéis de foco já vêm COM alpha — nunca aplicar opacidade por cima. */
+  --ds-ring-brand: color-mix(in oklch, var(--ds-brand) 22%, transparent);
+  --ds-ring-danger: color-mix(in oklch, var(--ds-danger) 22%, transparent);
+  --ds-ring-secondary: color-mix(in oklch, oklch(0.4997 0 0) 22%, transparent);
+
+  /* ── Elevação — claro ──────────────────────────────────────────────────── */
+  --ds-sh-sm: 0 1px 2px oklch(0 0 0 / 0.04);
+  --ds-sh-md:
+    rgba(145, 158, 171, 0.18) 0 0 2px 0, rgba(145, 158, 171, 0.12) 0 12px 24px -4px;
+  --ds-sh-lg: 0 8px 24px oklch(0 0 0 / 0.08);
+
+  /* ── Forma ─────────────────────────────────────────────────────────────── */
+  --ds-radius-xs: calc(0.625rem * 0.4);
+  --ds-radius-sm: calc(0.625rem * 0.6);
+  --ds-radius-md: calc(0.625rem * 0.8);
+  --ds-radius-lg: 0.625rem;
+  --ds-radius-xl: calc(0.625rem * 1.4);
+  --ds-radius-full: 9999px;
+
+  /* ── Espaçamento ───────────────────────────────────────────────────────────
+   * O DS separa por INTENÇÃO: `gp` é vão entre blocos, `pad` é respiro interno.
+   * Mesmos números, nomes diferentes — é o que deixa o ritmo legível depois. */
+  --ds-gp-2xs: 2px;
+  --ds-gp-xs: 4px;
+  --ds-gp-sm: 6px;
+  --ds-gp-md: 8px;
+  --ds-gp-lg: 10px;
+  --ds-gp-xl: 12px;
+  --ds-gp-2xl: 16px;
+  --ds-gp-3xl: 20px;
+  --ds-gp-4xl: 24px;
+  --ds-gp-6xl: 32px;
+
+  --ds-pad-xs: 4px;
+  --ds-pad-sm: 6px;
+  --ds-pad-md: 8px;
+  --ds-pad-lg: 10px;
+  --ds-pad-xl: 12px;
+  --ds-pad-2xl: 16px;
+  --ds-pad-3xl: 20px;
+  --ds-pad-4xl: 24px;
+  --ds-pad-6xl: 32px;
+  --ds-pad-card-sm: 16px;
+  --ds-pad-card-md: 20px;
+  --ds-pad-card-lg: 24px;
+
+  /* Alturas de controle. 40px é o default de desktop; 44px é o alvo de toque
+     mínimo do WCAG, por isso vira o piso no mobile. */
+  --ds-form-md: 36px;
+  --ds-form-lg: 40px;
+  --ds-form-xl: 44px;
+
+  --ds-icon-sm: 16px;
+  --ds-icon-md: 20px;
+  --ds-icon-lg: 24px;
+}
+
+/* ── Cor — escuro ────────────────────────────────────────────────────────────
+ * Duplicado nos dois seletores de propósito: é como o `tokens.css` deste
+ * projeto já faz, e em CSS puro não há como compartilhar um bloco entre uma
+ * media query e um seletor de atributo. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --ds-brand: oklch(0.7289 0.1571 162.3);
+
+    --ds-bg-canvas: oklch(0.205 0 0);
+    --ds-bg-surface: oklch(0.225 0 0);
+    --ds-bg-surface-elevated: oklch(0.225 0 0);
+    --ds-bg-subtle: oklch(1 0 0 / 0.01);
+    --ds-bg-muted: oklch(1 0 0 / 0.03);
+    --ds-bg-muted-hover: oklch(1 0 0 / 0.08);
+    --ds-bg-emphasis: color-mix(in oklch, oklch(1 0 0) 12%, transparent);
+    --ds-bg-accent: oklch(1 0 0 / 0.12);
+    --ds-bg-input: oklch(1 0 0 / 0.04);
+    --ds-bg-input-hover: oklch(1 0 0 / 0.08);
+    --ds-bg-dropdown: color-mix(in oklab, var(--ds-bg-canvas) 70%, transparent);
+    --ds-overlay-float: oklch(1 0 0 / 0.08);
+
+    --ds-bg-table: oklch(0.225 0 0);
+    --ds-bg-table-head: oklch(0.252 0 0);
+    --ds-bg-table-row-hover: oklch(0.252 0 0);
+
+    /* No escuro o hover da marca clareia (mistura com branco), não escurece. */
+    --ds-bg-brand-hover: color-mix(in oklch, var(--ds-brand) 90%, white);
+
+    --ds-fg-strong: oklch(1 0 0);
+    --ds-fg-default: oklch(0.98 0 0);
+    --ds-fg-muted: oklch(0.7025 0 0);
+    --ds-fg-subtle: color-mix(in oklch, oklch(0.7025 0 0) 70%, transparent);
+    --ds-fg-disabled: oklch(0.36 0 0);
+    /* Sobre o verde claro do escuro, texto branco não passa contraste. */
+    --ds-fg-on-brand: oklch(0 0 0);
+    --ds-fg-on-danger: oklch(1 0 0);
+
+    --ds-border-default: oklch(0.2645 0 0);
+    --ds-border-subtle: oklch(1 0 0 / 0.04);
+    --ds-border-input: oklch(1 0 0 / 0.08);
+    --ds-border-table: oklch(0.2645 0 0);
+
+    --ds-sh-sm: 0 1px 2px oklch(0 0 0 / 0.15);
+    --ds-sh-md:
+      0 1px 2px oklch(0 0 0 / 0.3), 0 8px 18px -4px oklch(0 0 0 / 0.42);
+    --ds-sh-lg: 0 8px 24px oklch(0 0 0 / 0.3);
+  }
+}
+
+:root[data-tema="escuro"] {
+  --ds-brand: oklch(0.7289 0.1571 162.3);
+
+  --ds-bg-canvas: oklch(0.205 0 0);
+  --ds-bg-surface: oklch(0.225 0 0);
+  --ds-bg-surface-elevated: oklch(0.225 0 0);
+  --ds-bg-subtle: oklch(1 0 0 / 0.01);
+  --ds-bg-muted: oklch(1 0 0 / 0.03);
+  --ds-bg-muted-hover: oklch(1 0 0 / 0.08);
+  --ds-bg-emphasis: color-mix(in oklch, oklch(1 0 0) 12%, transparent);
+  --ds-bg-accent: oklch(1 0 0 / 0.12);
+  --ds-bg-input: oklch(1 0 0 / 0.04);
+  --ds-bg-input-hover: oklch(1 0 0 / 0.08);
+  --ds-bg-dropdown: color-mix(in oklab, var(--ds-bg-canvas) 70%, transparent);
+  --ds-overlay-float: oklch(1 0 0 / 0.08);
+
+  --ds-bg-table: oklch(0.225 0 0);
+  --ds-bg-table-head: oklch(0.252 0 0);
+  --ds-bg-table-row-hover: oklch(0.252 0 0);
+
+  --ds-bg-brand-hover: color-mix(in oklch, var(--ds-brand) 90%, white);
+
+  --ds-fg-strong: oklch(1 0 0);
+  --ds-fg-default: oklch(0.98 0 0);
+  --ds-fg-muted: oklch(0.7025 0 0);
+  --ds-fg-subtle: color-mix(in oklch, oklch(0.7025 0 0) 70%, transparent);
+  --ds-fg-disabled: oklch(0.36 0 0);
+  --ds-fg-on-brand: oklch(0 0 0);
+  --ds-fg-on-danger: oklch(1 0 0);
+
+  --ds-border-default: oklch(0.2645 0 0);
+  --ds-border-subtle: oklch(1 0 0 / 0.04);
+  --ds-border-input: oklch(1 0 0 / 0.08);
+  --ds-border-table: oklch(0.2645 0 0);
+
+  --ds-sh-sm: 0 1px 2px oklch(0 0 0 / 0.15);
+  --ds-sh-md: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 18px -4px oklch(0 0 0 / 0.42);
+  --ds-sh-lg: 0 8px 24px oklch(0 0 0 / 0.3);
+}
+
+/* ── Presets de tipografia ───────────────────────────────────────────────────
+ * No DS estes são 27 `@utility text-*`. Preset é multi-propriedade (tamanho +
+ * entrelinha + peso + tracking + família juntos), então não cabe numa var —
+ * viram classe. Aqui estão os 9 que a fila usa.
+ *
+ * Os valores em `rem` são os do DS. Vale porque este projeto não mexe no
+ * `font-size` do `html` (o `body` usa `--t-base`, o que não afeta `rem`).
+ *
+ * `stat` é o papel do valor de indicador — sempre com `tabular-nums`, senão o
+ * número dança de largura quando muda. */
+
+.ds-title-md {
+  font-family: var(--ds-font-sans);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+}
+
+.ds-title-sm {
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+}
+
+.ds-body-md {
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  letter-spacing: -0.006em;
+}
+
+/* Default interativo do DS: 13px/500. Lê mais "encorpado" que texto de
+   leitura, e é isso que dá a densidade confiante das telas densas. */
+.ds-body-sm {
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+}
+
+.ds-caption-md {
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.ds-caption-sm {
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.ds-stat-md {
+  font-family: var(--ds-font-sans);
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-stat-lg {
+  font-family: var(--ds-font-sans);
+  font-size: 1.875rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Identificador técnico (número de chamado, hash, path) — um dos 7 papéis do
+   DS, não é `body` com `font-mono` por cima. */
+.ds-code-sm {
+  font-family: var(--ds-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0;
+}

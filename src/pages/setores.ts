@@ -1,11 +1,17 @@
 /** Quadro de setores — a árvore da empresa. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarAvatar } from "@/components/avatar";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
 import { avisar, h, montar } from "@/lib/dom";
 import { confirmar, perguntar } from "@/components/dialogo";
-import { podeGerirPessoas } from "@/lib/api";
+import {
+  criarTabelaDados,
+  type TabelaDados,
+} from "@/components/tabela-dados";
+import { ROTULOS_HIERARQUIA, ROTULOS_SENIORIDADE } from "@/components/insignia";
+import { perfisDoSetor, podeGerirPessoas } from "@/lib/api";
 import {
   ABAS_CONFIGURAVEIS,
   ABAS_PADRAO_SETOR,
@@ -17,26 +23,47 @@ import {
   listarSetores,
   renomearSetor,
 } from "@/lib/setores";
-import type { Perfil, SetorArvore } from "@/types/dominio";
+import type { Perfil, PerfilDoSetor, SetorArvore } from "@/types/dominio";
 
 export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
   let arvore: SetorArvore[] = [];
-  let mostrarInativos = false;
   let novoEm: string | null | undefined; // undefined = fechado; null = nova área
   let configurando: string | null = null;
+  /** Setor com o quadro de pessoas aberto. Um por vez: são tabelas largas. */
+  let pessoasAbertas: string | null = null;
+
+  /**
+   * Uma tabela por setor, criada na primeira abertura e guardada.
+   *
+   * A tela inteira se redesenha a cada mudança de estado, e recriar a tabela
+   * junto jogaria fora busca, ordenação e página — além de refazer a consulta.
+   * Guardando a instância, o `montar` só reencaixa o mesmo elemento.
+   */
+  const tabelas = new Map<string, TabelaDados<PerfilDoSetor>>();
 
   const podeGerir = podeGerirPessoas(perfil);
-  const area = h("div", { class: "pilha" });
+  // `tabela-ds` é o que veste a grade do `tabela-dados.ts`; `chips-ds` os
+  // selos das células e `feedback-ds` o estado vazio dela.
+  const area = h("div", {
+    class: "pilha tabela-ds chips-ds formulario-ds feedback-ds",
+  });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar(), { rotulo: "Criado" });
+  // `barraFiltros` e não `barra`: o nome já é da função que monta a linha.
+  const barraFiltros = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [
+      { chave: "data", rotulo: "Criado", tipo: "periodo" },
+      { chave: "inativos", rotulo: "Mostrar desativados", tipo: "liga" },
+    ],
+  });
 
   const desenhar = (): void => {
     aguardando(area, "lista");
-    void listarSetores(mostrarInativos)
+    void listarSetores(barraFiltros.ligado("inativos"))
       .then((lista) => {
         arvore = lista.filter((s) =>
-          dentroDoPeriodo(s.criado_em, periodo.valor()),
+          dentroDoPeriodo(s.criado_em, barraFiltros.periodo("data")),
         );
         montar(
           area,
@@ -97,25 +124,7 @@ export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
     h(
       "div",
       { class: "grade-filtros" },
-      periodo.elemento,
-      h(
-        "label",
-        {
-          class: "linha-flex",
-          style: "gap:6px;font-size:var(--t-sm);cursor:pointer",
-        },
-        h("input", {
-          type: "checkbox",
-          checked: mostrarInativos,
-          on: {
-            change: (ev: Event) => {
-              mostrarInativos = (ev.target as HTMLInputElement).checked;
-              desenhar();
-            },
-          },
-        }),
-        "Mostrar desativados",
-      ),
+      barraFiltros.elemento,
       podeGerir
         ? h(
             "button",
@@ -132,6 +141,152 @@ export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
             novoEm === null ? "Cancelar" : "Nova área",
           )
         : null,
+    );
+
+  /* ---------- Pessoas do setor ---------- */
+
+  /**
+   * O `DataTable` do DS com quem está lotado no setor.
+   *
+   * As colunas seguem o contrato do DS: `valor` é o que a busca varre e a
+   * ordenação compara, `celula` é o que aparece. Situação tem os dois porque o
+   * texto ordena e o selo é que se lê.
+   */
+  function tabelaPessoas(s: SetorArvore): HTMLElement {
+    const existente = tabelas.get(s.id);
+    if (existente) return existente.elemento;
+
+    const tabela = criarTabelaDados<PerfilDoSetor>({
+      rotulo: `Pessoas de ${s.nome}`,
+      busca: "Buscar por nome ou cargo…",
+      porPagina: 8,
+      densidade: "compacta",
+      vazio: {
+        titulo: "Setor sem ninguém",
+        texto:
+          "Nenhum perfil aponta para este setor. Quem se cadastra escolhe o setor na criação da conta, e é ele que decide as abas que a pessoa vê.",
+      },
+      colunas: [
+        {
+          chave: "nome",
+          titulo: "Nome",
+          valor: (p) => p.nome_completo,
+          // Avatar na cor do perfil, como no diretório e no chat: é o que
+          // permite reconhecer alguém antes de ler a linha.
+          celula: (p) =>
+            h(
+              "span",
+              { class: "setores__pessoa" },
+              criarAvatar({ nome: p.nome_completo, id: p.id, tamanho: "sm" }),
+              h("span", {}, p.nome_completo),
+            ),
+        },
+        {
+          chave: "cargo",
+          titulo: "Cargo",
+          valor: (p) => p.cargo ?? "",
+          celula: (p) =>
+            p.cargo ?? h("span", { class: "texto-sutil" }, "sem cargo"),
+        },
+        {
+          chave: "hierarquia",
+          titulo: "Nível",
+          valor: (p) => ROTULOS_HIERARQUIA[p.hierarquia],
+          celula: (p) =>
+            h(
+              "span",
+              // `selo`, não `pri`: `pri` é a pílula de PRIORIDADE, e reusá-la
+              // aqui diria que coordenador é P1 de alguma coisa.
+              {
+                class: `selo selo--${
+                  p.hierarquia === "colaborador" ? "encerrado" : "andamento"
+                }`,
+              },
+              ROTULOS_HIERARQUIA[p.hierarquia],
+            ),
+        },
+        {
+          chave: "senioridade",
+          titulo: "Senioridade",
+          valor: (p) => ROTULOS_SENIORIDADE[p.senioridade],
+        },
+        {
+          chave: "situacao",
+          titulo: "Situação",
+          alinhamento: "fim",
+          valor: (p) => (p.ativo ? "Ativo" : "Desativado"),
+          celula: (p) =>
+            h(
+              "span",
+              // Variantes que já existem no `chips-ds`: verde para quem está
+              // em atividade, neutro para quem saiu.
+              { class: `selo selo--${p.ativo ? "resolvido" : "encerrado"}` },
+              p.ativo ? "ativo" : "desativado",
+            ),
+        },
+      ],
+    });
+
+    tabelas.set(s.id, tabela);
+    tabela.carregando(true);
+
+    void perfisDoSetor(s.id)
+      .then((lista) => tabela.definirLinhas(lista))
+      .catch((e: unknown) => {
+        tabela.carregando(false);
+        avisar(
+          e instanceof Error ? e.message : "Falha ao carregar as pessoas.",
+          "erro",
+        );
+      });
+
+    return tabela.elemento;
+  }
+
+  /**
+   * O contador de pessoas vira o gatilho do quadro.
+   *
+   * Sem pessoas não há o que abrir, e aí ele continua sendo só um rótulo — um
+   * botão que abre uma tabela vazia é um clique cobrado à toa.
+   */
+  const gatilhoPessoas = (s: SetorArvore): HTMLElement => {
+    if (s.pessoas === 0) {
+      return h(
+        "span",
+        { class: "setores__pessoas setores__pessoas--zero" },
+        "sem pessoas",
+      );
+    }
+
+    return h(
+      "button",
+      {
+        class: "setores__pessoas setores__pessoas--gatilho",
+        type: "button",
+        aria: { expanded: String(pessoasAbertas === s.id) },
+        title: "Ver quem está neste setor",
+        on: {
+          click: () => {
+            pessoasAbertas = pessoasAbertas === s.id ? null : s.id;
+            desenhar();
+          },
+        },
+      },
+      `${s.pessoas} pessoa${s.pessoas === 1 ? "" : "s"}`,
+    );
+  };
+
+  const quadroPessoas = (s: SetorArvore): HTMLElement =>
+    h(
+      "div",
+      { class: "setores__quadro" },
+      h(
+        "div",
+        { class: "setores__quadro-titulo" },
+        h("b", {}, s.nome),
+        h("span", { class: "texto-sutil" }, "quem está lotado aqui"),
+      ),
+      tabelaPessoas(s),
     );
 
   /* ---------- Árvore ---------- */
@@ -157,6 +312,9 @@ export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
               { class: "setores__contagem" },
               `${filhos.length} subsetor${filhos.length === 1 ? "" : "es"}`,
             ),
+            // Área também recebe gente direta — "uma área sem subsetor pode
+            // receber demanda diretamente", e quem responde por ela está aqui.
+            gatilhoPessoas(a),
             !a.ativo ? h("span", { class: "tag" }, "desativada") : null,
             h("span", { class: "empurra" }),
             ...acoes(a, filhos.length),
@@ -179,17 +337,7 @@ export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
                     },
                     h("span", { class: "setores__ramo" }, "└"),
                     h("span", { class: "setores__filho-nome" }, f.nome),
-                    f.pessoas > 0
-                      ? h(
-                          "span",
-                          { class: "setores__pessoas" },
-                          `${f.pessoas} pessoa${f.pessoas === 1 ? "" : "s"}`,
-                        )
-                      : h(
-                          "span",
-                          { class: "setores__pessoas setores__pessoas--zero" },
-                          "sem pessoas",
-                        ),
+                    gatilhoPessoas(f),
                     !f.ativo ? h("span", { class: "tag" }, "desativado") : null,
                     f.abas
                       ? h("span", { class: "tag tag--verde" }, "abas próprias")
@@ -199,6 +347,13 @@ export function renderizarSetores(alvo: HTMLElement, perfil: Perfil): void {
                   ),
                 ),
               ),
+
+          // Só um quadro aberto por vez, e ele entra no cartão do setor a que
+          // pertence — seja a área, seja um subsetor dela.
+          pessoasAbertas === a.id ? quadroPessoas(a) : null,
+          ...filhos
+            .filter((f) => pessoasAbertas === f.id)
+            .map((f) => quadroPessoas(f)),
 
           podeGerir && novoEm === a.id ? formNovo(a.id) : null,
           podeGerir && configurando === a.id ? painelAbas(a) : null,

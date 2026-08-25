@@ -431,14 +431,8 @@
   margin: 0 auto;
 }
 
-/* Alvo de toque de 44px (WCAG 2.5.5) nos campos de acesso. O `.entrada`
-   padrão dá ~35px: 8+8 de padding, 14px de fonte, 2 de borda. Escopo no
-   `.auth` de propósito — o resto do app é operado no desktop, em formulários
-   densos onde 44px por campo alongaria a tela sem ganho de acerto. */
-.auth .entrada,
-.auth .selecao {
-  min-height: 44px;
-}
+/* O alvo de toque de 44px (WCAG 2.5.5) desta tela mora no `login-ds.css`,
+   junto do resto do que é só dela, e em token do DS (`--ds-form-xl`). */
 
 @media (max-width: 1000px) {
   .grade-2 {

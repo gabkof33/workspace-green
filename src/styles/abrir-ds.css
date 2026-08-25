@@ -1,0 +1,339 @@
+/**
+ * Abrir chamado — o que é específico DESTA página, na base do DS.
+ *
+ * Escopado em `.abrir-ds` (a classe entra no contêiner da página, que o
+ * `main.ts` cria novo a cada rota — então não vaza pra página seguinte). As
+ * classes daqui (`escolha`, `etapa`, `previa`, `cartao--compacto`) são usadas
+ * fora desta tela; sem o escopo, mudá-las alcançaria outras.
+ *
+ * Campo, botão, aviso e estado vazio NÃO estão aqui: vêm dos layers
+ * `formulario-ds` e `feedback-ds` (`ds-componentes.css`), junto com os chips
+ * de prioridade do `chips-ds`. As três classes entram no contêiner pelo
+ * `abrir.ts`. Duplicá-las aqui era o começo de duas definições de campo que
+ * divergem — foi por isso que saíram do `fila-ds.css`.
+ *
+ * O card de escolha aparece em três formatos nesta página, e o CSS abaixo
+ * atende os três sem ramificação:
+ *   1. catálogo de serviço  — título + descrição + linha de meta (SLA, fila)
+ *   2. impacto / urgência   — título + descrição
+ *   3. opção e booleano     — só título, uma linha
+ * O que muda entre eles é só quantos filhos existem, e o `grid` de duas
+ * colunas com `align-items: start` já absorve isso.
+ */
+
+.abrir-ds {
+  font-family: var(--ds-font-sans);
+}
+
+/* ── A pilha de cards ────────────────────────────────────────────────────── */
+
+.abrir-ds .escolhas {
+  gap: var(--ds-gp-lg);
+}
+
+/* Card selecionável do DS: superfície, borda de input, radius 10, respiro de
+   16px (`pad-card-sm` — é o card denso do sistema, não o de conteúdo).
+   O controle fica em coluna própria de 16px pra descrição de duas linhas
+   alinhar com o título, e não com o radio. */
+.abrir-ds .escolha {
+  grid-template-columns: var(--ds-icon-sm) minmax(0, 1fr);
+  gap: var(--ds-gp-xl);
+  padding: var(--ds-pad-card-sm);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.abrir-ds .escolha:hover {
+  background: var(--ds-bg-muted);
+  border-color: var(--ds-border-input);
+}
+
+/* Selecionado é `soft` da marca — fundo lavado + borda no verde. Preenchimento
+   sólido num card com texto dentro derrubaria o contraste da descrição. */
+.abrir-ds .escolha:has(input:checked) {
+  background: var(--ds-bg-brand-subtle);
+  border-color: var(--ds-border-brand);
+}
+
+.abrir-ds .escolha:has(input:checked):hover {
+  background: var(--ds-bg-brand-subtle-hover);
+}
+
+/* Foco do DS é anel de 4px, não `outline` com offset: o anel acompanha o
+   radius do card e não abre um retângulo reto em volta dele. O token já vem
+   com alpha — nunca aplicar opacidade por cima. */
+.abrir-ds .escolha:has(input:focus-visible) {
+  outline: none;
+  border-color: var(--ds-border-brand);
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.abrir-ds .escolha input {
+  /* Alinha o controle com a primeira linha do título (16px de altura de
+     entrelinha, controle de 16px → sem deslocamento). */
+  margin: 2px 0 0;
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+  accent-color: var(--ds-bg-brand);
+  cursor: pointer;
+}
+
+/* ── Conteúdo do card ────────────────────────────────────────────────────── */
+
+.abrir-ds .escolha__titulo {
+  font-family: var(--ds-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  color: var(--ds-fg-strong);
+}
+
+.abrir-ds .escolha:has(input:checked) .escolha__titulo {
+  color: var(--ds-fg-brand);
+}
+
+.abrir-ds .escolha__desc {
+  display: block;
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+/* Só a descrição que segue o título ganha respiro. Sem isto, o card de uma
+   linha (opção/booleano, que não tem descrição) herdaria uma margem solta. */
+.abrir-ds .escolha__titulo + .escolha__desc {
+  margin-top: var(--ds-gp-2xs);
+}
+
+/* ── Linha de meta do card de catálogo (chip de SLA + fila) ──────────────────
+ * Era `style` inline no `abrir.ts` (`margin-top:4px;display:flex;gap:8px`).
+ * Virou classe pra o valor sair de dentro do TypeScript e passar a ser token. */
+
+/* Escopado com o `.abrir-ds` na frente de propósito: o mesmo span carrega
+   `escolha__desc`, e `.abrir-ds .escolha__desc` (0,2,0) venceria um
+   `.abrir-ds__meta` solto (0,1,0) — o `display:flex` não valeria. */
+.abrir-ds .abrir-ds__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  margin-top: var(--ds-gp-md);
+}
+
+/* Identificador/valor técnico (fila, política de SLA) é o papel `code`. */
+.abrir-ds .abrir-ds__meta .mono {
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+/* ── Ritmo da página ─────────────────────────────────────────────────────────
+ * Um vão só, de 16px, como na fila. O `.campo` do CSS base soma `margin-bottom`
+ * ao `gap` da `.pilha`, e o espaço entre dois campos mudava conforme o de cima
+ * tivesse texto de ajuda ou não — quem zera a margem é o `formulario-ds`. */
+
+.abrir-ds .pilha {
+  gap: var(--ds-gp-2xl);
+}
+
+/* ── Trilha de etapas ────────────────────────────────────────────────────────
+ * Continua sendo aba com sublinhado — a forma comunica "estou na 2 de 4, e a 1
+ * dá pra revisitar", o que uma fileira de bolinhas soltas não diz. O que muda
+ * é o peso: era mono com o número em pastilha cinza-escuro competindo com o
+ * nome da etapa. Agora a pastilha é `soft` e o nome é quem carrega o estado. */
+
+.abrir-ds .etapas {
+  gap: var(--ds-gp-xs);
+  margin-bottom: var(--ds-gp-4xl);
+  border-bottom: 1px solid var(--ds-border-default);
+  /* A trilha da requisição tem 4 etapas com nome longo; em tela estreita ela
+     rola em vez de quebrar em duas linhas, que desalinharia o sublinhado. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.abrir-ds .etapa {
+  gap: var(--ds-gp-md);
+  padding: var(--ds-pad-lg) var(--ds-pad-xl);
+  border-bottom: 2px solid transparent;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  white-space: nowrap;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.abrir-ds .etapa:hover:not(:disabled) {
+  color: var(--ds-fg-default);
+}
+
+.abrir-ds .etapa:focus-visible {
+  outline: none;
+  border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.abrir-ds .etapa[aria-current="step"] {
+  color: var(--ds-fg-brand);
+  border-bottom-color: var(--ds-border-brand);
+  font-weight: 600;
+}
+
+/* Etapa à frente não é "meio apagada": é indisponível. `opacity` sobre o texto
+   inteiro lavava o contraste sem dizer o motivo — a cor `disabled` do DS diz. */
+.abrir-ds .etapa:disabled {
+  opacity: 1;
+  color: var(--ds-fg-disabled);
+}
+
+.abrir-ds .etapa__n {
+  width: var(--ds-icon-md);
+  height: var(--ds-icon-md);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.abrir-ds .etapa[aria-current="step"] .etapa__n {
+  background: var(--ds-bg-brand);
+  color: var(--ds-fg-on-brand);
+}
+
+/* Etapa cumprida é o único lugar da trilha onde o verde de sucesso aparece —
+   o da marca já está na etapa atual, e dois verdes iguais confundiriam "onde
+   estou" com "o que já respondi". */
+.abrir-ds .etapa--completa .etapa__n {
+  background: var(--ds-bg-success-muted);
+  color: var(--ds-fg-success);
+}
+
+.abrir-ds .etapa:disabled .etapa__n {
+  background: var(--ds-bg-subtle);
+  color: var(--ds-fg-disabled);
+}
+
+/* ── Categoria do catálogo ───────────────────────────────────────────────────
+ * Era `style` inline: mono 10px, caixa alta, tracking de 0.12em, peso 700 —
+ * o rótulo do grupo gritava mais alto que o nome do serviço dentro dele. Vira
+ * `caption` do DS, pela mesma razão que o cabeçalho de tabela virou. */
+
+.abrir-ds__categoria {
+  margin-bottom: var(--ds-gp-md);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ds-fg-muted);
+}
+
+/* ── Selo de artigo da base de conhecimento ──────────────────────────────────
+ * Era `style` inline com a cor da marca em texto solto. Como é a única coisa
+ * acionável dentro da linha de meta, virou pílula `soft`: some do caminho da
+ * leitura, mas se destaca de "fila N2" ao lado.
+ *
+ * O seletor repete `.abrir-ds__meta` de propósito — o span também carrega
+ * `.mono`, e a regra de cor de `.abrir-ds .abrir-ds__meta .mono` (0,3,0)
+ * venceria um `.abrir-ds__kb` mais curto. */
+
+.abrir-ds .abrir-ds__meta .abrir-ds__kb {
+  border-radius: var(--ds-radius-full);
+  padding: 1px var(--ds-pad-md);
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
+  font-weight: 500;
+}
+
+/* ── Cabeçalho do serviço escolhido ──────────────────────────────────────────
+ * Fica no topo das etapas 2 e 3 lembrando o que foi escolhido, com o botão de
+ * trocar. Superfície de cartão, não faixa cinza: é contexto persistente. */
+
+.abrir-ds .cartao--compacto {
+  padding: var(--ds-pad-lg) var(--ds-pad-2xl);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  box-shadow: var(--ds-sh-sm);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+}
+
+.abrir-ds .cartao--compacto b {
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  color: var(--ds-fg-strong);
+}
+
+.abrir-ds .cartao--compacto .texto-sutil {
+  font-size: 0.75rem;
+  color: var(--ds-fg-muted);
+}
+
+/* ── Prévia da prioridade calculada ──────────────────────────────────────────
+ * Painel neutro, não pontilhado: o tracejado do CSS base sugeria rascunho, e
+ * isto não é rascunho — é o prazo real que o chamado vai receber. Neutro
+ * também porque o chip dentro dele vai de P1 (vermelho) a P4 (cinza), e um
+ * fundo colorido brigaria com metade dos casos. */
+
+.abrir-ds .previa {
+  gap: var(--ds-gp-xl);
+  margin: 0;
+  padding: var(--ds-pad-card-sm);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-muted);
+}
+
+.abrir-ds .previa__texto {
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 400;
+  color: var(--ds-fg-muted);
+}
+
+.abrir-ds .previa__texto b {
+  font-weight: 600;
+  color: var(--ds-fg-strong);
+}
+
+/* ── Barra de ações ──────────────────────────────────────────────────────────
+ * Era `linha-flex` com `margin-top` inline. A borda de topo é o que separa
+ * "responder" de "avançar": sem ela, o botão de enviar ficava colado no último
+ * campo, à mesma distância que dois campos entre si. */
+
+.abrir-ds__acoes {
+  gap: var(--ds-gp-md);
+  margin-top: var(--ds-gp-md);
+  padding-top: var(--ds-pad-2xl);
+  border-top: 1px solid var(--ds-border-default);
+}
+
+/* ── Texto de apoio solto ────────────────────────────────────────────────── */
+
+.abrir-ds .texto-sutil {
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: var(--ds-fg-muted);
+}

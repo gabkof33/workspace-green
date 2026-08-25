@@ -14,7 +14,16 @@ export interface CampoMencao {
 
 export function criarCampoMencao(
   diretorio: PessoaMencao[],
-  opcoes: { placeholder?: string; rotulo?: string } = {},
+  opcoes: {
+    placeholder?: string;
+    rotulo?: string;
+    /**
+     * Cresce com o texto até um teto, como a textarea do `MessageComposer` do
+     * DS. Usar junto com `resize: none`: sem a alça de arrastar, é isto que
+     * abre espaço para uma mensagem de três linhas.
+     */
+    autoCrescer?: boolean;
+  } = {},
 ): CampoMencao {
   const escolhidos = new Map<string, PessoaMencao>();
   let indiceAtivo = 0;
@@ -26,6 +35,19 @@ export function criarCampoMencao(
       opcoes.placeholder ?? "Escreva aqui. Use @ para mencionar alguém.",
     aria: { autocomplete: "list", label: opcoes.rotulo ?? "Comentário" },
   }) as HTMLTextAreaElement;
+
+  /** O `max-h-[200px]` da textarea do composer do DS. */
+  const TETO_ALTURA = 200;
+
+  const ajustarAltura = (): void => {
+    if (!opcoes.autoCrescer) return;
+    // `auto` primeiro: sem isso o `scrollHeight` só cresce, e o campo ficaria
+    // alto para sempre depois de uma mensagem longa.
+    area.style.height = "auto";
+    area.style.height = `${Math.min(area.scrollHeight, TETO_ALTURA)}px`;
+  };
+
+  if (opcoes.autoCrescer) area.addEventListener("input", ajustarAltura);
 
   const sugestoes = h("div", {
     class: "mencao__lista",
@@ -224,6 +246,7 @@ export function criarCampoMencao(
     mencionados: () => [...escolhidos.keys()],
     limpar: () => {
       area.value = "";
+      ajustarAltura();
       escolhidos.clear();
       desenharMarcados();
       fecharSugestoes();

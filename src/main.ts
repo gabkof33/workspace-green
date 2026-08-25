@@ -5,6 +5,17 @@ import "@/styles/base.css";
 import "@/styles/layout.css";
 import "@/styles/components.css";
 
+// Base do iGreen DS em CSS puro (aditiva: só define `--ds-*`, não altera nada
+// do que já existe) e o restyle da fila que a consome. Nesta ordem e DEPOIS do
+// `components.css`: os tokens têm de existir antes de quem os lê, e o escopo
+// `.fila-ds` sobrescreve as classes compartilhadas.
+import "@/styles/ds-tokens.css";
+import "@/styles/ds-componentes.css";
+import "@/styles/fila-ds.css";
+import "@/styles/abrir-ds.css";
+import "@/styles/login-ds.css";
+import "@/styles/conversas-ds.css";
+
 import { h, montar } from "@/lib/dom";
 import { aoMudarRota, navegar, rotaAtual } from "@/lib/router";
 import {

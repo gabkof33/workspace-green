@@ -1,0 +1,214 @@
+/**
+ * Tela de acesso no iGreen DS — layer da PÁGINA, como `fila-ds` e `abrir-ds`.
+ *
+ * O que é compartilhado não mora aqui: campo, entrada, rótulo, mensagem de
+ * estado e botão vêm do `formulario-ds`, e o aviso do `feedback-ds` (os dois
+ * pedidos por classe no `login.ts`). Sobrou o que só esta tela tem — as duas
+ * colunas, a marca, as abas e o olho da senha.
+ *
+ * Consome só `--ds-*` (ver `ds-tokens.css`). Nada aqui vale sem `.login-ds`,
+ * então o arquivo não muda nenhuma outra página.
+ */
+
+.login-ds {
+  font-family: var(--ds-font-sans);
+  background: var(--ds-bg-canvas);
+}
+
+/* ── Respiro ─────────────────────────────────────────────────────────────────
+ * Na escala do DS: 42/60px vinham da escala antiga (`--s-7`/`--s-8`), que não
+ * tem correspondente lá. 32/24 de padding e 16 de gap são os passos que o DS
+ * usa em painel de página. */
+
+.login-ds .auth__aside,
+.login-ds .auth__form {
+  padding: var(--ds-pad-6xl) var(--ds-pad-4xl);
+}
+
+.login-ds .auth__form {
+  gap: var(--ds-gp-2xl);
+}
+
+.login-ds .auth__pilares {
+  gap: var(--ds-gp-2xl);
+  margin-top: var(--ds-gp-2xl);
+}
+
+.login-ds .marca-auth {
+  gap: var(--ds-gp-xl);
+  margin-bottom: var(--ds-gp-md);
+}
+
+/* ── Coluna de apresentação ──────────────────────────────────────────────────
+ * Painel neutro à esquerda: no DS a cor de marca é acento, não fundo de meia
+ * tela — chapar o verde numa área desse tamanho tira dele o poder de destacar
+ * qualquer coisa. O verde fica no numeral do pilar e no botão. */
+
+.login-ds .auth__aside {
+  background: var(--ds-bg-subtle);
+  border-right: 1px solid var(--ds-border-default);
+}
+
+.login-ds .auth__aside h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ds-fg-strong);
+}
+
+.login-ds .auth__aside p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ds-fg-muted);
+}
+
+.login-ds .auth__pilar b {
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-fg-brand);
+}
+
+.login-ds .auth__pilar span {
+  font-size: 0.8125rem;
+  line-height: 1.35rem;
+  color: var(--ds-fg-muted);
+}
+
+/* ── Marca ─────────────────────────────────────────────────────────────────── */
+
+.login-ds .marca-auth__nome {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ds-fg-strong);
+}
+
+.login-ds .marca-auth__sub {
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  color: var(--ds-fg-brand);
+}
+
+/* ── Abas: o Tabs `segmented` do DS ──────────────────────────────────────────
+ * Em Tailwind o trilho é
+ *
+ *   inline-flex h-form-lg items-center bg-bg-muted p-[3px] gap-gp-2xs
+ *   rounded-radius-lg
+ *
+ * e o gatilho `h-[34px] px-[14px] rounded-radius-md`, com o ativo em
+ * `bg-bg-accent` + semibold + `shadow-sh-sm`. A variante `line` (sublinhado),
+ * que é o que havia aqui, foi trocada porque são só duas abas de MODO — o
+ * segmentado lê como interruptor de dois estados, que é o que "Entrar / Criar
+ * conta" é; sublinhado lê como navegação entre seções de um mesmo conteúdo.
+ *
+ * `fullWidth`: as duas dividem a largura do formulário. */
+
+.login-ds .abas {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-2xs);
+  height: var(--ds-form-lg);
+  padding: 3px;
+  /* Zera o trilho e o respiro da variante `line` que vinham do
+     `components.css` — o espaçamento agora é o `gap` do formulário. */
+  border-bottom: 0;
+  margin-bottom: 0;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-muted);
+}
+
+.login-ds .aba {
+  flex: 1;
+  height: 34px;
+  padding: 0 14px;
+  margin-bottom: 0;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.login-ds .aba:hover {
+  color: var(--ds-fg-default);
+}
+
+/* Anel NEUTRO, não o da marca: aqui ele apareceria ao lado do verde da aba
+   ativa, e dois verdes lado a lado disputam o mesmo papel. */
+.login-ds .aba:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-secondary);
+}
+
+/* Quem escreve o estado é o `aria-selected` do `login.ts` — o mesmo atributo
+   que o leitor de tela usa. No DS o seletor é `data-state="active"`, que o
+   Radix escreve; sem classe de estado em paralelo, então não há como CSS e
+   ARIA se desencontrarem. */
+.login-ds .aba[aria-selected="true"] {
+  background: var(--ds-bg-accent);
+  color: var(--ds-fg-default);
+  font-weight: 600;
+  box-shadow: var(--ds-sh-sm);
+}
+
+/* ── Alvo de toque ───────────────────────────────────────────────────────────
+ * 44px (WCAG 2.5.5) nos campos e nos botões de bloco, e o DS tem o token
+ * exato: `--ds-form-xl`. Vale só aqui — o resto do app é operado no desktop,
+ * em formulários densos onde 44px por campo alongaria a tela sem ganho. */
+
+.login-ds .entrada,
+.login-ds .ds-selecao__gatilho,
+.login-ds .btn--bloco {
+  min-height: var(--ds-form-xl);
+}
+
+/* ── Olho da senha ───────────────────────────────────────────────────────── */
+
+.login-ds .campo__olho {
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-fg-subtle);
+}
+
+.login-ds .campo__olho:hover {
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-default);
+}
+
+.login-ds .campo__olho:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-secondary);
+}
+
+.login-ds .campo__olho--ativo {
+  color: var(--ds-fg-brand);
+}
+
+/* ── "ou" entre entrar e cadastrar ───────────────────────────────────────── */
+
+.login-ds .separador {
+  color: var(--ds-fg-subtle);
+  font-size: 0.75rem;
+}
+
+.login-ds .separador::before,
+.login-ds .separador::after {
+  background: var(--ds-border-default);
+}
+
+/* Ação que não compete com o botão principal ("Esqueci minha senha"). */
+.login-ds .elo-discreto {
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+}
+
+.login-ds .elo-discreto:hover {
+  color: var(--ds-fg-brand);
+}

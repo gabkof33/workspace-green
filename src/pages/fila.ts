@@ -1,6 +1,6 @@
 /** Fila de atendimento — visão do agente. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
 import { h, montar } from "@/lib/dom";
 import { listarChamados } from "@/lib/api";
@@ -9,29 +9,69 @@ import { POLITICAS_SLA } from "@/lib/prioridade";
 import { tabelaChamados } from "@/components/tabela-chamados";
 import type { ChamadoEnriquecido, Prioridade, Perfil } from "@/types/dominio";
 
+const PRIORIDADES: Prioridade[] = ["P1", "P2", "P3", "P4"];
+
 export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
-  let filtroPrioridade: Prioridade | null = null;
-  let filtroTexto = "";
   let filtroTag: string | null = null;
-  let apenasAbertos = true;
 
-  const area = h("div", { class: "pilha" });
+  // `fila-ds` é o que é só desta página (métricas, barra de filtros); tabela,
+  // chips, campos/botões e avisos/estado vazio vêm dos layers compartilhados
+  // (ds-componentes.css). O opt-in é por página, e é isso que mantém
+  // `meus.ts` — que divide a `tabelaChamados` — intacta.
+  const area = h("div", {
+    class: "pilha fila-ds tabela-ds chips-ds formulario-ds feedback-ds",
+  });
 
-  // Criado uma vez: recriá-lo a cada redesenho apagaria o período escolhido.
-  const periodo = criarFiltroData(() => desenhar());
+  /**
+   * Criada uma vez: a barra é dona dos valores dos filtros, e recriá-la a cada
+   * redesenho os zeraria. Prioridade, período e os dois liga/desliga moram
+   * nela; busca fica de fora porque é campo aberto, não recorte de lista.
+   *
+   * "Excluídos" só entra pra quem pode restaurar — tecnologia, executivo ou
+   * admin (antes era gestão, que incluía gestor de qualquer setor).
+   */
+  const barra = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [
+      { chave: "data", rotulo: "Período", tipo: "periodo" },
+      {
+        chave: "prioridade",
+        rotulo: "Prioridade",
+        tipo: "opcoes",
+        opcoes: PRIORIDADES.map((p) => ({ valor: p, texto: p })),
+      },
+      // Nasce ligado, como o antigo "Ocultar encerrados" marcado: a fila é
+      // ferramenta de plantão, e chamado fechado não é trabalho pendente.
+      {
+        chave: "encerrados",
+        rotulo: "Ocultar encerrados",
+        tipo: "liga",
+        padrao: true,
+      },
+      ...(perfil.pode_ver_excluidos
+        ? [{ chave: "excluidos", rotulo: "Excluídos", tipo: "liga" as const }]
+        : []),
+    ],
+  });
 
-  // Lixeira: só aparece para quem pode restaurar.
-  let verExcluidos = false;
+  // Criada uma vez pelo mesmo motivo: recriada a cada consulta, a busca perdia
+  // o foco a cada tecla digitada.
+  const busca = h("input", {
+    class: "entrada",
+    type: "search",
+    placeholder: "Buscar por número, assunto ou solicitante…",
+    on: { input: () => desenhar() },
+  }) as HTMLInputElement;
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
     void listarChamados({
-      apenasAbertos,
-      prioridade: filtroPrioridade,
-      texto: filtroTexto,
+      apenasAbertos: barra.ligado("encerrados"),
+      prioridade: barra.opcao("prioridade") as Prioridade | null,
+      texto: busca.value,
       tag: filtroTag,
-      excluidos: verExcluidos,
-      ...periodo.valor(),
+      excluidos: barra.ligado("excluidos"),
+      ...barra.periodo("data"),
     }).then((chamados) => {
       montar(
         area,
@@ -53,7 +93,6 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
                   {
                     class: "btn btn--sm",
                     type: "button",
-                    style: "margin-left:var(--s-2)",
                     on: {
                       click: () => {
                         filtroTag = null;
@@ -86,17 +125,17 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
    * faz a tela parecer quebrada em vez de parecer vazia.
    */
   const vazioDaFila = (): { titulo: string; texto: string } => {
-    if (verExcluidos) {
+    if (barra.ligado("excluidos")) {
       return {
         titulo: "Lixeira vazia",
         texto: "Nenhum chamado foi retirado da página até agora.",
       };
     }
 
-    const { de, ate } = periodo.valor();
+    const { de, ate } = barra.periodo("data");
     const estreitando = [
-      filtroPrioridade ? "prioridade" : null,
-      filtroTexto.trim() ? "busca" : null,
+      barra.opcao("prioridade") ? "prioridade" : null,
+      busca.value.trim() ? "busca" : null,
       filtroTag ? "tag" : null,
       de ?? ate ? "data" : null,
     ].filter((r): r is string => r !== null);
@@ -110,7 +149,7 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
 
     return {
       titulo: "Fila limpa",
-      texto: apenasAbertos
+      texto: barra.ligado("encerrados")
         ? "Nenhum chamado em aberto. Quando alguém abrir um, ele aparece aqui."
         : "Nenhum chamado registrado até agora.",
     };
@@ -175,88 +214,14 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
     );
   };
 
-  const filtros = (): HTMLElement => {
-    const busca = h("input", {
-      class: "entrada",
-      type: "search",
-      value: filtroTexto,
-      placeholder: "Buscar por número, assunto ou solicitante…",
-      style: "max-width:320px",
-      on: {
-        input: (ev: Event) => {
-          filtroTexto = (ev.target as HTMLInputElement).value;
-          desenhar();
-        },
-      },
-    });
-
-    const botaoPri = (p: Prioridade | null, texto: string): HTMLElement =>
-      h(
-        "button",
-        {
-          class: `btn btn--sm${filtroPrioridade === p ? " btn--primario" : ""}`,
-          type: "button",
-          on: {
-            click: () => {
-              filtroPrioridade = p;
-              desenhar();
-            },
-          },
-        },
-        texto,
-      );
-
-    return h(
-      "div",
-      { class: "grade-filtros" },
-      busca,
-      periodo.elemento,
-      // Tecnologia, executivo ou admin. Antes era gestão, que incluía gestor
-      // de qualquer setor.
-      ...(perfil.pode_ver_excluidos
-        ? [
-            h(
-              "button",
-              {
-                class: `btn btn--sm${verExcluidos ? " btn--primario" : ""}`,
-                type: "button",
-                title: "Chamados retirados das listas, que continuam no banco",
-                on: {
-                  click: () => {
-                    verExcluidos = !verExcluidos;
-                    desenhar();
-                  },
-                },
-              },
-              "Excluídos",
-            ),
-          ]
-        : []),
-      botaoPri(null, "Todas"),
-      botaoPri("P1", "P1"),
-      botaoPri("P2", "P2"),
-      botaoPri("P3", "P3"),
-      botaoPri("P4", "P4"),
-      h(
-        "label",
-        {
-          class: "linha-flex empurra",
-          style: "gap:6px;font-size:var(--t-sm);cursor:pointer",
-        },
-        h("input", {
-          type: "checkbox",
-          checked: apenasAbertos,
-          on: {
-            change: (ev: Event) => {
-              apenasAbertos = (ev.target as HTMLInputElement).checked;
-              desenhar();
-            },
-          },
-        }),
-        "Ocultar encerrados",
-      ),
-    );
-  };
+  /**
+   * A barra é só a busca e os chips: prioridade, período e os liga/desliga
+   * saíram de controles fixos para filtros que a pessoa ADICIONA (ver
+   * `barra-filtros.ts`). Antes eram seis controles sempre na tela, e ler o
+   * recorte em vigor exigia conferir cada um deles.
+   */
+  const filtros = (): HTMLElement =>
+    h("div", { class: "grade-filtros" }, busca, barra.elemento);
 
   montar(alvo, area);
   desenhar();

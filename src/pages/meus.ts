@@ -1,6 +1,6 @@
 /** Meus chamados — visão do solicitante. */
 
-import { criarFiltroData } from "@/components/filtro-data";
+import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
 import { h, montar } from "@/lib/dom";
 import { listarChamados } from "@/lib/api";
@@ -12,12 +12,18 @@ export function renderizarMeus(alvo: HTMLElement, perfil: Perfil): void {
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
 
-  const periodo = criarFiltroData(() => desenhar());
+  const barra = criarBarraFiltros({
+    aoMudar: () => desenhar(),
+    filtros: [{ chave: "data", rotulo: "Período", tipo: "periodo" }],
+  });
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
 
-    void listarChamados({ doSolicitante: perfil.id, ...periodo.valor() }).then(
+    void listarChamados({
+      doSolicitante: perfil.id,
+      ...barra.periodo("data"),
+    }).then(
       (chamados) => {
         const aguardandoVoce = chamados.filter(
           (c) => c.status === "pendente_usuario",
@@ -25,7 +31,7 @@ export function renderizarMeus(alvo: HTMLElement, perfil: Perfil): void {
 
         montar(
           area,
-          h("div", { class: "grade-filtros" }, periodo.elemento),
+          h("div", { class: "grade-filtros" }, barra.elemento),
           aguardandoVoce.length > 0
             ? h(
                 "div",
