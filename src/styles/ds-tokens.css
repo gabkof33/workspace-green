@@ -12,7 +12,8 @@
  * abaixo foram transpostos pra `:root`, que é CSS de verdade.
  *
  * Fonte dos valores:
- *   meu-produto/design-system/src/styles/theme/tailwind-theme.css
+ *   ../igreen-design-system/design-system/src/styles/theme/tailwind-theme.css
+ *   (repositório à parte, irmão desta pasta — não é dependência)
  *   (gerado de tokens/brands/default — não editar lá nem aqui à mão)
  *
  * Prefixo `--ds-` de propósito: não colide com os `--c-` / `--s-` / `--t-` da

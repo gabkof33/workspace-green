@@ -16,8 +16,9 @@ supabase/database.gerado.ts
 
 .vercel
 
-# Cópia do repositório do iGreen Design System, usada só para consulta ao
-# portar componentes. Tem .git próprio: sem esta linha, um `git add` nela
-# gravaria um gitlink e criaria um submódulo quebrado apontando para um
-# commit que não existe neste remoto.
+# O repositório do iGreen Design System mora FORA desta pasta, como irmã dela
+# (../igreen-design-system). A linha fica como guarda: se alguém clonar o DS
+# aqui dentro de novo, um `git add` gravaria um gitlink e criaria um submódulo
+# quebrado, apontando para um commit que não existe neste remoto.
 meu-produto/
+igreen-design-system/
