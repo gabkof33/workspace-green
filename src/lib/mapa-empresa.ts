@@ -24,12 +24,24 @@ export interface Planeta {
   rotulo: string;
   /** Cor da área, em hexadecimal — é o código de cor da legenda. */
   cor: number;
-  /** Distância até o sol. Cresce com a distância da área ao cliente. */
-  raioOrbita: number;
   velocidadeOrbita: number;
   funcao: string;
   satelites: Satelite[];
 }
+
+/**
+ * O RAIO da órbita não está aqui, e é de propósito.
+ *
+ * Ele era um número por área, escrito à mão, com espaçamento fixo de 2.2 — e
+ * nenhuma área cabia nisso: um planeta com quatro satélites precisa de 3.0 de
+ * folga, então os satélites de uma área cruzavam a órbita da vizinha, e um
+ * planeta chegava a aparecer fora do funil. Não dá para acertar isso à mão
+ * sem refazer a conta a cada satélite que entra.
+ *
+ * Quem calcula é a cena, a partir de quantos satélites cada área tem (ver
+ * `mapa-orbital.ts`). O que os dados guardam é a ORDEM — a única coisa que
+ * eles sabiam dizer de verdade.
+ */
 
 export const SOL = {
   id: "cliente",
@@ -44,7 +56,6 @@ export const PLANETAS: Planeta[] = [
     id: "diretoria",
     rotulo: "Diretoria",
     cor: 0xe5484d,
-    raioOrbita: 6.5,
     velocidadeOrbita: 0.06,
     funcao:
       "Supervisiona estratégia, financeiro, operação e expansão da empresa.",
@@ -71,7 +82,6 @@ export const PLANETAS: Planeta[] = [
     id: "comercial",
     rotulo: "Comercial",
     cor: 0xf2a93b,
-    raioOrbita: 8.6,
     velocidadeOrbita: 0.05,
     funcao:
       "Porta de entrada da receita: prospecção, proposta, negociação e fechamento.",
@@ -100,7 +110,6 @@ export const PLANETAS: Planeta[] = [
     id: "produtos",
     rotulo: "Produtos",
     cor: 0x3fb950,
-    raioOrbita: 10.8,
     velocidadeOrbita: 0.042,
     funcao: "Portfólio de soluções energéticas entregues ao cliente final.",
     satelites: [
@@ -133,7 +142,6 @@ export const PLANETAS: Planeta[] = [
     id: "suporte",
     rotulo: "Suporte",
     cor: 0x7c93a8,
-    raioOrbita: 13.0,
     velocidadeOrbita: 0.036,
     funcao:
       "Hub central de resolução de problemas: chamados, dúvidas e direcionamento.",
@@ -149,7 +157,6 @@ export const PLANETAS: Planeta[] = [
     id: "financeiro",
     rotulo: "Financeiro",
     cor: 0x2dd4bf,
-    raioOrbita: 15.2,
     velocidadeOrbita: 0.03,
     funcao:
       "Controla o dinheiro da empresa: contas a receber/pagar, faturamento, fluxo de caixa.",
@@ -172,7 +179,6 @@ export const PLANETAS: Planeta[] = [
     id: "cx",
     rotulo: "CX",
     cor: 0x4c9bff,
-    raioOrbita: 17.4,
     velocidadeOrbita: 0.026,
     funcao: "Dono da jornada do cliente: satisfação, NPS, retenção.",
     satelites: [
@@ -188,7 +194,6 @@ export const PLANETAS: Planeta[] = [
     id: "apoio",
     rotulo: "Apoio",
     cor: 0xb18cf5,
-    raioOrbita: 19.6,
     velocidadeOrbita: 0.022,
     funcao: "Áreas transversais que sustentam toda a operação.",
     satelites: [
@@ -242,6 +247,34 @@ export const LIGACOES: Array<[string, string]> = [
   ["expansao", "marketing"],
   ["expansao", "comercial"],
   ["inadimplencia", "contratos"],
+
+  /*
+   * Sete satélites orbitavam sem ligação nenhuma — estratégia, novos
+   * licenciados, onboarding, os três produtos e o pós-venda. No desenho eles
+   * ficavam soltos, o que dizia "esta equipe não se relaciona com ninguém",
+   * que é falso de todas elas.
+   *
+   * ⚠️ As linhas abaixo foram DEDUZIDAS dos próprios textos de função desta
+   * lista, não confirmadas com quem toca as áreas. Cada uma tem a frase que a
+   * originou ao lado. Confira e corrija: é mais fácil apagar uma relação
+   * errada do que descobrir uma que falta.
+   */
+  // "define direção e prioridades" + "informação para decisão"
+  ["estrategia", "dados"],
+  // "novos parceiros entrando na rede" + "recebe o novo licenciado"
+  ["novoslic", "onboarding"],
+  // "formaliza a venda, assinatura" → "cadastro, ativação"
+  ["onboarding", "contratos"],
+  // ativado o cliente, quem cuida do resultado dele é o pós-venda
+  ["onboarding", "posvenda"],
+  // "garante resultado após a venda" recorre ao hub de resolução
+  ["posvenda", "suporte"],
+  // "compensação de créditos" é conta a receber
+  ["green", "financeiro"],
+  // "homologação" é ato regulatório, e o jurídico cuida de regulatório
+  ["placas", "juridico"],
+  // "telefonia/conectividade" apoiada pela "infraestrutura tecnológica"
+  ["telecom", "ti"],
 ];
 
 export interface Corpo {

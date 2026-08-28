@@ -55,7 +55,18 @@ export function renderizarMapa(alvo: HTMLElement): void {
   const dica = h(
     "span",
     { class: "mapa__dica" },
-    "arraste para girar · role o zoom para mudar de lado · toque em um corpo",
+    "clique segue · duplo clique aproxima · com foco, arraste rodeia e a rolagem afasta sem soltar",
+  );
+
+  const enquadrar = h(
+    "button",
+    {
+      class: "mapa__reenquadrar",
+      type: "button",
+      title: "Voltar ao enquadramento do modo atual",
+      on: { click: () => cena?.reenquadrar() },
+    },
+    "Reenquadrar",
   );
 
   const velocidade = h(
@@ -83,7 +94,7 @@ export function renderizarMapa(alvo: HTMLElement): void {
   );
 
   montar(alvo, h("div", { class: "mapa" }, palco, painel));
-  palco.append(selo, limpar, dica, velocidade);
+  palco.append(selo, limpar, dica, velocidade, enquadrar);
 
   /* ---------- Painel ---------- */
 
