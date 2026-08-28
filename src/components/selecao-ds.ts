@@ -17,6 +17,7 @@
  * `overflow`.
  */
 
+import { criarSpinner } from "@/components/spinner";
 import { criarFlutuante } from "@/lib/flutuante";
 import { h, icone, ICONES, montar } from "@/lib/dom";
 
@@ -31,9 +32,11 @@ export interface SelecaoDs {
   valor(): string;
   /** Troca a lista inteira — para opções que chegam de consulta. */
   definirOpcoes(opcoes: OpcaoSelecao[], valor?: string): void;
-  /** Texto do gatilho sem escolha ("Carregando setores…"). */
+  /** Texto do gatilho sem escolha ("Nenhum setor cadastrado ainda"). */
   definirPlaceholder(texto: string): void;
   desabilitar(sim: boolean): void;
+  /** Lista a caminho: gira no lugar do valor e trava o gatilho. */
+  carregando(sim: boolean): void;
 }
 
 export interface OpcoesSelecaoDs {
@@ -242,6 +245,27 @@ export function criarSelecaoDs(o: OpcoesSelecaoDs): SelecaoDs {
     desabilitar: (sim) => {
       gatilho.disabled = sim;
       if (sim) fechar();
+    },
+
+    /**
+     * Giro no lugar do texto, em vez de "Carregando…" escrito no gatilho.
+     * O rótulo continua existindo para o leitor de tela, no `role="status"`
+     * do spinner — o que sai é a legenda VISÍVEL.
+     */
+    carregando: (sim) => {
+      gatilho.disabled = sim;
+      if (!sim) {
+        pintar();
+        return;
+      }
+      fechar();
+      montar(
+        texto,
+        criarSpinner({
+          tamanho: "sm",
+          rotulo: `Carregando ${o.rotulo.toLowerCase()}`,
+        }),
+      );
     },
   };
 }

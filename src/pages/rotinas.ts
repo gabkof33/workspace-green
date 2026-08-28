@@ -3,6 +3,7 @@
 import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
+import { areaCarregando } from "@/components/spinner";
 import { avisar, h, montar } from "@/lib/dom";
 import { perguntar } from "@/components/dialogo";
 import { dataCurta, dataHora } from "@/lib/formato";
@@ -292,7 +293,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
 
   /** Runbook em execução: um cartão por passo, com resultado marcável. */
   const painelPassos = (e: ExecucaoEnriquecida): HTMLElement => {
-    const corpo = h("div", { class: "texto-sutil" }, "Carregando passos…");
+    const corpo = areaCarregando("Carregando os passos");
     const encerrada = [
       "concluida_ok",
       "concluida_com_falha",
@@ -665,7 +666,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
     const container = h(
       "div",
       { class: "pilha", style: "margin-top:var(--s-4)" },
-      h("span", { class: "texto-sutil" }, "Carregando runbook…"),
+      areaCarregando("Carregando o runbook"),
     );
 
     const recarregar = (): void => {

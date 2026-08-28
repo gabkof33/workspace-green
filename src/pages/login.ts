@@ -1,6 +1,7 @@
 /** Acesso à Central Green — entrar ou cadastrar. */
 
 import { avisar, estatico, h, montar, icone } from "@/lib/dom";
+import { botaoCarregando } from "@/components/spinner";
 import {
   cadastrar,
   setoresParaCadastro,
@@ -207,8 +208,7 @@ function formEntrar(
       on: {
         click: (ev: Event) => {
           const alvo = ev.currentTarget as HTMLButtonElement;
-          alvo.disabled = true;
-          alvo.textContent = "Enviando…";
+          botaoCarregando(alvo, true);
           void reenviarConfirmacao(email.input.value.trim())
             .then(() => {
               avisar("E-mail de confirmação reenviado.", "ok");
@@ -219,8 +219,7 @@ function formEntrar(
                 e instanceof Error ? e.message : "Falha ao reenviar.",
                 "erro",
               );
-              alvo.disabled = false;
-              alvo.textContent = "Reenviar e-mail de confirmação";
+              botaoCarregando(alvo, false);
             });
         },
       },
@@ -245,8 +244,7 @@ function formEntrar(
           reenvio.style.display = "none";
           email.definirEstado("neutro");
           senha.definirEstado("neutro");
-          botao.disabled = true;
-          botao.textContent = "Entrando…";
+          botaoCarregando(botao, true);
 
           void entrar(email.input.value.trim(), senha.input.value)
             .then((perfil) => {
@@ -272,8 +270,7 @@ function formEntrar(
                 erro.textContent = mensagem;
                 erro.style.display = "flex";
               }
-              botao.disabled = false;
-              botao.textContent = "Entrar";
+              botaoCarregando(botao, false);
             });
         },
       },
@@ -336,8 +333,7 @@ function formRecuperar(aoVoltar: () => void): HTMLElement {
         submit: (ev: Event) => {
           ev.preventDefault();
           erro.style.display = "none";
-          botao.disabled = true;
-          botao.textContent = "Enviando…";
+          botaoCarregando(botao, true);
 
           void pedirRecuperacao(email.input.value)
             .then(() => {
@@ -365,8 +361,7 @@ function formRecuperar(aoVoltar: () => void): HTMLElement {
               erro.textContent =
                 e instanceof Error ? e.message : "Falha ao enviar.";
               erro.style.display = "flex";
-              botao.disabled = false;
-              botao.textContent = "Enviar link de recuperação";
+              botaoCarregando(botao, false);
             });
         },
       },
@@ -435,8 +430,7 @@ export function renderizarNovaSenha(
             return;
           }
 
-          botao.disabled = true;
-          botao.textContent = "Salvando…";
+          botaoCarregando(botao, true);
 
           void definirSenha(senha.input.value)
             .then(() => {
@@ -447,8 +441,7 @@ export function renderizarNovaSenha(
               erro.textContent =
                 e instanceof Error ? e.message : "Falha ao salvar.";
               erro.style.display = "flex";
-              botao.disabled = false;
-              botao.textContent = "Salvar nova senha";
+              botaoCarregando(botao, false);
             });
         },
       },
@@ -529,10 +522,10 @@ function formCadastro(
    * devolve nulo e o menu inteiro aparece para todo mundo.
    */
   const setor = campoSelecao("setor", "Setor onde você trabalha", []);
-  setor.selecao.desabilitar(true);
-  setor.selecao.definirPlaceholder("Carregando setores…");
+  setor.selecao.carregando(true);
 
   void setoresParaCadastro().then((lista) => {
+    setor.selecao.carregando(false);
     // Vazia, continua desabilitada: gatilho que abre uma lista sem nada dentro
     // parece defeito.
     setor.selecao.desabilitar(lista.length === 0);
@@ -614,8 +607,7 @@ function formCadastro(
           const problema = validarCadastro(dados, confirma.input.value);
           if (problema) return mostrarErro(problema);
 
-          botao.disabled = true;
-          botao.textContent = "Criando…";
+          botaoCarregando(botao, true);
 
           void cadastrar(dados)
             .then((resultado) => {
@@ -641,8 +633,7 @@ function formCadastro(
                   ? e.message
                   : "Não foi possível criar a conta.",
               );
-              botao.disabled = false;
-              botao.textContent = "Criar minha conta";
+              botaoCarregando(botao, false);
             });
         },
       },

@@ -1759,3 +1759,68 @@
   outline: none;
   box-shadow: 0 0 0 4px var(--ds-ring-brand);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   .ds-spinner — o Spinner do DS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Do `spinner.styles.ts`: `inline-block shrink-0 animate-spin
+   motion-reduce:animate-none`, tamanho pelos tokens de ícone e cor por
+   `currentColor` — dentro de um botão ele herda a cor do texto sem precisar
+   de variante. O traço de 3 vem por CSS porque o `icone()` desta base desenha
+   com 1.8, que é a espessura dos ícones de interface. */
+
+.ds-spinner {
+  display: inline-block;
+  flex: none;
+  color: var(--ds-fg-muted);
+  stroke-width: 3;
+  animation: ds-girar 0.9s linear infinite;
+}
+
+/* O trilho é a volta inteira, apagada: é o que dá ao arco um percurso visível
+   em vez de um risco solto girando. */
+.ds-spinner__trilho {
+  opacity: 0.2;
+}
+
+.ds-spinner--sm {
+  width: var(--ds-icon-sm);
+  height: var(--ds-icon-sm);
+}
+
+.ds-spinner--md {
+  width: var(--ds-icon-md);
+  height: var(--ds-icon-md);
+}
+
+.ds-spinner--lg {
+  width: var(--ds-icon-lg);
+  height: var(--ds-icon-lg);
+}
+
+.ds-spinner--xl {
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes ds-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Quem pediu menos movimento vê o anel parado — ainda diz "tem algo aqui",
+   sem o giro. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-spinner {
+    animation: none;
+  }
+}
+
+/* Área esperando: o giro sozinho, centrado, sem legenda. */
+.ds-carregando {
+  display: grid;
+  place-items: center;
+  padding: var(--ds-pad-6xl) var(--ds-pad-2xl);
+}

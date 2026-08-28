@@ -23,25 +23,16 @@
     <style>
       :root {
         --boot-fundo: #f4f7f4;
-        --boot-cartao: #ffffff;
-        --boot-texto: #5a6f62;
-        --boot-trilha: #cfe4d6;
         --boot-arco: #0b7a45;
       }
       @media (prefers-color-scheme: dark) {
         :root:not([data-tema="claro"]) {
           --boot-fundo: #070a08;
-          --boot-cartao: #0e1411;
-          --boot-texto: #7f948a;
-          --boot-trilha: #16301f;
           --boot-arco: #35c77f;
         }
       }
       :root[data-tema="escuro"] {
         --boot-fundo: #070a08;
-        --boot-cartao: #0e1411;
-        --boot-texto: #7f948a;
-        --boot-trilha: #16301f;
         --boot-arco: #35c77f;
       }
 
@@ -55,13 +46,8 @@
         display: grid;
         place-items: center;
         align-content: center;
-        gap: 18px;
         min-height: 100vh;
         background: var(--boot-fundo);
-        color: var(--boot-texto);
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 13px;
-        letter-spacing: 0.06em;
         /* Só aparece se a carga passar de 300ms. Numa carga rápida ninguém vê
            um lampejo de tela de espera, que incomoda mais do que informa. */
         opacity: 0;
@@ -74,26 +60,18 @@
         place-items: center;
         width: 86px;
         height: 86px;
-        border-radius: 50%;
-        background: var(--boot-cartao);
-        box-shadow: 0 2px 18px rgb(0 0 0 / 12%);
+        color: var(--boot-arco);
       }
-      /* Trilha: o círculo inteiro no verde escuro. */
-      .boot__anel::before,
-      .boot__anel::after {
-        content: "";
+
+      /* O Spinner do DS: trilha é o círculo INTEIRO na mesma cor a 20%, e por
+         cima gira um quarto de volta com ponta arredondada. O anel de `border`
+         que havia aqui não faz ponta arredondada, e a trilha era uma segunda
+         cor que só existia para isto. */
+      .boot__giro {
         position: absolute;
         inset: 0;
-        border-radius: 50%;
-        border: 3px solid transparent;
-      }
-      .boot__anel::before {
-        border-color: var(--boot-trilha);
-      }
-      /* Arco: um quarto de volta no verde claro, girando por cima. */
-      .boot__anel::after {
-        border-top-color: var(--boot-arco);
-        border-right-color: var(--boot-arco);
+        width: 86px;
+        height: 86px;
         animation: boot-gira 0.9s linear infinite;
       }
 
@@ -130,9 +108,8 @@
           opacity: 1;
           animation: none;
         }
-        .boot__anel::after {
+        .boot__giro {
           animation: none;
-          border-color: var(--boot-arco);
         }
         .boot img {
           animation: none;
@@ -143,11 +120,23 @@
   </head>
   <body>
     <div id="app" aria-busy="true">
-      <div class="boot">
+      <!-- Sem legenda escrita: o giro já diz que está carregando, e o
+           `role="status"` com `aria-label` mantém o aviso para quem usa leitor
+           de tela. -->
+      <div class="boot" role="status" aria-label="Carregando a Central Green">
         <div class="boot__anel">
+          <svg class="boot__giro" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle
+              cx="12" cy="12" r="9"
+              stroke="currentColor" stroke-width="3" opacity="0.2"
+            />
+            <path
+              d="M21 12a9 9 0 0 0-9-9"
+              stroke="currentColor" stroke-width="3" stroke-linecap="round"
+            />
+          </svg>
           <img src="/igreen-g.png" alt="" width="30" height="40" />
         </div>
-        <span>Carregando a Central Green…</span>
       </div>
     </div>
     <div id="toasts" class="toasts" role="status" aria-live="polite"></div>

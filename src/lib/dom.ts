@@ -225,6 +225,9 @@ const TRACADOS_ICONES = {
     '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
   lateral:
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
+  // Spinner do DS: trilho inteiro apagado + um quarto de volta por cima.
+  spinner:
+    '<circle class="ds-spinner__trilho" cx="12" cy="12" r="9"/><path d="M21 12a9 9 0 0 0-9-9"/>',
   // Órbita: um corpo central e um anel em volta — o mapa da empresa.
   mapa: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(60 12 12)"/>',
   observabilidade:

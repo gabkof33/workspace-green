@@ -22,6 +22,7 @@
  * resolvidas no cliente, sem ida e volta.
  */
 
+import { areaCarregando } from "@/components/spinner";
 import { h, icone, ICONES, montar } from "@/lib/dom";
 
 export interface ColunaTabela<T> {
@@ -279,7 +280,7 @@ export function criarTabelaDados<T>(
           h(
             "td",
             { class: "ds-tabela__estado", colspan: o.colunas.length },
-            "Carregando…",
+            areaCarregando(`Carregando ${o.rotulo.toLowerCase()}`),
           ),
         ),
       );

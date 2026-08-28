@@ -9,6 +9,7 @@
  */
 
 import { aguardando } from "@/components/esqueleto";
+import { areaCarregando } from "@/components/spinner";
 import { histogramaEmpilhado, indicador } from "@/components/grafico";
 import {
   desenharGrafoServicos,
@@ -552,7 +553,7 @@ export function renderizarObservabilidade(
             }
 
             const idSelecionado = tracoSelecionado;
-            montar(containerDetalhe, h("p", { class: "texto-sutil" }, "Carregando…"));
+            montar(containerDetalhe, areaCarregando("Carregando o traço"));
 
             void carregarSpansDoTraco(idSelecionado)
               .then((spans) => {
