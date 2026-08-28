@@ -225,6 +225,8 @@ const TRACADOS_ICONES = {
     '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
   lateral:
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
+  // Órbita: um corpo central e um anel em volta — o mapa da empresa.
+  mapa: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(60 12 12)"/>',
   observabilidade:
     '<circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="19" cy="18" r="2.2"/><path d="M7 12h4M13.2 9.6l3.8-2.5M13.2 14.4l3.8 2.5"/>',
 } as const;

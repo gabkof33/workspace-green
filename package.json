@@ -12,10 +12,12 @@
     "types:db": "npx -y supabase@latest gen types typescript --project-id jwyghgthezpsbpxbdidc > supabase/database.gerado.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.48.1"
+    "@supabase/supabase-js": "^2.48.1",
+    "three": "^0.128.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "@types/three": "^0.128.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11"
   },

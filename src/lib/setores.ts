@@ -12,6 +12,7 @@ export const ABAS_CONFIGURAVEIS: AbaConfiguravel[] = [
   { chave: "conversas", rotulo: "Conversas", somenteTi: false },
   { chave: "conhecimento", rotulo: "Base de conhecimento", somenteTi: false },
   { chave: "pessoas", rotulo: "Pessoas", somenteTi: false },
+  { chave: "mapa", rotulo: "Mapa da empresa", somenteTi: false },
   { chave: "fila", rotulo: "Fila de atendimento", somenteTi: true },
   { chave: "setores", rotulo: "Setores", somenteTi: true },
   { chave: "rotinas", rotulo: "Rotinas preventivas", somenteTi: true },
@@ -28,6 +29,7 @@ export const ABAS_PADRAO_SETOR = [
   "gantt",
   "conversas",
   "conhecimento",
+  "mapa",
 ];
 
 /** Árvore completa, já ordenada por área e depois por posição dentro dela. */

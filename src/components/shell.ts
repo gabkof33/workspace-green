@@ -61,6 +61,10 @@ const NAV_ORGANIZACAO: ItemNav[] = [
     icone: ICONES.setores,
     somenteAgente: true,
   },
+  // Sem `somenteAgente`, ao contrário de Setores: o mapa não administra nada,
+  // só explica quem faz o quê — e é justamente quem NÃO é da TI que precisa
+  // disso para saber a quem endereçar um pedido.
+  { caminho: "mapa", rotulo: "Mapa da empresa", icone: ICONES.mapa },
 ];
 
 const NAV_OPERACAO: ItemNav[] = [

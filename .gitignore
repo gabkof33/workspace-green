@@ -15,3 +15,9 @@ coverage/
 supabase/database.gerado.ts
 
 .vercel
+
+# Cópia do repositório do iGreen Design System, usada só para consulta ao
+# portar componentes. Tem .git próprio: sem esta linha, um `git add` nela
+# gravaria um gitlink e criaria um submódulo quebrado apontando para um
+# commit que não existe neste remoto.
+meu-produto/

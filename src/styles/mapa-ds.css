@@ -1,0 +1,265 @@
+/**
+ * Mapa da empresa — layer da PÁGINA, como `fila-ds` e `conversas-ds`.
+ *
+ * O protótipo trazia paleta própria (azul-escuro `#05070d`), três fontes de
+ * CDN e um cabeçalho próprio. Nada disso entra: o título e o subtítulo são os
+ * da rota, a tipografia é a Geist do DS e as cores da moldura saem dos
+ * `--ds-*`. O que fica com cor própria é só o PALCO — céu escuro nos dois
+ * temas, porque as cores dos planetas são o código de cor das áreas e só se
+ * leem sobre fundo escuro, e porque um mapa estelar claro não é um mapa
+ * estelar.
+ */
+
+.mapa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--ds-gp-2xl);
+  height: calc(100vh - 190px);
+  min-height: 420px;
+  font-family: var(--ds-font-sans);
+}
+
+@media (max-width: 900px) {
+  .mapa {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .mapa__palco {
+    height: 60vh;
+    min-height: 340px;
+  }
+}
+
+/* ── Palco ───────────────────────────────────────────────────────────────── */
+
+.mapa__palco {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  background: radial-gradient(ellipse at 50% 45%, #0a1220, #04060b 70%);
+  cursor: grab;
+}
+
+.mapa__palco--arrastando {
+  cursor: grabbing;
+}
+
+.mapa__palco canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* As peças sobre o palco são legendas de instrumento: mono, apagadas, sem
+   competir com a cena. Vivem sobre o céu, então a cor não vem do tema. */
+.mapa__selo,
+.mapa__dica,
+.mapa__velocidade {
+  position: absolute;
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  color: #6b7285;
+  pointer-events: none;
+}
+
+.mapa__selo {
+  top: var(--ds-pad-lg);
+  left: var(--ds-pad-2xl);
+  padding: var(--ds-pad-sm) var(--ds-pad-lg);
+  border: 1px solid #1c2432;
+  border-radius: var(--ds-radius-full);
+  background: rgb(0 0 0 / 0.3);
+  letter-spacing: 0.06em;
+}
+
+.mapa__dica {
+  bottom: var(--ds-pad-lg);
+  left: var(--ds-pad-2xl);
+}
+
+.mapa__velocidade {
+  right: var(--ds-pad-2xl);
+  bottom: var(--ds-pad-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  pointer-events: auto;
+}
+
+.mapa__velocidade button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #1c2432;
+  border-radius: var(--ds-radius-full);
+  background: rgb(0 0 0 / 0.35);
+  color: #8b93ab;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mapa__velocidade button:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: #eef1f8;
+}
+
+.mapa__limpar {
+  position: absolute;
+  top: var(--ds-pad-lg);
+  right: var(--ds-pad-2xl);
+  padding: var(--ds-pad-sm) var(--ds-pad-xl);
+  border: 1px solid #1c2432;
+  border-radius: var(--ds-radius-full);
+  background: rgb(0 0 0 / 0.35);
+  color: #8b93ab;
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  /* Escondido enquanto não há seleção: um "limpar" que não limpa nada é um
+     botão que ensina a duvidar dos outros. */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mapa__limpar--visivel {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mapa__limpar:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: #eef1f8;
+}
+
+.mapa__sem-webgl {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--ds-pad-6xl);
+  text-align: center;
+  color: #8b93ab;
+}
+
+/* ── Painel ──────────────────────────────────────────────────────────────── */
+
+.mapa__painel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--ds-pad-3xl);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  box-shadow: var(--ds-sh-sm);
+}
+
+.mapa__rotulo {
+  margin: var(--ds-gp-2xl) 0 var(--ds-gp-sm);
+  font-family: var(--ds-font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-fg-subtle);
+}
+
+.mapa__rotulo:first-child {
+  margin-top: 0;
+}
+
+.mapa__titulo {
+  margin: 0 0 var(--ds-gp-xs);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ds-fg-strong);
+}
+
+.mapa__especie {
+  margin: 0;
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  color: var(--ds-fg-subtle);
+}
+
+.mapa__vazio,
+.mapa__corpo {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ds-fg-default);
+}
+
+.mapa__vazio {
+  color: var(--ds-fg-muted);
+}
+
+/* ── Fichas de relação ───────────────────────────────────────────────────── */
+
+.mapa__fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-gp-sm);
+}
+
+.mapa__ficha {
+  padding: var(--ds-pad-xs) var(--ds-pad-lg);
+  border: 1px solid var(--ds-border-input);
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-fg-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.mapa__ficha:hover {
+  background: var(--ds-bg-muted-hover);
+  color: var(--ds-fg-default);
+}
+
+.mapa__ficha:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* O pai sobe na hierarquia, e é a única ficha que muda de nível — por isso é
+   a única com cor própria. */
+.mapa__ficha--pai {
+  border-color: var(--ds-border-brand-subtle);
+  color: var(--ds-fg-brand);
+}
+
+/* ── Legenda ─────────────────────────────────────────────────────────────── */
+
+.mapa__legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-gp-xl);
+  margin-top: auto;
+  padding-top: var(--ds-pad-xl);
+  border-top: 1px solid var(--ds-border-default);
+}
+
+.mapa__legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  font-size: 0.75rem;
+  color: var(--ds-fg-muted);
+}
+
+.mapa__legenda-bolinha {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: var(--ds-radius-full);
+}

@@ -15,6 +15,7 @@ import "@/styles/fila-ds.css";
 import "@/styles/abrir-ds.css";
 import "@/styles/login-ds.css";
 import "@/styles/conversas-ds.css";
+import "@/styles/mapa-ds.css";
 
 import { h, montar } from "@/lib/dom";
 import { aoMudarRota, navegar, rotaAtual } from "@/lib/router";
@@ -48,6 +49,7 @@ import { renderizarDemanda } from "@/pages/demanda";
 import { renderizarGantt } from "@/pages/gantt";
 import { renderizarPessoas } from "@/pages/pessoas";
 import { renderizarSetores } from "@/pages/setores";
+import { renderizarMapa } from "@/pages/mapa";
 import { renderizarAtivos } from "@/pages/ativos";
 import { renderizarRotinas } from "@/pages/rotinas";
 import { renderizarConhecimento } from "@/pages/conhecimento";
@@ -93,6 +95,7 @@ const ABAS = new Set([
   "gantt",
   "conversas",
   "pessoas",
+  "mapa",
   "setores",
   "rotinas",
   "ativos",
@@ -177,6 +180,15 @@ function resolverPagina(perfil: Perfil): Pagina {
         titulo: "Conversas",
         subtitulo:
           "Um canal por equipe, mais o geral. As mensagens chegam em tempo real enquanto esta tela estiver aberta.",
+        conteudo,
+      };
+
+    case "mapa":
+      renderizarMapa(conteudo);
+      return {
+        titulo: "Mapa da empresa",
+        subtitulo:
+          "O Cliente é o sol; cada área é um planeta na sua órbita, e as equipes dela são satélites. Arraste para girar, role para mudar de lado.",
         conteudo,
       };
 
