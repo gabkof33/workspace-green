@@ -3074,6 +3074,109 @@ button.tags__marca:hover {
   color: var(--c-muted);
 }
 
+/* ── Rosca ───────────────────────────────────────────────────────────────────
+   Transposta do bloco de gráfico do DS: razão furo/borda de 0.70, fatias sem
+   contorno e separadas por vão angular. O total mora no furo — é a primeira
+   pergunta de quem olha uma distribuição. */
+
+.grafico__rosca-corpo {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: center;
+}
+@media (max-width: 560px) {
+  .grafico__rosca-corpo {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
+
+.grafico__rosca-area {
+  position: relative;
+  width: 148px;
+  height: 148px;
+}
+.grafico__rosca {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.grafico__fatia {
+  /* Sem contorno, como no DS: em fatia fina a borda come a própria cor. */
+  stroke: none;
+  transition: opacity 0.12s ease;
+}
+.grafico__rosca:hover .grafico__fatia {
+  opacity: 0.45;
+}
+.grafico__rosca .grafico__fatia:hover {
+  opacity: 1;
+}
+.grafico__rosca-vazia {
+  fill: none;
+  stroke: var(--c-line-2);
+}
+
+/* O furo não é buraco: é onde mora o total. */
+.grafico__rosca-centro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+.grafico__rosca-centro b {
+  display: block;
+  font-size: var(--t-2xl);
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.grafico__rosca-centro span {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-muted);
+}
+
+.grafico__legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.grafico__legenda-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--c-ink-2);
+}
+.grafico__legenda-cor {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 3px;
+}
+.grafico__legenda-rotulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.grafico__legenda-item b {
+  font-family: var(--f-mono);
+  font-size: var(--t-sm);
+  color: var(--c-ink);
+  font-variant-numeric: tabular-nums;
+}
+.grafico__legenda-vazio {
+  font-size: var(--t-sm);
+  color: var(--c-muted);
+}
+
 /* Eixo à esquerda, área à direita: o rótulo é HTML porque dentro do SVG
    esticado ele sairia deformado. */
 .grafico__area-plot {

@@ -150,6 +150,16 @@
   --ds-ring-danger: color-mix(in oklch, var(--ds-danger) 22%, transparent);
   --ds-ring-secondary: color-mix(in oklch, oklch(0.4997 0 0) 22%, transparent);
 
+  /* ── Gráfico ──────────────────────────────────────────────────────────────
+     Série categórica do DS. A ordem importa: são cinco matizes escolhidos para
+     se distinguirem lado a lado, e usar a 4 antes da 2 quebra isso. */
+  --ds-chart-1: oklch(0.58 0.14 151);
+  --ds-chart-2: oklch(0.66 0.12 195);
+  --ds-chart-3: oklch(0.55 0.15 250);
+  --ds-chart-4: oklch(0.76 0.15 80);
+  --ds-chart-5: oklch(0.56 0.18 300);
+  --ds-chart-grade: oklch(0.9076 0 0);
+
   /* ── Elevação — claro ──────────────────────────────────────────────────── */
   --ds-sh-sm: 0 1px 2px oklch(0 0 0 / 0.04);
   --ds-sh-md:
@@ -238,6 +248,14 @@
     --ds-fg-disabled: oklch(0.36 0 0);
     /* Sobre o verde claro do escuro, texto branco não passa contraste. */
     --ds-fg-on-brand: oklch(0 0 0);
+
+    /* No escuro as séries clareiam, como o resto da paleta. */
+    --ds-chart-1: oklch(0.7289 0.1571 162.3);
+    --ds-chart-2: oklch(0.72 0.13 195);
+    --ds-chart-3: oklch(0.68 0.15 250);
+    --ds-chart-4: oklch(0.8 0.15 80);
+    --ds-chart-5: oklch(0.7 0.17 300);
+    --ds-chart-grade: oklch(1 0 0 / 0.12);
     --ds-fg-on-danger: oklch(1 0 0);
 
     --ds-border-default: oklch(0.2645 0 0);
@@ -280,6 +298,14 @@
   --ds-fg-subtle: color-mix(in oklch, oklch(0.7025 0 0) 70%, transparent);
   --ds-fg-disabled: oklch(0.36 0 0);
   --ds-fg-on-brand: oklch(0 0 0);
+
+  /* No escuro as séries clareiam, como o resto da paleta. */
+  --ds-chart-1: oklch(0.7289 0.1571 162.3);
+  --ds-chart-2: oklch(0.72 0.13 195);
+  --ds-chart-3: oklch(0.68 0.15 250);
+  --ds-chart-4: oklch(0.8 0.15 80);
+  --ds-chart-5: oklch(0.7 0.17 300);
+  --ds-chart-grade: oklch(1 0 0 / 0.12);
   --ds-fg-on-danger: oklch(1 0 0);
 
   --ds-border-default: oklch(0.2645 0 0);

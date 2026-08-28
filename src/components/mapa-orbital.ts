@@ -55,7 +55,7 @@ export interface OpcoesMapaOrbital {
 const INCLINACAO_FUNIL = 0.3;
 
 /** Órbita do satélite `i` dentro do sistema do seu planeta. */
-const raioSatelite = (i: number): number => 1.2 + i * 0.6;
+const raioSatelite = (i: number): number => 1.05 + i * 0.45;
 
 /**
  * Raio de cada órbita, calculado a partir do espaço que a área ocupa.
@@ -70,11 +70,20 @@ const raioSatelite = (i: number): number => 1.2 + i * 0.6;
  * muda é a distância, que passa a ser consequência do conteúdo.
  */
 const RAIOS: Map<string, number> = (() => {
+  /**
+   * Margem de 0.5, não 0.9.
+   *
+   * A regra reserva o sistema INTEIRO de cada vizinha, e o pior caso — quatro
+   * satélites, em Produtos — empurrava as outras seis para longe. Com quase
+   * todas tendo um ou dois corpos, sobrava vazio no meio do mapa e era preciso
+   * afastar muito a câmera para ver o conjunto. Uma unidade de vão livre entre
+   * sistemas já separa; 1.8 era luxo pago por todo mundo.
+   */
   const folga = (p: (typeof PLANETAS)[number]): number =>
-    raioSatelite(Math.max(0, p.satelites.length - 1)) + 0.9;
+    raioSatelite(Math.max(0, p.satelites.length - 1)) + 0.5;
 
   const mapa = new Map<string, number>();
-  let raio = 6;
+  let raio = 5;
 
   PLANETAS.forEach((p, i) => {
     const anterior = PLANETAS[i - 1];
@@ -179,7 +188,7 @@ export function criarMapaOrbital(o: OpcoesMapaOrbital): MapaOrbital {
    * valor do zoom inicial, senão a tela abriria com um avanço que ninguém
    * pediu.
    */
-  let distancia = 95 - 0.45 * 62;
+  let distancia = 73 - 0.45 * 47;
   /** Duplo clique: aproximação máxima no corpo focado. */
   let aproximado = false;
   let quadro = 0;
@@ -348,7 +357,7 @@ export function criarMapaOrbital(o: OpcoesMapaOrbital): MapaOrbital {
   }
 
   function montarSol(): void {
-    const corpo = criarCorpo(SOL.id, SOL.rotulo, SOL.cor, 1.6, true);
+    const corpo = criarCorpo(SOL.id, SOL.rotulo, SOL.cor, 1.4, true);
     raiz.add(corpo.grupo);
     corpos.set(SOL.id, corpo);
   }
@@ -368,7 +377,9 @@ export function criarMapaOrbital(o: OpcoesMapaOrbital): MapaOrbital {
       pivo.rotation.y = Math.random() * Math.PI * 2;
       raiz.add(pivo);
 
-      const corpo = criarCorpo(p.id, p.rotulo, p.cor, 0.85, false);
+      // 0.6 e não 0.85: a primeira órbita de satélite agora passa a 1.05, e o
+      // planeta anterior deixava só 0.2 de folga até ela.
+      const corpo = criarCorpo(p.id, p.rotulo, p.cor, 0.6, false);
       corpo.grupo.position.set(raio, y, 0);
       corpo.pivo = pivo;
       corpo.velocidade = p.velocidadeOrbita;
@@ -401,7 +412,7 @@ export function criarMapaOrbital(o: OpcoesMapaOrbital): MapaOrbital {
         pivoSat.rotation.y = Math.random() * Math.PI * 2;
         corpo.grupo.add(pivoSat);
 
-        const sat = criarCorpo(s.id, s.rotulo, p.cor, 0.34, false);
+        const sat = criarCorpo(s.id, s.rotulo, p.cor, 0.28, false);
         sat.grupo.position.set(raioSat, 0, 0);
         sat.pivo = pivoSat;
         sat.velocidade = 0.55 - i * 0.07 + Math.random() * 0.05;
@@ -753,7 +764,8 @@ export function criarMapaOrbital(o: OpcoesMapaOrbital): MapaOrbital {
         (0.4 + (1 - zoom) * 6) *
         (aproximado ? 0.55 : 1)
       : 0;
-    distancia += ((seguindo ? perto : 95 - zoom * 62) - distancia) * 0.07;
+    // Solto, enquadra do raio externo (~30) ao sistema de um planeta.
+    distancia += ((seguindo ? perto : 73 - zoom * 47) - distancia) * 0.07;
     const tilt = Math.max(0.02, Math.min(1.56, rotacao.x));
 
     /**

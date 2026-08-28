@@ -18,7 +18,7 @@ import {
 import { tempoRelativo } from "@/lib/formato";
 import { insigniaHierarquia, ROTULOS_SENIORIDADE } from "@/components/insignia";
 import { gravar, ler, remover } from "@/lib/armazenamento";
-import type { Notificacao, Perfil } from "@/types/dominio";
+import type { NotificacaoResumo, Perfil } from "@/types/dominio";
 
 // Dois arquivos porque o menu muda de fundo com o tema: verde cheio no claro,
 // escuro neutro no escuro. O CSS mostra um e esconde o outro.
@@ -218,7 +218,7 @@ function construirSino(perfil: Perfil): HTMLElement {
 
   const container = h("div", { class: "sino" }, botao, painel);
 
-  const desenharPainel = (lista: Notificacao[]): void => {
+  const desenharPainel = (lista: NotificacaoResumo[]): void => {
     if (lista.length === 0) {
       montar(
         painel,
@@ -291,8 +291,11 @@ function construirSino(perfil: Perfil): HTMLElement {
         contador.style.display = naoLidas > 0 ? "grid" : "none";
         desenharPainel(lista);
       })
-      .catch(() => {
-        // Notificação é acessório: falha aqui não interrompe o app.
+      .catch((e: unknown) => {
+        // Notificação é acessório: falha aqui não interrompe o app. Mas
+        // engolir sem deixar rastro é o motivo de uma RPC quebrada passar
+        // semanas despercebida — o sino simplesmente não conta nada.
+        console.warn("Falha ao carregar notificações:", e);
       });
   };
 

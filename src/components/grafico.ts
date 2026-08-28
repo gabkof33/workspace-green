@@ -98,6 +98,65 @@ export interface OpcoesArea {
   /** Formata o valor no eixo e na dica. */
   formatar: (v: number) => string;
   altura?: number;
+  /**
+   * Curva suave em vez de segmentos retos — o `type="monotone"` das linhas do
+   * DS. Ver `caminhoSuave` para o motivo de não ser um spline qualquer.
+   */
+  suave?: boolean;
+}
+
+/**
+ * Caminho cúbico MONÓTONO (Fritsch–Carlson), não um spline solto.
+ *
+ * Um spline comum passa pelos pontos mas ultrapassa entre eles: numa série de
+ * contagens, a curva mergulharia abaixo de zero entre dois dias de valor 1 e
+ * 0, desenhando um número negativo que não existe. A regra monótona zera a
+ * tangente onde a série inverte e limita a inclinação ao triplo da menor
+ * variação vizinha — a curva ondula, mas nunca inventa mínimo nem máximo.
+ *
+ * É a mesma garantia do `monotone` do recharts, que é o que o DS usa.
+ */
+function caminhoSuave(
+  pontos: Array<[number, number]>,
+): string {
+  if (pontos.length < 2) {
+    const [p] = pontos;
+    return p ? `M ${p[0]},${p[1]}` : "";
+  }
+
+  const n = pontos.length;
+  const delta: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const a = pontos[i]!;
+    const b = pontos[i + 1]!;
+    delta.push((b[1] - a[1]) / (b[0] - a[0]));
+  }
+
+  const tangente: number[] = [delta[0] ?? 0];
+  for (let i = 1; i < n - 1; i++) {
+    const d0 = delta[i - 1]!;
+    const d1 = delta[i]!;
+    // Inversão de sentido: tangente zero, senão a curva passa do ponto.
+    if (d0 * d1 <= 0) {
+      tangente.push(0);
+      continue;
+    }
+    const media = (d0 + d1) / 2;
+    const teto = 3 * Math.min(Math.abs(d0), Math.abs(d1));
+    tangente.push(Math.sign(media) * Math.min(Math.abs(media), teto));
+  }
+  tangente.push(delta[n - 2] ?? 0);
+
+  let d = `M ${pontos[0]![0]},${pontos[0]![1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const a = pontos[i]!;
+    const b = pontos[i + 1]!;
+    const h = (b[0] - a[0]) / 3;
+    const c1 = `${a[0] + h},${a[1] + tangente[i]! * h}`;
+    const c2 = `${b[0] - h},${b[1] - tangente[i + 1]! * h}`;
+    d += ` C ${c1} ${c2} ${b[0]},${b[1]}`;
+  }
+  return d;
 }
 
 /**
@@ -139,15 +198,23 @@ export function areaTemporal(o: OpcoesArea): HTMLElement {
     );
   }
 
-  const linha = o.pontos.map((x, i) => `${px(i)},${py(x.valor)}`).join(" L ");
+  const coordenadas: Array<[number, number]> = o.pontos.map((x, i) => [
+    px(i),
+    py(x.valor),
+  ]);
+  const linha = o.suave
+    ? caminhoSuave(coordenadas)
+    : `M ${coordenadas.map(([x, y]) => `${x},${y}`).join(" L ")}`;
 
   svg.append(
     svgEl("path", {
       class: "grafico__area",
-      d: `M ${linha} L 100,100 L 0,100 Z`,
+      // Fecha a área descendo às bordas: o `L` aqui é de fechamento, não faz
+      // parte da curva.
+      d: `${linha} L 100,100 L 0,100 Z`,
       fill: o.cor,
     }),
-    svgEl("path", { class: "grafico__linha", d: `M ${linha}`, stroke: o.cor }),
+    svgEl("path", { class: "grafico__linha", d: linha, stroke: o.cor }),
   );
 
   const cursor = svgEl("line", {
@@ -481,5 +548,168 @@ export function histogramaEmpilhado(o: OpcoesHistograma): HTMLElement {
         .map((r) => h("span", {}, r)),
     ),
     legenda,
+  );
+}
+
+/* ==========================================================================
+   Rosca — o donut do DS
+   ==========================================================================
+   Do bloco de gráfico do DS: `innerRadius 64 / outerRadius 92` (razão 0.70),
+   `paddingAngle 3` e `strokeWidth 0` — o vão entre fatias separa por espaço,
+   não por contorno, que é o que mantém a leitura limpa em fatia fina.
+
+   Rosca e não pizza porque o furo do meio cabe o total: o número que quase
+   sempre é a primeira pergunta de quem olha uma distribuição. */
+
+export interface FatiaRosca {
+  rotulo: string;
+  valor: number;
+  /** Cor da fatia. Sem ela, entra a série do DS na ordem. */
+  cor?: string;
+}
+
+export interface OpcoesRosca {
+  titulo: string;
+  subtitulo?: string;
+  fatias: FatiaRosca[];
+  /** O que o furo do meio conta. Default: a soma. */
+  centro?: { valor: string; rotulo: string };
+  vazio?: string;
+}
+
+const SERIE_DS = [
+  "var(--ds-chart-1)",
+  "var(--ds-chart-2)",
+  "var(--ds-chart-3)",
+  "var(--ds-chart-4)",
+  "var(--ds-chart-5)",
+];
+
+/** Ponto na circunferência, com 0° no topo e sentido horário. */
+function pontoNoArco(grau: number, raio: number): [number, number] {
+  const rad = ((grau - 90) * Math.PI) / 180;
+  return [50 + raio * Math.cos(rad), 50 + raio * Math.sin(rad)];
+}
+
+export function rosca(o: OpcoesRosca): HTMLElement {
+  const total = o.fatias.reduce((s, f) => s + f.valor, 0);
+  const presentes = o.fatias.filter((f) => f.valor > 0);
+
+  const svg = svgEl("svg", {
+    class: "grafico__rosca",
+    viewBox: "0 0 100 100",
+    // Sem `preserveAspectRatio="none"` aqui, ao contrário da área: círculo
+    // esticado vira elipse, e aí a fatia deixa de ser proporcional ao ângulo.
+    role: "img",
+    "aria-label": `${o.titulo}: ${total}`,
+  });
+
+  const RAIO_EXTERNO = 46;
+  const RAIO_INTERNO = 32; // 0.70 do externo, a razão do DS
+  const VAO = 3; // graus entre fatias
+
+  if (total > 0) {
+    let inicio = 0;
+
+    presentes.forEach((fatia, i) => {
+      const fracao = fatia.valor / total;
+      // Uma fatia só ocupa a volta inteira: com o vão, ela não fecharia e
+      // apareceria como um anel quebrado sem motivo.
+      const vao = presentes.length === 1 ? 0 : VAO;
+      const angulo = fracao * 360 - vao;
+      const fim = inicio + Math.max(angulo, 0.5);
+
+      const [x1, y1] = pontoNoArco(inicio, RAIO_EXTERNO);
+      const [x2, y2] = pontoNoArco(fim, RAIO_EXTERNO);
+      const [x3, y3] = pontoNoArco(fim, RAIO_INTERNO);
+      const [x4, y4] = pontoNoArco(inicio, RAIO_INTERNO);
+      const maior = fim - inicio > 180 ? 1 : 0;
+
+      svg.append(
+        svgEl("path", {
+          class: "grafico__fatia",
+          d: [
+            `M ${x1} ${y1}`,
+            `A ${RAIO_EXTERNO} ${RAIO_EXTERNO} 0 ${maior} 1 ${x2} ${y2}`,
+            `L ${x3} ${y3}`,
+            `A ${RAIO_INTERNO} ${RAIO_INTERNO} 0 ${maior} 0 ${x4} ${y4}`,
+            "Z",
+          ].join(" "),
+          fill: fatia.cor ?? SERIE_DS[i % SERIE_DS.length] ?? SERIE_DS[0]!,
+        }),
+      );
+
+      inicio = fim + vao;
+    });
+  } else {
+    // Anel apagado no lugar de espaço em branco: sem ele o cartão parece
+    // quebrado em vez de vazio.
+    svg.append(
+      svgEl("circle", {
+        class: "grafico__rosca-vazia",
+        cx: "50",
+        cy: "50",
+        r: String((RAIO_EXTERNO + RAIO_INTERNO) / 2),
+        "stroke-width": String(RAIO_EXTERNO - RAIO_INTERNO),
+      }),
+    );
+  }
+
+  const centro = o.centro ?? { valor: String(total), rotulo: "no total" };
+
+  return h(
+    "div",
+    { class: "cartao grafico" },
+    h(
+      "div",
+      { class: "grafico__cabecalho" },
+      h("h3", { class: "grafico__titulo" }, o.titulo),
+      o.subtitulo
+        ? h("span", { class: "grafico__subtitulo" }, o.subtitulo)
+        : null,
+    ),
+    h(
+      "div",
+      { class: "grafico__rosca-corpo" },
+      h(
+        "div",
+        { class: "grafico__rosca-area" },
+        svg,
+        h(
+          "div",
+          { class: "grafico__rosca-centro" },
+          h("b", {}, centro.valor),
+          h("span", {}, centro.rotulo),
+        ),
+      ),
+      h(
+        "div",
+        { class: "grafico__legenda" },
+        ...(total === 0
+          ? [
+              h(
+                "span",
+                { class: "grafico__legenda-vazio" },
+                o.vazio ?? "Nada para distribuir agora.",
+              ),
+            ]
+          : presentes.map((fatia, i) =>
+              h(
+                "span",
+                { class: "grafico__legenda-item" },
+                h("span", {
+                  class: "grafico__legenda-cor",
+                  style: `background:${fatia.cor ?? SERIE_DS[i % SERIE_DS.length] ?? SERIE_DS[0]!}`,
+                }),
+                h("span", { class: "grafico__legenda-rotulo" }, fatia.rotulo),
+                h(
+                  "b",
+                  {},
+                  `${fatia.valor} · ${Math.round((fatia.valor / total) * 100)}%`,
+                ),
+              ),
+            )),
+      ),
+    ),
   );
 }

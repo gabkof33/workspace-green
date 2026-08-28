@@ -1,6 +1,8 @@
 /** Fila de atendimento — visão do agente. */
 
+import { areaTemporal, rosca } from "@/components/grafico";
 import { criarBarraFiltros } from "@/components/barra-filtros";
+import { isoDeData } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
 import { h, montar } from "@/lib/dom";
 import { listarChamados } from "@/lib/api";
@@ -76,6 +78,7 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
       montar(
         area,
         metricas(chamados),
+        painel(chamados),
         filtros(),
         filtroTag
           ? h(
@@ -117,6 +120,67 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
         }),
       );
     });
+  };
+
+  /* ---------- Dashboard ---------- */
+
+  /**
+   * Duas leituras que a tabela não dá: a COMPOSIÇÃO da fila agora e o RITMO de
+   * chegada nos últimos dias. Uma responde "do que a fila é feita", a outra
+   * "está piorando ou aliviando" — nenhuma das duas se lê contando linhas.
+   *
+   * Os dois saem dos chamados já carregados: nenhuma consulta a mais.
+   */
+  const painel = (chamados: ChamadoEnriquecido[]): HTMLElement => {
+    const porPrioridade = PRIORIDADES.map((p) => ({
+      // O `rotulo` da política (Crítico, Alto…), não a cobertura: a legenda
+      // responde "o que é P1", e 24x7 é outra pergunta.
+      rotulo: `${p} · ${POLITICAS_SLA[p].rotulo}`,
+      valor: chamados.filter((c) => c.prioridade === p).length,
+      // Cor da prioridade, não a série do DS: P1 já é vermelho em toda a
+      // tela, e trocar aqui faria a rosca contradizer a tabela ao lado.
+      cor: `var(--c-${p.toLowerCase()})`,
+    }));
+
+    // Catorze dias: duas semanas mostram o fim de semana duas vezes, e é
+    // contra ele que se compara uma segunda-feira cheia.
+    const DIAS = 14;
+    const hoje = new Date();
+    const porDia = Array.from({ length: DIAS }, (_, i) => {
+      const dia = new Date(hoje);
+      dia.setDate(dia.getDate() - (DIAS - 1 - i));
+      const iso = isoDeData(dia);
+      return {
+        rotulo: dia.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        }),
+        valor: chamados.filter((c) => c.aberto_em.slice(0, 10) === iso).length,
+      };
+    });
+
+    return h(
+      "div",
+      { class: "grade-graficos" },
+      rosca({
+        titulo: "Composição da fila",
+        subtitulo: "por prioridade",
+        fatias: porPrioridade,
+        centro: { valor: String(chamados.length), rotulo: "na fila" },
+        vazio: "Fila vazia — nada a distribuir.",
+      }),
+      areaTemporal({
+        titulo: "Chegada de chamados",
+        subtitulo: `últimos ${DIAS} dias`,
+        pontos: porDia,
+        // `chart-1` é o verde da série do DS — e no escuro ele é exatamente o
+        // verde da marca. `chart-2` (o ciano) puxava a leitura para longe do
+        // resto da tela.
+        cor: "var(--ds-chart-1)",
+        suave: true,
+        formatar: (v) => String(Math.round(v)),
+      }),
+    );
   };
 
   /**

@@ -9,7 +9,7 @@ import type {
   Hierarquia,
   ItemDemanda,
   ItemDemandaEnriquecido,
-  Notificacao,
+  NotificacaoResumo,
   ParametroEnriquecido,
   ParametroSugerido,
   Perfil,
@@ -678,7 +678,7 @@ export async function comentar(
 
 export async function listarNotificacoes(
   perfilId: string,
-): Promise<Notificacao[]> {
+): Promise<NotificacaoResumo[]> {
   // `perfilId` deixa de viajar: a função lê `auth.uid()` do próprio token.
   void perfilId;
   const { data, error } = await supabase.rpc("minhas_notificacoes", {
@@ -686,7 +686,7 @@ export async function listarNotificacoes(
   });
 
   if (error) throw new Error(traduzirErro(error.message));
-  return (data ?? []) as Notificacao[];
+  return (data ?? []) as NotificacaoResumo[];
 }
 
 export async function marcarNotificacaoLida(id: string): Promise<void> {

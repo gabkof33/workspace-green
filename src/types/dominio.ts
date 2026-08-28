@@ -854,6 +854,27 @@ export interface Notificacao {
   criado_em: string;
 }
 
+/**
+ * O que a RPC `minhas_notificacoes` devolve — seis campos, não os nove da
+ * tabela.
+ *
+ * O código convertia o resultado dela para `Notificacao` com um `as`, o que
+ * era mentira: `tipo`, `destinatario_id` e `remetente_id` chegavam
+ * `undefined`. Hoje ninguém os lê no painel do sino, então nada quebrava — mas
+ * o primeiro que lesse encontraria `undefined` onde o tipo prometia texto.
+ *
+ * A escuta em tempo real continua com `Notificacao` inteira: lá o payload é a
+ * linha da tabela, e ela usa `tipo`.
+ */
+export interface NotificacaoResumo {
+  id: string;
+  titulo: string;
+  corpo: string | null;
+  destino: string | null;
+  lida: boolean;
+  criado_em: string;
+}
+
 /* ---------- Rascunho do formulário de abertura ---------- */
 
 export interface RascunhoChamado {
