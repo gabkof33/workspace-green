@@ -14,7 +14,12 @@ import {
   rotuloTipo,
 } from "@/lib/formato";
 import { POLITICAS_SLA } from "@/lib/prioridade";
-import type { ChamadoEnriquecido } from "@/types/dominio";
+import {
+  diasRestantes,
+  estaAtrasada,
+  STATUS_ABERTOS,
+} from "@/lib/demandas";
+import type { ChamadoEnriquecido, DemandaEnriquecida } from "@/types/dominio";
 
 export function barraSla(chamado: ChamadoEnriquecido): HTMLElement {
   const politica = POLITICAS_SLA[chamado.prioridade];
@@ -174,5 +179,118 @@ export function tabelaChamados(opcoes: OpcoesTabela): HTMLElement {
       h("thead", {}, cabecalho),
       h("tbody", {}, ...linhas),
     ),
+  );
+}
+
+/**
+ * Bloco compacto de demandas para a fila.
+ *
+ * A fila é a rota padrão de quem entra no app, e até aqui ela só falava de
+ * chamado. Demanda criada só aparecia para quem lembrasse de trocar de aba —
+ * o que, para trabalho que dura semanas, é o mesmo que não aparecer.
+ *
+ * Compacto de propósito: quem está na fila está atendendo chamado. O bloco
+ * responde "tem demanda me esperando?" em uma olhada; o quadro de demandas
+ * continua sendo o lugar de trabalhar nelas.
+ */
+export interface OpcoesBlocoDemandas {
+  demandas: DemandaEnriquecida[];
+  /** Quem está olhando — separa "minhas" de "disponíveis". */
+  perfilId: string;
+}
+
+export function blocoDemandas(o: OpcoesBlocoDemandas): HTMLElement | null {
+  const minhas = o.demandas.filter(
+    (d) => d.responsavel_id === o.perfilId && STATUS_ABERTOS.includes(d.status),
+  );
+  const disponiveis = o.demandas.filter((d) => d.status === "disponivel");
+
+  // Nada seu e nada livre: o bloco some em vez de anunciar um zero. A fila
+  // já tem cinco indicadores; um sexto dizendo "nenhuma" é ruído.
+  if (minhas.length === 0 && disponiveis.length === 0) return null;
+
+  const linha = (d: DemandaEnriquecida): HTMLElement => {
+    const dias = diasRestantes(d.data_fim_prevista);
+    const atrasada = estaAtrasada(d);
+
+    return h(
+      "button",
+      {
+        class: "demanda-fila",
+        type: "button",
+        on: { click: () => navegar(`demanda/${d.codigo}`) },
+      },
+      h("span", { class: "demanda-fila__codigo" }, d.codigo),
+      h("span", { class: "demanda-fila__titulo", title: d.titulo }, d.titulo),
+      d.responsavel_id === o.perfilId
+        ? null
+        : h("span", { class: "selo selo--aberto" }, "livre"),
+      h(
+        "span",
+        {
+          class: `demanda-fila__prazo${atrasada ? " demanda-fila__prazo--atrasada" : ""}`,
+        },
+        d.data_fim_prevista === null
+          ? "sem prazo"
+          : atrasada
+            ? "atrasada"
+            : dias === null
+              ? "sem prazo"
+              : dias === 0
+                ? "vence hoje"
+                : `${dias} d`,
+      ),
+    );
+  };
+
+  const secao = (
+    titulo: string,
+    lista: DemandaEnriquecida[],
+  ): HTMLElement | null =>
+    lista.length === 0
+      ? null
+      : h(
+          "div",
+          { class: "demanda-fila__grupo" },
+          h(
+            "div",
+            { class: "demanda-fila__rotulo" },
+            titulo,
+            h("span", { class: "demanda-fila__conta" }, String(lista.length)),
+          ),
+          // Teto de cinco por grupo: o bloco é um aviso, não a lista inteira.
+          ...lista.slice(0, 5).map(linha),
+          lista.length > 5
+            ? h(
+                "button",
+                {
+                  class: "demanda-fila__mais",
+                  type: "button",
+                  on: { click: () => navegar("demandas") },
+                },
+                `ver as outras ${lista.length - 5} no quadro`,
+              )
+            : null,
+        );
+
+  return h(
+    "div",
+    { class: "cartao demanda-fila__bloco" },
+    h(
+      "div",
+      { class: "cartao__cabecalho" },
+      h("span", { class: "cartao__titulo" }, "Demandas"),
+      h(
+        "button",
+        {
+          class: "btn btn--sm btn--sutil empurra",
+          type: "button",
+          on: { click: () => navegar("demandas") },
+        },
+        "Abrir o quadro",
+      ),
+    ),
+    secao("Suas", minhas),
+    secao("Disponíveis", disponiveis),
   );
 }

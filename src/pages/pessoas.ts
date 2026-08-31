@@ -1,6 +1,7 @@
 /** Pessoas — organograma e gestão de perfis. */
 
 import { criarAvatar } from "@/components/avatar";
+import { criarInterruptor } from "@/components/interruptor";
 import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
@@ -270,6 +271,59 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
       placeholder: "Analista Fiscal Sênior",
     }) as HTMLInputElement;
 
+    /**
+     * Acesso é o único campo do formulário que não é escolha entre opções —
+     * os outros quatro são `select`. Por ser liga/desliga puro, é
+     * interruptor: mostra o estado sem que ninguém precise abrir uma lista
+     * para descobrir em qual dos dois a pessoa está.
+     *
+     * E era um estado sem controle: a lista já pintava quem está desativado
+     * (`pessoa--inativa`), mas não havia por onde ativar ou desativar.
+     */
+    const acesso = criarInterruptor({
+      id: `acesso-${p.id}`,
+      rotulo: "Acesso ativo",
+      ligado: p.ativo,
+      aoMudar: () => desenharAviso(),
+    });
+
+    const aviso = h("div", { class: "aviso" });
+
+    /**
+     * O aviso muda de assunto quando o acesso é desligado — o rodapé sobre
+     * notificação e auditoria continua valendo, mas deixa de ser a coisa mais
+     * importante da tela quando alguém está prestes a barrar um login.
+     */
+    const desenharAviso = (): void => {
+      const cortando = p.ativo && !acesso.ligado();
+      aviso.className = cortando ? "aviso aviso--alerta" : "aviso";
+
+      montar(
+        aviso,
+        h("span", { class: "aviso__icone" }, cortando ? "!" : "i"),
+        cortando
+          ? h(
+              "span",
+              {},
+              h("b", {}, `${p.nome_completo} não conseguirá mais entrar. `),
+              // Só no login: uma sessão já aberta continua válida até
+              // expirar. Prometer corte imediato seria mentira, e é o tipo
+              // de mentira que só aparece no pior momento.
+              "A conta é recusada na próxima tentativa de login, e ela some das",
+              " menções. Chamados, demandas e histórico ficam onde estão, e",
+              " reativar devolve tudo.",
+            )
+          : h(
+              "span",
+              {},
+              "A pessoa recebe uma notificação com o que mudou, e a alteração",
+              " fica registrada na auditoria com seu nome.",
+            ),
+      );
+    };
+
+    desenharAviso();
+
     const salvar = h(
       "button",
       { class: "btn btn--primario", type: "submit" },
@@ -290,6 +344,7 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
               senioridade: selSenioridade.value as Senioridade,
               papel: selPapel.value as PapelUsuario,
               cargo: campoCargo.value.trim() || null,
+              ativo: acesso.ligado(),
             };
             if (selEquipe.value) campos.equipe_id = selEquipe.value;
 
@@ -335,16 +390,8 @@ export function renderizarPessoas(alvo: HTMLElement, perfil: Perfil): void {
         campo("Equipe", selEquipe),
       ),
       campo("Cargo", campoCargo),
-      h(
-        "div",
-        { class: "aviso" },
-        h("span", { class: "aviso__icone" }, "i"),
-        h(
-          "span",
-          {},
-          "A pessoa recebe uma notificação com o que mudou, e a alteração fica registrada na auditoria com seu nome.",
-        ),
-      ),
+      h("div", { class: "campo-interruptor" }, acesso.elemento),
+      aviso,
       h(
         "div",
         { class: "linha-flex" },

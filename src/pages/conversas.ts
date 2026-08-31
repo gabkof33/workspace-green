@@ -15,6 +15,7 @@ import {
   rotuloDia,
 } from "@/lib/chat";
 import { criarAvatar } from "@/components/avatar";
+import type { DemandaMencao } from "@/components/campo-mencao";
 import { criarCampoMencao, type CampoMencao } from "@/components/campo-mencao";
 import { insigniaHierarquia } from "@/components/insignia";
 import { bolinha, repintarBolinhas } from "@/components/presenca";
@@ -28,7 +29,12 @@ import {
 } from "@/lib/aviso-navegador";
 import { renderizarTexto } from "@/components/texto-mencao";
 import { confirmar } from "@/components/dialogo";
-import { criarDemanda, ROTULOS_PRIORIDADE, ROTULOS_TIPO } from "@/lib/demandas";
+import {
+  criarDemanda,
+  listarDemandas,
+  ROTULOS_PRIORIDADE,
+  ROTULOS_TIPO,
+} from "@/lib/demandas";
 import { navegar } from "@/lib/router";
 import type {
   CanalComContagem,
@@ -43,6 +49,8 @@ import type {
 export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   let canais: CanalComContagem[] = [];
   let diretorio: PessoaMencao[] = [];
+  /** Demandas citáveis por `/` no composer. Carregadas uma vez. */
+  let demandas: DemandaMencao[] = [];
   let canalAtivo: CanalComContagem | null = null;
   let mensagens: MensagemEnriquecida[] = [];
   let campo: CampoMencao | null = null;
@@ -153,6 +161,24 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
     window.removeEventListener("hashchange", aoSair);
   };
   window.addEventListener("hashchange", aoSair);
+
+  /**
+   * Demandas para o gatilho `/`, em consulta à parte.
+   *
+   * Fora do `allSettled` dos canais de propósito: aquela carga decide se a
+   * tela existe, e citar demanda é conveniência de digitação. Falhar aqui só
+   * desliga o `/` — o campo segue funcionando com `@` e com texto.
+   */
+  void listarDemandas()
+    .then((lista) => {
+      demandas = lista.map((d) => ({ codigo: d.codigo, titulo: d.titulo }));
+      // O composer é montado por canal: se já havia um aberto, ele nasceu com
+      // a lista vazia e precisa ser refeito para o `/` valer.
+      if (canalAtivo) montarThread();
+    })
+    .catch(() => {
+      // Sem demanda para citar; o `/` simplesmente não abre lista.
+    });
 
   /* ---------- Carga inicial ---------- */
 
@@ -365,6 +391,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
       // Sem alça de arrastar no composer (ver `conversas-ds.css`), então o
       // campo tem de abrir sozinho conforme a mensagem cresce.
       autoCrescer: true,
+      demandas,
     });
 
     const enviar = h(

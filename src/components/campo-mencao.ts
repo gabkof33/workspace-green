@@ -4,6 +4,21 @@ import { h, montar } from "@/lib/dom";
 import { insigniaHierarquia } from "@/components/insignia";
 import type { PessoaMencao } from "@/types/dominio";
 
+/** O mínimo para citar uma demanda: o código vira link sozinho no texto. */
+export interface DemandaMencao {
+  codigo: string;
+  titulo: string;
+}
+
+/**
+ * Uma linha da lista de sugestões. Pessoa entra por `@`, demanda por `/` —
+ * os dois gatilhos dividem a mesma lista, a mesma navegação por seta e o
+ * mesmo Enter, porque para quem digita é o mesmo gesto.
+ */
+type Sugestao =
+  | { tipo: "pessoa"; pessoa: PessoaMencao }
+  | { tipo: "demanda"; demanda: DemandaMencao };
+
 export interface CampoMencao {
   elemento: HTMLElement;
   valor(): string;
@@ -23,11 +38,19 @@ export function criarCampoMencao(
      * abre espaço para uma mensagem de três linhas.
      */
     autoCrescer?: boolean;
+    /**
+     * Demandas citáveis por `/`. Sem a lista, o gatilho não existe.
+     *
+     * O código inserido (`DEM-2026-000014`) já vira link sozinho na mensagem:
+     * o `texto-mencao.ts` reconhece o padrão e navega para a demanda. Esta
+     * lista existe só para não obrigar ninguém a decorar o número.
+     */
+    demandas?: DemandaMencao[];
   } = {},
 ): CampoMencao {
   const escolhidos = new Map<string, PessoaMencao>();
   let indiceAtivo = 0;
-  let candidatos: PessoaMencao[] = [];
+  let candidatos: Sugestao[] = [];
 
   const area = h("textarea", {
     class: "area-texto",
@@ -92,30 +115,53 @@ export function criarCampoMencao(
     );
   };
 
-  /** Termo digitado após o último `@` ainda não resolvido. */
-  const termoAtual = (): { termo: string; inicio: number } | null => {
+  /**
+   * Texto digitado após o último gatilho (`@` ou `/`) ainda não resolvido.
+   *
+   * Mesma regra para os dois: o sinal precisa começar palavra, o termo não
+   * atravessa linha e tem teto de tamanho — passou disso, quem digita está
+   * escrevendo uma frase, não procurando.
+   */
+  const termoDe = (
+    sinal: string,
+    maxPalavras: number,
+  ): { termo: string; inicio: number } | null => {
     const pos = area.selectionStart;
     const antes = area.value.slice(0, pos);
-    const arroba = antes.lastIndexOf("@");
-    if (arroba === -1) return null;
+    const marca = antes.lastIndexOf(sinal);
+    if (marca === -1) return null;
 
-    // O `@` precisa começar palavra.
-    const anterior = arroba > 0 ? antes.charAt(arroba - 1) : " ";
-    if (arroba !== 0 && !/\s/.test(anterior)) return null;
+    const anterior = marca > 0 ? antes.charAt(marca - 1) : " ";
+    if (marca !== 0 && !/\s/.test(anterior)) return null;
 
-    const termo = antes.slice(arroba + 1);
+    const termo = antes.slice(marca + 1);
     if (termo.includes("\n")) return null;
-
-    // Menção já resolvida: o texto após o `@` começa com o nome de alguém
-    // que foi escolhido.
-    for (const pessoa of escolhidos.values()) {
-      if (termo.startsWith(pessoa.nome_completo)) return null;
+    if (termo.split(/\s+/).length > maxPalavras || termo.length > 60) {
+      return null;
     }
 
-    // Busca por nome completo raramente passa de três palavras.
-    if (termo.split(/\s+/).length > 3 || termo.length > 60) return null;
+    return { termo, inicio: marca };
+  };
 
-    return { termo, inicio: arroba };
+  /** Termo após o último `@` — busca por nome. */
+  const termoAtual = (): { termo: string; inicio: number } | null => {
+    const atual = termoDe("@", 3);
+    if (!atual) return null;
+
+    // Menção já resolvida: o texto após o `@` começa com o nome de alguém que
+    // foi escolhido.
+    for (const pessoa of escolhidos.values()) {
+      if (atual.termo.startsWith(pessoa.nome_completo)) return null;
+    }
+    return atual;
+  };
+
+  /** Termo após o último `/` — busca por demanda. */
+  const termoDemanda = (): { termo: string; inicio: number } | null => {
+    if (!opcoes.demandas?.length) return null;
+    // Duas palavras bastam para achar um título; mais que isso é frase com
+    // barra no meio ("entrada/saída"), não busca.
+    return termoDe("/", 2);
   };
 
   const fecharSugestoes = (): void => {
@@ -124,7 +170,37 @@ export function criarCampoMencao(
     indiceAtivo = 0;
   };
 
+  /** Linha da lista: rótulo em cima, apoio embaixo — igual nos dois modos. */
+  const opcao = (
+    sugestao: Sugestao,
+    i: number,
+    principal: Node | string,
+    apoio: string,
+  ): HTMLElement =>
+    h(
+      "button",
+      {
+        type: "button",
+        class: `mencao__opcao${i === indiceAtivo ? " mencao__opcao--ativa" : ""}`,
+        on: {
+          mousedown: (ev: Event) => {
+            // mousedown em vez de click: o blur da textarea fecharia a lista
+            // antes do clique completar.
+            ev.preventDefault();
+            selecionar(sugestao);
+          },
+        },
+      },
+      h("span", { class: "mencao__nome" }, principal),
+      h("span", { class: "mencao__cargo" }, apoio),
+    );
+
   const desenharSugestoes = (): void => {
+    // `/` primeiro: o `@` casa em qualquer texto anterior da mesma linha, e
+    // uma barra digitada depois de uma menção resolvida cairia no modo pessoa.
+    const daDemanda = termoDemanda();
+    if (daDemanda) return desenharDemandas(daDemanda.termo);
+
     const atual = termoAtual();
     if (!atual) return fecharSugestoes();
 
@@ -132,7 +208,8 @@ export function criarCampoMencao(
     candidatos = diretorio
       .filter((p) => !escolhidos.has(p.id))
       .filter((p) => !alvo || normalizar(p.nome_completo).includes(alvo))
-      .slice(0, 6);
+      .slice(0, 6)
+      .map((pessoa) => ({ tipo: "pessoa" as const, pessoa }));
 
     if (candidatos.length === 0) return fecharSugestoes();
 
@@ -141,29 +218,20 @@ export function criarCampoMencao(
 
     montar(
       sugestoes,
-      ...candidatos.map((p, i) =>
-        h(
-          "button",
-          {
-            type: "button",
-            class: `mencao__opcao${i === indiceAtivo ? " mencao__opcao--ativa" : ""}`,
-            on: {
-              mousedown: (ev: Event) => {
-                // mousedown em vez de click: o blur da textarea fecharia a
-                // lista antes do clique completar.
-                ev.preventDefault();
-                selecionar(p);
-              },
-            },
-          },
-          // Insígnia e cargo só aparecem para quem recebeu o diretório
-          // completo — a equipe de TI. Solicitante vem de
-          // `diretorio_mencoes`, que entrega apenas id e nome: sem esses
-          // campos a linha mostra o nome e nada mais, em vez de inventar
-          // hierarquia que a pessoa não tem permissão de saber.
+      ...candidatos.map((s, i) => {
+        const p = s.tipo === "pessoa" ? s.pessoa : null;
+        if (!p) return h("span");
+        // Insígnia e cargo só aparecem para quem recebeu o diretório completo
+        // — a equipe de TI. Solicitante vem de `diretorio_mencoes`, que
+        // entrega apenas id e nome: sem esses campos a linha mostra o nome e
+        // nada mais, em vez de inventar hierarquia que a pessoa não tem
+        // permissão de saber.
+        return opcao(
+          s,
+          i,
           h(
             "span",
-            { class: "mencao__nome" },
+            {},
             p.hierarquia
               ? insigniaHierarquia(p.hierarquia, {
                   nome: p.nome_completo,
@@ -173,30 +241,65 @@ export function criarCampoMencao(
             p.hierarquia ? " " : null,
             p.nome_completo,
           ),
-          h(
-            "span",
-            { class: "mencao__cargo" },
-            [p.cargo, p.equipe_nome].filter(Boolean).join(" · ") || "—",
-          ),
-        ),
+          [p.cargo, p.equipe_nome].filter(Boolean).join(" · ") || "—",
+        );
+      }),
+    );
+  };
+
+  const desenharDemandas = (termo: string): void => {
+    const alvo = normalizar(termo);
+    candidatos = (opcoes.demandas ?? [])
+      // Casa por código E por título: quem lembra do número digita o número,
+      // quem lembra do assunto digita o assunto.
+      .filter(
+        (d) =>
+          !alvo ||
+          normalizar(d.codigo).includes(alvo) ||
+          normalizar(d.titulo).includes(alvo),
+      )
+      .slice(0, 6)
+      .map((demanda) => ({ tipo: "demanda" as const, demanda }));
+
+    if (candidatos.length === 0) return fecharSugestoes();
+
+    indiceAtivo = Math.min(indiceAtivo, candidatos.length - 1);
+    sugestoes.style.display = "block";
+
+    montar(
+      sugestoes,
+      ...candidatos.map((s, i) =>
+        s.tipo === "demanda"
+          ? opcao(s, i, s.demanda.titulo, s.demanda.codigo)
+          : h("span"),
       ),
     );
   };
 
-  const selecionar = (pessoa: PessoaMencao): void => {
-    const atual = termoAtual();
+  const selecionar = (sugestao: Sugestao): void => {
+    const atual =
+      sugestao.tipo === "pessoa" ? termoAtual() : termoDemanda();
     if (!atual) return;
 
     const antes = area.value.slice(0, atual.inicio);
     const depois = area.value.slice(area.selectionStart);
-    const inserido = `@${pessoa.nome_completo} `;
+    // Na demanda o que entra é o CÓDIGO puro, sem a barra: o
+    // `texto-mencao.ts` já reconhece `DEM-2026-000014` e o transforma em link
+    // para a demanda. A barra é só o atalho de digitação.
+    const inserido =
+      sugestao.tipo === "pessoa"
+        ? `@${sugestao.pessoa.nome_completo} `
+        : `${sugestao.demanda.codigo} `;
 
     area.value = antes + inserido + depois;
     const cursor = antes.length + inserido.length;
     area.setSelectionRange(cursor, cursor);
 
-    escolhidos.set(pessoa.id, pessoa);
-    desenharMarcados();
+    if (sugestao.tipo === "pessoa") {
+      escolhidos.set(sugestao.pessoa.id, sugestao.pessoa);
+      desenharMarcados();
+    }
+
     fecharSugestoes();
     area.focus();
   };
@@ -236,7 +339,9 @@ export function criarCampoMencao(
     h(
       "div",
       { class: "campo__ajuda" },
-      "Digite @ para mencionar um colega — quem for mencionado recebe notificação.",
+      opcoes.demandas?.length
+        ? "@ menciona um colega, que recebe notificação · / cita uma demanda pelo número ou pelo título."
+        : "Digite @ para mencionar um colega — quem for mencionado recebe notificação.",
     ),
   );
 

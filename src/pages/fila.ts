@@ -8,8 +8,14 @@ import { h, montar } from "@/lib/dom";
 import { listarChamados } from "@/lib/api";
 import { avaliarSla, STATUS_PAUSADOS } from "@/lib/formato";
 import { POLITICAS_SLA } from "@/lib/prioridade";
-import { tabelaChamados } from "@/components/tabela-chamados";
-import type { ChamadoEnriquecido, Prioridade, Perfil } from "@/types/dominio";
+import { blocoDemandas, tabelaChamados } from "@/components/tabela-chamados";
+import { listarDemandas } from "@/lib/demandas";
+import type {
+  ChamadoEnriquecido,
+  DemandaEnriquecida,
+  Prioridade,
+  Perfil,
+} from "@/types/dominio";
 
 const PRIORIDADES: Prioridade[] = ["P1", "P2", "P3", "P4"];
 
@@ -65,6 +71,25 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
     on: { input: () => desenhar() },
   }) as HTMLInputElement;
 
+  /**
+   * Demandas carregadas UMA vez, não a cada redesenho.
+   *
+   * Os filtros da fila são de chamado — período, prioridade, encerrados — e
+   * nenhum deles recorta demanda. Refazer a consulta a cada tecla da busca
+   * seria uma ida ao banco para devolver sempre a mesma lista.
+   */
+  let demandas: DemandaEnriquecida[] = [];
+  void listarDemandas()
+    .then((lista) => {
+      demandas = lista;
+      // Chegou depois do primeiro desenho: repinta para o bloco aparecer.
+      if (area.childElementCount > 0) desenhar();
+    })
+    .catch(() => {
+      // Demanda é acessório na fila: falhar aqui não pode derrubar os
+      // chamados, que são o conteúdo da tela.
+    });
+
   const desenhar = (): void => {
     aguardando(area, "tabela");
     void listarChamados({
@@ -79,6 +104,7 @@ export function renderizarFila(alvo: HTMLElement, perfil: Perfil): void {
         area,
         metricas(chamados),
         painel(chamados),
+        blocoDemandas({ demandas, perfilId: perfil.id }),
         filtros(),
         filtroTag
           ? h(

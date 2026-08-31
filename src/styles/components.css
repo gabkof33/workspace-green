@@ -75,6 +75,13 @@
   gap: 5px;
   margin-bottom: var(--s-4);
 }
+
+/* Interruptor como campo de formulário: mesma margem de baixo do `.campo`,
+   para que ele caia no ritmo vertical dos outros em vez de encostar no que
+   vem depois. A linha em si (flex e vão de 12px) é do componente. */
+.campo-interruptor {
+  margin-bottom: var(--s-4);
+}
 .campo__rotulo {
   font-size: var(--t-base);
   font-weight: 600;
@@ -286,6 +293,191 @@
 }
 .metrica--ok .metrica__valor {
   color: var(--c-ok);
+}
+
+/* ==========================================================================
+   Painel de governança — hierarquia em três pesos
+   ==========================================================================
+   O painel era uma grade de dezesseis `.metrica` do mesmo tamanho. Grade
+   uniforme não tem hierarquia: o que exige ação hoje fica com o mesmo peso do
+   que nem foi cadastrado ainda. Aqui há três pesos declarados — faixa de ação
+   (grande), gráficos (médio) e a lista densa (pequeno) — mais a lista de
+   implantação, que é pendência de cadastro, não métrica ruim.
+
+   Raio e anel vêm dos tokens do DS; cor de estado vem da paleta de prioridade
+   da aplicação (`--c-p1`, `--c-alerta`), que é o mesmo código de cor da fila
+   e da tabela de SLA. */
+
+.painel-acao__faixa {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 760px) {
+  .painel-acao__faixa {
+    grid-template-columns: 1fr;
+  }
+}
+
+.painel-acao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  /* Borda esquerda grossa é o que carrega o estado: reservada desde o repouso
+     para que ligar o alerta não empurre o texto um pixel. */
+  border: 1px solid var(--c-line);
+  border-left: 3px solid var(--c-line);
+  border-radius: var(--ds-radius-lg);
+  background: var(--c-surface);
+  padding: var(--s-3) var(--s-4);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.painel-acao:hover {
+  background: var(--ds-bg-subtle);
+  border-color: var(--ds-ring-secondary);
+}
+.painel-acao:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.painel-acao__rotulo {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--c-muted);
+}
+.painel-acao__valor {
+  font-family: var(--f-display);
+  /* Duas vezes a `.metrica`: é o número que se lê do outro lado da sala. */
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  /* Zero é notícia boa e fica quieto — cinza, não verde comemorativo. */
+  color: var(--c-muted);
+}
+.painel-acao__nota {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--c-muted);
+}
+
+.painel-acao--pendente {
+  border-left-color: var(--c-alerta);
+}
+.painel-acao--pendente .painel-acao__valor {
+  color: var(--c-alerta);
+}
+/* Prazo estourado não é aviso, é dívida: o primeiro da faixa sobe para P1. */
+.painel-acao__faixa > .painel-acao--pendente:first-child {
+  border-left-color: var(--c-p1);
+}
+.painel-acao__faixa > .painel-acao--pendente:first-child .painel-acao__valor {
+  color: var(--c-p1);
+}
+
+/* --- Lista densa: o resto dos números, visível e quieto --- */
+.painel-secundario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  /* O fundo é a própria grade: o `gap` de 1px vira a linha entre as células,
+     sem uma borda por item que dobraria de espessura nos encontros. */
+  background: var(--c-line);
+  border: 1px solid var(--c-line);
+  border-radius: var(--ds-radius-md);
+  overflow: hidden;
+}
+.painel-secundario__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "rotulo valor"
+    "nota   valor";
+  align-items: baseline;
+  column-gap: var(--s-3);
+  background: var(--c-surface);
+  padding: 9px var(--s-3) 10px;
+}
+.painel-secundario__rotulo {
+  grid-area: rotulo;
+  font-size: 12px;
+  font-weight: 600;
+}
+.painel-secundario__valor {
+  grid-area: valor;
+  font-family: var(--f-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.painel-secundario__nota {
+  grid-area: nota;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--c-muted);
+}
+
+/* --- Implantação: o que ainda não existe --- */
+.painel-implantacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.painel-implantacao__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  /* Tracejado é o vocabulário de vazio do DS: diz "aqui falta conteúdo", não
+     "aqui houve erro". */
+  border: 1px dashed var(--ds-ring-secondary);
+  border-radius: var(--ds-radius-md);
+  background: none;
+  padding: var(--s-3);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.painel-implantacao__item:hover {
+  border-style: solid;
+  background: var(--ds-bg-subtle);
+}
+.painel-implantacao__item:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.painel-implantacao__texto {
+  font-size: 13px;
+  font-weight: 600;
+}
+.painel-implantacao__texto::after {
+  content: " →";
+  color: var(--c-muted);
+}
+.painel-implantacao__porque {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--c-muted);
+}
+
+/* Prioridade sem chamado no período: presente na tabela, mas sem peso. */
+.painel-sla__vazia td {
+  opacity: 0.62;
 }
 
 /* --- Selo de prioridade --- */
@@ -3688,7 +3880,9 @@ button.tags__marca:hover {
   stroke: var(--c-accent);
   stroke-width: 2.4;
   opacity: 1;
-  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--c-accent) 45%, transparent));
+  filter: drop-shadow(
+    0 0 2px color-mix(in srgb, var(--c-accent) 45%, transparent)
+  );
 }
 .grafo__seta {
   fill: var(--c-ink-2);
@@ -3697,7 +3891,10 @@ button.tags__marca:hover {
 .grafo__no {
   stroke-width: 2;
   cursor: pointer;
-  transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    filter 0.2s ease;
 }
 .grafo__no:hover,
 .grafo__no:focus,
@@ -3712,7 +3909,9 @@ button.tags__marca:hover {
 }
 .grafo__no--ativo {
   stroke-width: 3;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent) 45%, transparent));
+  filter: drop-shadow(
+    0 0 4px color-mix(in srgb, var(--c-accent) 45%, transparent)
+  );
 }
 .grafo__rotulo {
   fill: var(--c-ink-2);
@@ -3930,7 +4129,6 @@ button.tags__marca:hover {
   text-align: center;
 }
 
-
 /* --- Mapa de ruas --- */
 
 .rua__moldura {
@@ -3938,7 +4136,11 @@ button.tags__marca:hover {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--c-ink-2) 28%, transparent);
   border-radius: 10px;
-  background: radial-gradient(circle at 22% 50%, color-mix(in srgb, var(--c-accent) 7%, transparent), transparent 26%);
+  background: radial-gradient(
+    circle at 22% 50%,
+    color-mix(in srgb, var(--c-accent) 7%, transparent),
+    transparent 26%
+  );
 }
 .rua__fundo {
   opacity: 0.62;
@@ -3954,10 +4156,14 @@ button.tags__marca:hover {
   opacity: 0.72;
   cursor: zoom-in;
   pointer-events: stroke;
-  transition: opacity 0.2s ease, stroke-width 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    stroke-width 0.2s ease;
 }
 @keyframes rua-fluxo-tracejado {
-  to { stroke-dashoffset: -4.1; }
+  to {
+    stroke-dashoffset: -4.1;
+  }
 }
 /* Faixa central por cima do asfalto — as duas juntas é que leem como rua. */
 .rua__faixa {
@@ -3991,11 +4197,15 @@ button.tags__marca:hover {
   stroke-width: 0.75;
   stroke-opacity: 0.72;
   filter: drop-shadow(0 5px 7px rgb(0 0 0 / 0.16));
-  transition: opacity 0.2s ease, stroke-width 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    stroke-width 0.2s ease;
 }
 .rua__predio--hub {
   fill: var(--c-accent);
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c-accent) 28%, transparent));
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--c-accent) 28%, transparent)
+  );
 }
 .rua__hub-nucleo {
   fill: var(--c-surface);
@@ -4010,11 +4220,30 @@ button.tags__marca:hover {
   font-family: var(--f-mono);
   pointer-events: none;
 }
-.rua__hub-rotulo { font-size: 3px; font-weight: 800; letter-spacing: 0.28px; }
-.rua__hub-subtitulo { fill: var(--c-ink-2); font-size: 2.25px; letter-spacing: 0.6px; }
-.rua__servico-rotulo { font-size: 3px; font-weight: 700; }
-.rua__servico-meta { fill: var(--c-ink-2); font-size: 2.15px; }
-.rua__servico-valor { fill: var(--c-ink); font-size: 4.6px; font-weight: 800; dominant-baseline: middle; }
+.rua__hub-rotulo {
+  font-size: 3px;
+  font-weight: 800;
+  letter-spacing: 0.28px;
+}
+.rua__hub-subtitulo {
+  fill: var(--c-ink-2);
+  font-size: 2.25px;
+  letter-spacing: 0.6px;
+}
+.rua__servico-rotulo {
+  font-size: 3px;
+  font-weight: 700;
+}
+.rua__servico-meta {
+  fill: var(--c-ink-2);
+  font-size: 2.15px;
+}
+.rua__servico-valor {
+  fill: var(--c-ink);
+  font-size: 4.6px;
+  font-weight: 800;
+  dominant-baseline: middle;
+}
 
 .rua__svg--foco .rua__asfalto:not(.rua__asfalto--ativo) {
   opacity: 0.12;

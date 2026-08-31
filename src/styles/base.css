@@ -106,3 +106,60 @@ code,
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   Troca de tema
+   ==========================================================================
+   Trocar `data-tema` repinta a página inteira num quadro só. A View
+   Transitions API tira uma foto do antes e do depois e as empilha; o
+   `shell.ts` anima o recorte da de cima num círculo que cresce a partir do
+   interruptor, e o resultado é o tema se espalhando pela tela a partir de onde
+   a pessoa tocou.
+
+   Aqui o trabalho é só desligar o que o navegador faz por conta: o
+   esmaecimento cruzado padrão, que é justamente o efeito genérico que se quer
+   evitar, e que ainda por cima brigaria com o recorte, deixando as duas telas
+   meio transparentes durante a passagem. As duas camadas ficam paradas,
+   opacas e empilhadas — quem se move é o recorte. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  /* O padrão é `plus-lighter`, feito para somar duas camadas em esmaecimento.
+     Com as duas opacas ele estoura as cores claras para branco. */
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Reserva para quem não tem a API (Firefox, Safari antigo): sem as fotos, o
+   jeito é animar a cor propriedade a propriedade. Só enquanto a classe está
+   posta — permanente, isto atrasaria todo hover da aplicação.
+
+   O interruptor fica DE FORA: sem as fotos ele está visível durante a troca, e
+   esta regra sobreporia as transições próprias dele (que têm durações e
+   retardos diferentes entre si, e é disso que vive a animação dele). */
+.tema-em-troca *:not(.ds-interruptor, .ds-interruptor *) {
+  transition:
+    background-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* O `shell.ts` já nem inicia a transição neste caso; a regra existe para o
+     caso de a preferência mudar com uma troca em andamento. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  .tema-em-troca *:not(.ds-interruptor, .ds-interruptor *) {
+    transition: none;
+  }
+}

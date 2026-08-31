@@ -16,6 +16,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
+    <!-- Geist é a fonte de TODO texto da aplicação, e o `@font-face` que a
+         declara só é descoberto depois de o navegador baixar e parsear o CSS
+         do bundle. Sem este preload o primeiro paint sai na fonte de reserva
+         e troca depois (o `font-display: swap` em ação), o que mexe o texto
+         inteiro uma vez por visita.
+
+         Só a sans: a mono é para número e rótulo pequeno, e disputar banda
+         com o bundle por ela atrasaria o que aparece primeiro. -->
+    <link
+      rel="preload"
+      href="/fonts/Geist-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
     <!-- Estilo da tela de carregamento, embutido de propósito.
          O CSS da aplicação chega junto com o bundle; até lá este bloco seria
          texto cru encostado no topo da página. Inline, ele já nasce pronto no
@@ -125,14 +141,25 @@
            de tela. -->
       <div class="boot" role="status" aria-label="Carregando a Central Green">
         <div class="boot__anel">
-          <svg class="boot__giro" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg
+            class="boot__giro"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <circle
-              cx="12" cy="12" r="9"
-              stroke="currentColor" stroke-width="3" opacity="0.2"
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              stroke-width="3"
+              opacity="0.2"
             />
             <path
               d="M21 12a9 9 0 0 0-9-9"
-              stroke="currentColor" stroke-width="3" stroke-linecap="round"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
             />
           </svg>
           <img src="/igreen-g.png" alt="" width="30" height="40" />

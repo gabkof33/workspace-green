@@ -209,11 +209,16 @@
 .rail__item[aria-current="page"] svg {
   opacity: 1;
 }
+/* 16px é o preset `sm` do Icon do DS — o tamanho certo para um menu denso.
+ * A opacidade de repouso caiu de 0.75 para 0.62 quando os ícones deixaram de
+ * ser contorno de 1.8px e passaram a ser silhueta do DS: sólido carrega mais
+ * tinta na mesma caixa, e no valor antigo a coluna de ícones competia com o
+ * rótulo que ela deveria acompanhar. O item ativo continua em 1. */
 .rail__item svg {
   width: 16px;
   height: 16px;
   flex: none;
-  opacity: 0.75;
+  opacity: 0.62;
 }
 .rail__contagem {
   margin-left: auto;
@@ -474,4 +479,21 @@
   .topo {
     padding: var(--s-4);
   }
+}
+
+/* O interruptor de tema mora na coluna dos itens do rail, com o mesmo recuo —
+   `7px var(--s-2)` — para que o trilho comece onde começam os ícones acima.
+   O rótulo herda a cor do menu, que é a única coisa que o `.ds-rotulo` não
+   pode saber: ali o fundo é o verde escuro da marca, não a superfície do DS. */
+.rail__interruptor {
+  padding: 7px var(--s-2);
+}
+/* O tamanho e o peso do rótulo acompanham os itens do rail, não a spec do
+   `Label` (13px/600), que é feita para formulário. A cor vem por herança. */
+.rail__interruptor {
+  color: var(--c-menu-ink-2);
+}
+.rail__interruptor .ds-rotulo {
+  font-size: var(--t-base);
+  font-weight: 500;
 }

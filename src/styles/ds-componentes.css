@@ -1,46 +1,3 @@
-/**
- * Peças recorrentes da Central Green na base do iGreen DS — layer OPT-IN.
- *
- * Por que este arquivo existe: tabela aparece em 14 arquivos (11 páginas + o
- * `esqueleto`, a `legenda-servicos` e a `tabela-chamados` compartilhada), e
- * chip de prioridade/status aparece em tabela E em card. O tratamento do DS
- * nasceu dentro de `.fila-ds`, onde só a fila o alcançava — copiar pra cada
- * página nova seria o começo de cinco versões divergentes da mesma tabela.
- *
- * Como usar: some a classe do layer ao contêiner raiz da página.
- *
- *   const area = h("div", { class: "pilha tabela-ds chips-ds formulario-ds" });
- *
- * Os layers, na ordem em que aparecem abaixo:
- *   `tabela-ds`      grade de dados, tags da linha, barra de SLA
- *   `chips-ds`       rótulos de prioridade e de status
- *   `formulario-ds`  campo, entrada, área de texto, seleção e botão
- *   `feedback-ds`    aviso e estado vazio
- *
- * Cada layer é independente — dá pra adotar a tabela numa página sem adotar os
- * chips, e vice-versa. Nada aqui vale sem a classe, então acrescentar este
- * arquivo ao projeto não muda **nenhuma** página que não o peça.
- *
- * A exceção são os componentes `.ds-*` no fim — `ds-alternancia` (ToggleGroup),
- * `ds-selecao` (Select), `ds-periodo`/`ds-calendario` (DatePicker range),
- * `ds-barra-filtros`/`ds-filtro-chip` (toolbar de filtros do DataTable) e a
- * superfície `ds-flutuante` que os dois últimos painéis dividem. São nomes
- * NOVOS, que nenhuma folha base conhece, então não precisam de opt-in pra não
- * vazar — não há o que vazar. É a mesma regra dos presets `.ds-*` do
- * `ds-tokens.css`, e é o que permite usá-los numa página ainda legada.
- *
- * Consome só `--ds-*` (ver `ds-tokens.css`).
- *
- * ⚠️ A `tabelaChamados` é dividida entre `fila.ts` e `meus.ts`. O opt-in é por
- * PÁGINA, não pelo componente: é isso que permite converter uma e deixar a
- * outra intacta, sem tocar no componente compartilhado nem passar flag por
- * parâmetro.
- */
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   .tabela-ds — grade de dados
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .tabela-ds .tabela-envolucro {
   border: 1px solid var(--ds-border-table);
   border-radius: var(--ds-radius-lg);
@@ -1823,4 +1780,308 @@
   display: grid;
   place-items: center;
   padding: var(--ds-pad-6xl) var(--ds-pad-2xl);
+}
+
+/* ── Demandas na fila ────────────────────────────────────────────────────────
+ * Linha compacta, não tabela: o bloco responde "tem demanda me esperando?" de
+ * relance, e o quadro continua sendo onde se trabalha nelas. Nome novo, sem
+ * opt-in, como os outros `.ds-*` — só que aqui o prefixo é o da tela. */
+
+.demanda-fila__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.demanda-fila__grupo + .demanda-fila__grupo {
+  margin-top: var(--ds-gp-xl);
+}
+
+.demanda-fila__rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-md);
+  margin-bottom: var(--ds-gp-xs);
+  font-family: var(--ds-font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-fg-subtle);
+}
+
+.demanda-fila__conta {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-muted);
+  color: var(--ds-fg-muted);
+  font-size: 0.5625rem;
+  letter-spacing: 0;
+}
+
+.demanda-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gp-xl);
+  width: 100%;
+  padding: var(--ds-pad-md) var(--ds-pad-lg);
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-fg-default);
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.demanda-fila:hover {
+  background: var(--ds-bg-muted-hover);
+}
+
+.demanda-fila:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+.demanda-fila__codigo {
+  flex: none;
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  color: var(--ds-fg-muted);
+}
+
+.demanda-fila__titulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* O prazo é a razão de a linha existir: alinhado à direita, tabular, e só
+   muda de cor quando já passou. */
+.demanda-fila__prazo {
+  flex: none;
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  color: var(--ds-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.demanda-fila__prazo--atrasada {
+  color: var(--ds-fg-danger);
+  font-weight: 600;
+}
+
+.demanda-fila__mais {
+  align-self: flex-start;
+  margin-top: var(--ds-gp-xs);
+  padding: 0 var(--ds-pad-lg);
+  border: 0;
+  background: transparent;
+  color: var(--ds-fg-brand);
+  font-family: var(--ds-font-sans);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Interruptor — o `Switch` + `Label` do DS
+   ==========================================================================
+   A base é o `switch.tsx` do DS, número por número: trilho 42×24 em raio
+   cheio, apagado em `bg-emphasis` (que os tokens já reescrevem no escuro, o
+   `bg-accent` da spec) e aceso em `bg-brand`; polegar 20×20 branco com sombra
+   de 1px, viajando de 2px a 20px em 180ms `cubic-bezier(0.4, 0, 0.2, 1)`; cor
+   do trilho em 150ms; foco no anel de marca.
+
+   O que é NOSSO são as camadas por cima — este interruptor liga o tema
+   escuro, e um disco branco deslizando não diz isso. Então:
+
+     · o disco é MORDIDO por um círculo da cor do trilho, que entra pelo canto
+       e o transforma em lua crescente;
+     · o disco gira enquanto viaja, com curva de mola (ultrapassa e volta), o
+       que faz a lua chegar tombando em vez de escorregando;
+     · três estrelas de tamanhos diferentes acendem em cascata no lado que o
+       polegar desocupa.
+
+   Cada efeito tem duração e retardo PRÓPRIOS, e é disso que vem a sensação de
+   uma coisa só se acomodando em vez de três coisas mudando juntas. A viagem
+   do polegar e a rotação do disco moram em elementos separados de propósito:
+   as duas são `transform`, e no mesmo elemento seriam obrigadas a compartilhar
+   a mesma transição.
+
+   Tudo isto é enfeite com orçamento: em `prefers-reduced-motion` cai fora
+   inteiro, e o estado continua legível por posição, cor, forma e estrelas. */
+
+.ds-interruptor__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.ds-interruptor {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-emphasis);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.ds-interruptor[data-state="checked"] {
+  background: var(--ds-bg-brand);
+}
+.ds-interruptor:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+.ds-interruptor:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- Polegar: só a viagem, no tempo exato do DS --- */
+.ds-interruptor__polegar {
+  position: absolute;
+  left: 0;
+  display: block;
+  width: 20px;
+  height: 20px;
+  transform: translateX(2px);
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ds-interruptor[data-state="checked"] .ds-interruptor__polegar {
+  transform: translateX(20px);
+}
+
+/* --- Disco: a rotação e a mordida que fazem a lua --- */
+.ds-interruptor__disco {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--ds-radius-full);
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  /* Recorta a mordida no círculo. Não afeta a sombra, que é desenhada fora da
+     caixa e não é cortada por `overflow`. */
+  overflow: hidden;
+  /* Mola: 1.56 no terceiro ponto passa de 1 e volta. É o que dá o tombo. */
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: rotate(-140deg);
+}
+.ds-interruptor[data-state="checked"] .ds-interruptor__disco {
+  transform: rotate(0deg);
+}
+
+.ds-interruptor__disco::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: inherit;
+  /* A cor do trilho aceso: a mordida tem de parecer o fundo aparecendo, não
+     uma mancha em cima do disco. */
+  background: var(--ds-bg-brand);
+  /* Fora do disco no repouso — e como o disco recorta, ela nem existe. */
+  transform: translate(14px, -14px);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1) 60ms;
+}
+.ds-interruptor[data-state="checked"] .ds-interruptor__disco::after {
+  transform: translate(0, 0);
+}
+
+/* --- Céu: acende no lado que o polegar desocupa --- */
+.ds-interruptor__ceu {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ds-interruptor__estrela {
+  position: absolute;
+  border-radius: var(--ds-radius-full);
+  /* Branco literal, não `--ds-fg-on-brand`: no escuro esse token é PRETO
+     (é o texto sobre o verde claro da marca), e estrela preta no céu não
+     acende. O trilho aqui é sempre o verde escuro do estado aceso. */
+  background: #fff;
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 260ms ease,
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ds-interruptor[data-state="checked"] .ds-interruptor__estrela {
+  opacity: 0.9;
+  transform: scale(1);
+}
+/* Tamanhos e posições diferentes, e cascata de 60ms entre elas: estrela igual
+   e simultânea lê como três pontos, não como céu. */
+.ds-interruptor__estrela--1 {
+  top: 7px;
+  left: 7px;
+  width: 2.5px;
+  height: 2.5px;
+  transition-delay: 130ms;
+}
+.ds-interruptor__estrela--2 {
+  top: 14px;
+  left: 13px;
+  width: 1.5px;
+  height: 1.5px;
+  transition-delay: 190ms;
+}
+.ds-interruptor__estrela--3 {
+  top: 5px;
+  left: 16px;
+  width: 2px;
+  height: 2px;
+  transition-delay: 250ms;
+}
+
+/* --- Rótulo: o `Label` do DS (13px / 600 / tracking 0.01em) --- */
+.ds-rotulo {
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  /* A spec do `Label` do DS diz `text-fg-default`, que lá é a tinta padrão
+     da interface. Aqui isso é `inherit`, e não o token: este rótulo aparece
+     tanto sobre o verde escuro do menu quanto sobre o cartão claro de um
+     formulário, e `--ds-fg-default` só está certo no segundo. Herdar é o que
+     traduz a intenção da spec para uma aplicação que tem mais de uma
+     superfície. */
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-interruptor,
+  .ds-interruptor__polegar,
+  .ds-interruptor__disco,
+  .ds-interruptor__disco::after,
+  .ds-interruptor__estrela {
+    transition-duration: 0ms;
+    transition-delay: 0ms;
+  }
+  /* Sem a mola, o giro do disco não comunica nada e só torceria a lua. */
+  .ds-interruptor__disco,
+  .ds-interruptor[data-state="checked"] .ds-interruptor__disco {
+    transform: none;
+  }
 }

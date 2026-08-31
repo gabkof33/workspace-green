@@ -66,16 +66,34 @@
   --c-neutro: #5a6f62;
   --c-neutro-wash: #e3eae6;
 
-  /* --- Tipografia --- */
+  /* --- Tipografia ---
+   * Geist e Geist Mono, que são a fonte do DS. O `@font-face` mora em
+   * `ds-tokens.css` e os `.woff2` variáveis (100–900) em `public/fonts/`.
+   *
+   * Antes daqui o app tinha DUAS tipografias: as telas com camada `*-ds`
+   * (abrir, login, conversas, fila, mapa) já herdavam Geist do
+   * `--ds-font-sans`, e todo o resto ficava com Segoe UI. Os dois arquivos
+   * baixavam em toda visita de qualquer forma — pagávamos 140 kB por uma
+   * fonte que a maior parte do app não usava, e ainda parecíamos dois
+   * produtos costurados.
+   *
+   * `display` e `body` eram os dois tamanhos ópticos do Segoe UI Variable
+   * (Display para título, Text para corpo). O Geist é uma família só, então
+   * ambos apontam para ela; os tokens continuam separados porque o contraste
+   * de título hoje é peso e entrelinha, e é aí que ele deve ficar.
+   *
+   * A pilha de reserva é a do DS, com Segoe UI mantido à frente: se o
+   * `.woff2` falhar, esta é máquina Windows e o desenho mais próximo é o de
+   * antes, não o `system-ui` genérico. */
   --f-display:
-    "Segoe UI Variable Display", system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+    "Geist", "Segoe UI Variable Display", system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   --f-body:
-    "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+    "Geist", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   --f-mono:
-    "Cascadia Code", "Cascadia Mono", ui-monospace, Consolas, "SF Mono", Menlo,
-    monospace;
+    "Geist Mono", "Cascadia Code", "Cascadia Mono", ui-monospace, Consolas,
+    "SF Mono", Menlo, monospace;
 
   --t-xs: 11px;
   --t-sm: 12.5px;

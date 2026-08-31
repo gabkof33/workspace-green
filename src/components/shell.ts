@@ -16,6 +16,7 @@ import {
   marcarTodasLidas,
 } from "@/lib/demandas";
 import { tempoRelativo } from "@/lib/formato";
+import { criarInterruptor } from "@/components/interruptor";
 import { insigniaHierarquia, ROTULOS_SENIORIDADE } from "@/components/insignia";
 import { gravar, ler, remover } from "@/lib/armazenamento";
 import type { NotificacaoResumo, Perfil } from "@/types/dominio";
@@ -110,23 +111,128 @@ const NAV_OPERACAO: ItemNav[] = [
   },
 ];
 
-function alternarTema(): void {
-  const raiz = document.documentElement;
-  const atual = raiz.getAttribute("data-tema");
-  const escuroDoSistema = window.matchMedia(
-    "(prefers-color-scheme: dark)",
-  ).matches;
-  const proximo =
-    atual === "escuro"
-      ? "claro"
-      : atual === "claro"
-        ? "escuro"
-        : escuroDoSistema
-          ? "claro"
-          : "escuro";
+const PREFERE_ESCURO = "(prefers-color-scheme: dark)";
 
-  raiz.setAttribute("data-tema", proximo);
-  gravar("tema", proximo);
+/**
+ * O tema em vigor AGORA, resolvendo a ausência de escolha.
+ *
+ * `data-tema` pode não existir: quem nunca escolheu segue o sistema, e é do
+ * sistema que a resposta tem de vir. Um botão podia se dar ao luxo de só
+ * inverter o que achasse; um interruptor mostra estado, e estado errado num
+ * interruptor é pior que nenhum.
+ */
+function escuroAgora(): boolean {
+  const atual = document.documentElement.getAttribute("data-tema");
+  if (atual === "escuro") return true;
+  if (atual === "claro") return false;
+  return window.matchMedia(PREFERE_ESCURO).matches;
+}
+
+/**
+ * Curva e duração da troca de tema.
+ *
+ * `cubic-bezier(0.4, 0, 0.2, 1)` é a mesma do polegar do interruptor e do
+ * resto do DS: sai rápido e freia no fim, que é como coisa com massa se
+ * move. Linear seria o "seco" — velocidade constante não existe no mundo, e
+ * o olho percebe isso como mecânico.
+ *
+ * 560ms é longo para uma animação de interface (o padrão da casa é 120–220),
+ * e é de propósito: a onda atravessa a tela inteira, e no tempo curto ela
+ * vira um estalo em vez de um movimento. É também o tempo que o interruptor
+ * leva para assentar (420ms do disco + 250ms de retardo da última estrela),
+ * então os dois terminam juntos.
+ */
+const CURVA_TEMA = "cubic-bezier(0.4, 0, 0.2, 1)";
+const DURACAO_TEMA = 560;
+
+/** `startViewTransition` não existe no Firefox nem no Safari antigo. */
+type DocumentoTalvezComTransicao = Omit<Document, "startViewTransition"> &
+  Partial<Pick<Document, "startViewTransition">>;
+
+/**
+ * Troca o tema com uma onda circular saindo de onde a troca foi pedida.
+ *
+ * Trocar `data-tema` repinta a página inteira no mesmo quadro: fundo, texto,
+ * bordas e gráficos saltam de um estado para o outro sem nada no meio. É
+ * legível, e é exatamente o que parece genérico.
+ *
+ * Com a View Transitions API o navegador tira uma foto do antes e do depois e
+ * as empilha. O CSS desliga o esmaecimento padrão (ver `base.css`) e aqui o
+ * recorte da foto de CIMA — a do tema novo — é aberto num círculo que cresce
+ * a partir do interruptor. O efeito é o tema se espalhando pela tela a partir
+ * de onde a pessoa tocou, e não uma tela substituindo a outra.
+ *
+ * Três caminhos, nesta ordem:
+ *
+ *   1. `prefers-reduced-motion` — troca e pronto. Quem pediu menos movimento
+ *      não deve receber a maior animação do app.
+ *   2. sem a API — transição de cor propriedade a propriedade, no CSS.
+ *   3. com a API — a onda.
+ *
+ * `origem` é o CENTRO DO CONTROLE, não a posição do ponteiro: acionado pelo
+ * teclado não há ponteiro, e a onda tem de sair do mesmo lugar nos dois
+ * casos.
+ */
+function definirTema(escuro: boolean, origem?: { x: number; y: number }): void {
+  const raiz = document.documentElement;
+
+  const aplicar = (): void => {
+    const valor = escuro ? "escuro" : "claro";
+    raiz.setAttribute("data-tema", valor);
+    gravar("tema", valor);
+  };
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    aplicar();
+    return;
+  }
+
+  const doc: DocumentoTalvezComTransicao = document;
+  if (typeof doc.startViewTransition !== "function") {
+    // A classe liga uma transição de cor ampla por um instante e sai. É um
+    // martelo — transição herdada por quase tudo —, e é por isso que ela não
+    // fica: ligada de forma permanente, atrasaria todo hover da aplicação.
+    raiz.classList.add("tema-em-troca");
+    aplicar();
+    window.setTimeout(
+      () => raiz.classList.remove("tema-em-troca"),
+      DURACAO_TEMA,
+    );
+    return;
+  }
+
+  const transicao = doc.startViewTransition(aplicar);
+
+  void transicao.ready
+    .then(() => {
+      const x = origem?.x ?? window.innerWidth / 2;
+      const y = origem?.y ?? window.innerHeight / 2;
+      // Até o canto MAIS DISTANTE: com qualquer raio menor a onda para antes
+      // de alcançar um pedaço da tela, e esse pedaço troca de tema de
+      // supetão no fim.
+      const raio = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y),
+      );
+
+      raiz.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${raio}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: DURACAO_TEMA,
+          easing: CURVA_TEMA,
+          pseudoElement: "::view-transition-new(root)",
+        },
+      );
+    })
+    .catch(() => {
+      // A transição pode ser abandonada (outra começa por cima, a aba some).
+      // O tema já foi aplicado no `aplicar()`; só a animação se perde.
+    });
 }
 
 export function aplicarTemaSalvo(): void {
@@ -389,6 +495,21 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
     return bloco;
   };
 
+  const interruptorTema = criarInterruptor({
+    id: "tema-escuro",
+    rotulo: "Tema escuro",
+    ligado: escuroAgora(),
+    aoMudar: (escuro, origem) => definirTema(escuro, origem),
+  });
+
+  // Quem nunca escolheu segue o sistema — e o sistema muda sozinho ao
+  // anoitecer, no Windows. Sem isto o interruptor ficaria mostrando o
+  // contrário do que a tela mostra, e só até alguém recarregar a página.
+  window.matchMedia(PREFERE_ESCURO).addEventListener("change", (ev) => {
+    if (document.documentElement.hasAttribute("data-tema")) return;
+    interruptorTema.definir(ev.matches);
+  });
+
   const rail = h(
     "aside",
     { class: "rail", id: "menu-lateral" },
@@ -447,12 +568,11 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
           ),
         ),
       ),
-      h(
-        "button",
-        { class: "rail__item", type: "button", on: { click: alternarTema } },
-        icone(ICONES.tema),
-        "Alternar tema",
-      ),
+      // O tema é liga/desliga, e por isso é interruptor e não botão: botão
+      // esconde em que estado a tela está, e obriga a olhar a tela para
+      // descobrir. Fica na mesma coluna dos itens do rail, com o recuo do
+      // ícone que ele não tem mais.
+      h("div", { class: "rail__interruptor" }, interruptorTema.elemento),
       h(
         "button",
         {
