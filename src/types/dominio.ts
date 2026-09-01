@@ -1101,3 +1101,168 @@ export interface KpisObservabilidade {
   p95_ms: number;
   usuarios_ativos: number;
 }
+
+/* ---------- Catálogo de serviços (administração) ---------- */
+
+/**
+ * A linha crua do catálogo, com os nomes das chaves estrangeiras resolvidos.
+ *
+ * Existe ao lado de `ServicoCatalogo` porque as duas têm público diferente:
+ * aquela é a projeção que o formulário de abertura consome (só serviço ativo,
+ * nome da equipe já resolvido), esta é o cadastro — inclui inativo, guarda os
+ * `*_id` que o `update` precisa e carrega `exige_aprovacao`, que a projeção
+ * nunca leu.
+ */
+export interface ServicoAdmin {
+  id: string;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  tipo: TipoChamado;
+  categoria: string;
+  subcategoria: string;
+  equipe_padrao_id: string | null;
+  equipe_nome: string | null;
+  sla_politica_id: string;
+  sla_prioridade: Prioridade | null;
+  impacto_padrao: Impacto;
+  urgencia_padrao: Urgencia;
+  exige_ativo: boolean;
+  exige_aprovacao: boolean;
+  aprovador_tipo: string | null;
+  artigo_kb_codigo: string | null;
+  visivel_portal: boolean;
+  ativo: boolean;
+  criado_em: string;
+  /** Chamados já abertos por este serviço — o que diz se ele é usado. */
+  chamados: number;
+}
+
+export interface RascunhoServico {
+  codigo: string;
+  nome: string;
+  descricao: string;
+  tipo: TipoChamado;
+  categoria: string;
+  subcategoria: string;
+  equipe_padrao_id: string;
+  sla_politica_id: string;
+  impacto_padrao: Impacto;
+  urgencia_padrao: Urgencia;
+  exige_ativo: boolean;
+  exige_aprovacao: boolean;
+  visivel_portal: boolean;
+}
+
+/* ---------- Mudanças (GMUD) ---------- */
+
+export type TipoMudanca = "padrao" | "normal" | "emergencial";
+
+export type RiscoMudanca = "baixo" | "medio" | "alto";
+
+export type StatusMudanca =
+  | "rascunho"
+  | "avaliacao"
+  | "aguardando_cab"
+  | "aprovada"
+  | "reprovada"
+  | "agendada"
+  | "em_implantacao"
+  | "implantada"
+  | "revertida"
+  | "cancelada";
+
+export type DecisaoCab = "aprovado" | "reprovado" | "mais_informacoes";
+
+export type ResultadoMudanca =
+  | "sucesso"
+  | "sucesso_com_ressalva"
+  | "revertida"
+  | "falhou";
+
+export interface Mudanca {
+  id: string;
+  codigo: string;
+  titulo: string;
+  descricao: string;
+  justificativa: string;
+  tipo_mudanca: TipoMudanca;
+  risco: RiscoMudanca;
+  status: StatusMudanca;
+  servico_id: string | null;
+  equipe_id: string | null;
+  solicitante_id: string;
+  responsavel_id: string | null;
+  plano_implantacao: string | null;
+  plano_rollback: string | null;
+  plano_teste: string | null;
+  janela_inicio: string | null;
+  janela_fim: string | null;
+  indisponibilidade_prevista: boolean;
+  comunicado: string | null;
+  chamado_id: string | null;
+  demanda_id: string | null;
+  /** Derivada no banco por `mudanca_exige_cab()`. Nunca escrita pela tela. */
+  exige_cab: boolean;
+  aprovada_em: string | null;
+  implantada_em: string | null;
+  resultado: ResultadoMudanca | null;
+  notas_encerramento: string | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export interface MudancaEnriquecida extends Mudanca {
+  servico_nome: string | null;
+  equipe_nome: string | null;
+  solicitante_nome: string;
+  responsavel_nome: string | null;
+  chamado_numero: string | null;
+  aprovacoes: number;
+  reprovacoes: number;
+}
+
+export interface VotoCab {
+  id: string;
+  mudanca_id: string;
+  aprovador_id: string;
+  aprovador_nome: string;
+  decisao: DecisaoCab;
+  comentario: string | null;
+  decidido_em: string;
+}
+
+export interface RascunhoMudanca {
+  titulo: string;
+  descricao: string;
+  justificativa: string;
+  tipo_mudanca: TipoMudanca;
+  risco: RiscoMudanca;
+  servico_id: string;
+  plano_implantacao: string;
+  plano_rollback: string;
+  plano_teste: string;
+  janela_inicio: string;
+  janela_fim: string;
+  indisponibilidade_prevista: boolean;
+  comunicado: string;
+  chamado_id: string;
+}
+
+/**
+ * Um evento da trilha de auditoria de uma mudança.
+ *
+ * Vem de `trilha_da_mudanca()`, que junta `mudancas`, `mudanca_aprovacoes` e
+ * `mudanca_ativos` numa linha do tempo só. Os dois JSONB são a linha inteira
+ * antes e depois — é deles que a tela deriva o que mudou em cada passo.
+ */
+export interface EventoTrilha {
+  id: number;
+  tabela: string;
+  operacao: "INSERT" | "UPDATE" | "DELETE";
+  ocorrido_em: string;
+  autor_id: string | null;
+  autor_nome: string | null;
+  valores_antes: Record<string, unknown> | null;
+  valores_depois: Record<string, unknown> | null;
+}

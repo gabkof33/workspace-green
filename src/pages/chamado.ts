@@ -2,7 +2,7 @@
 
 import { aguardando } from "@/components/esqueleto";
 import { confirmar, perguntar } from "@/components/dialogo";
-import { avisar, h, montar } from "@/lib/dom";
+import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
 import { botaoCopiarLink } from "@/components/copiar-link";
 import {
   corDaTag,
@@ -319,6 +319,7 @@ export function renderizarChamado(
                   type: "button",
                   on: { click: pedirExclusao },
                 },
+                icone(ICONES.excluir),
                 "Excluir chamado",
               ),
             ),

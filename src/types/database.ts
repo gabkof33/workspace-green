@@ -814,6 +814,22 @@ export type StatusArtigoDb =
   "rascunho" | "em_revisao" | "publicado" | "obsoleto";
 export type StatusErroDb =
   "identificado" | "com_contorno" | "em_correcao" | "resolvido";
+export type TipoMudancaDb = "padrao" | "normal" | "emergencial";
+export type RiscoMudancaDb = "baixo" | "medio" | "alto";
+export type DecisaoCabDb = "aprovado" | "reprovado" | "mais_informacoes";
+export type ResultadoMudancaDb =
+  "sucesso" | "sucesso_com_ressalva" | "revertida" | "falhou";
+export type StatusMudancaDb =
+  | "rascunho"
+  | "avaliacao"
+  | "aguardando_cab"
+  | "aprovada"
+  | "reprovada"
+  | "agendada"
+  | "em_implantacao"
+  | "implantada"
+  | "revertida"
+  | "cancelada";
 
 type RotinasRow = {
   id: string;
@@ -1149,6 +1165,92 @@ type CanalLeiturasInsert = {
   ultima_leitura_em?: string;
 };
 
+type MudancasRow = {
+  id: string;
+  codigo: string;
+  titulo: string;
+  descricao: string;
+  justificativa: string;
+  tipo_mudanca: TipoMudancaDb;
+  risco: RiscoMudancaDb;
+  status: StatusMudancaDb;
+  servico_id: string | null;
+  equipe_id: string | null;
+  solicitante_id: string;
+  responsavel_id: string | null;
+  plano_implantacao: string | null;
+  plano_rollback: string | null;
+  plano_teste: string | null;
+  janela_inicio: string | null;
+  janela_fim: string | null;
+  indisponibilidade_prevista: boolean;
+  comunicado: string | null;
+  chamado_id: string | null;
+  demanda_id: string | null;
+  /** Coluna gerada por `mudanca_exige_cab()` — fora do Insert de propósito. */
+  exige_cab: boolean;
+  aprovada_em: string | null;
+  implantada_em: string | null;
+  resultado: ResultadoMudancaDb | null;
+  notas_encerramento: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+type MudancasInsert = {
+  id?: string;
+  codigo?: string;
+  titulo: string;
+  descricao: string;
+  justificativa: string;
+  tipo_mudanca?: TipoMudancaDb;
+  risco?: RiscoMudancaDb;
+  status?: StatusMudancaDb;
+  servico_id?: string | null;
+  equipe_id?: string | null;
+  solicitante_id: string;
+  responsavel_id?: string | null;
+  plano_implantacao?: string | null;
+  plano_rollback?: string | null;
+  plano_teste?: string | null;
+  janela_inicio?: string | null;
+  janela_fim?: string | null;
+  indisponibilidade_prevista?: boolean;
+  comunicado?: string | null;
+  chamado_id?: string | null;
+  demanda_id?: string | null;
+  aprovada_em?: string | null;
+  implantada_em?: string | null;
+  resultado?: ResultadoMudancaDb | null;
+  notas_encerramento?: string | null;
+  criado_em?: string;
+};
+
+type MudancaAtivosRow = {
+  mudanca_id: string;
+  ativo_id: string;
+};
+type MudancaAtivosInsert = {
+  mudanca_id: string;
+  ativo_id: string;
+};
+
+type MudancaAprovacoesRow = {
+  id: string;
+  mudanca_id: string;
+  aprovador_id: string;
+  decisao: DecisaoCabDb;
+  comentario: string | null;
+  decidido_em: string;
+};
+type MudancaAprovacoesInsert = {
+  id?: string;
+  mudanca_id: string;
+  aprovador_id: string;
+  decisao: DecisaoCabDb;
+  comentario?: string | null;
+  decidido_em?: string;
+};
+
 /* Schema */
 
 export type Database = {
@@ -1326,6 +1428,24 @@ export type Database = {
         Row: CanalLeiturasRow;
         Insert: CanalLeiturasInsert;
         Update: Partial<CanalLeiturasInsert>;
+        Relationships: [];
+      };
+      mudancas: {
+        Row: MudancasRow;
+        Insert: MudancasInsert;
+        Update: Partial<MudancasInsert>;
+        Relationships: [];
+      };
+      mudanca_ativos: {
+        Row: MudancaAtivosRow;
+        Insert: MudancaAtivosInsert;
+        Update: Partial<MudancaAtivosInsert>;
+        Relationships: [];
+      };
+      mudanca_aprovacoes: {
+        Row: MudancaAprovacoesRow;
+        Insert: MudancaAprovacoesInsert;
+        Update: Partial<MudancaAprovacoesInsert>;
         Relationships: [];
       };
       setores: {
@@ -1576,6 +1696,19 @@ export type Database = {
         Args: { p_chamado?: string | null };
         Returns: Array<PostMortemComContextoDb>;
       };
+      trilha_da_mudanca: {
+        Args: { p_mudanca: string };
+        Returns: Array<{
+          id: number;
+          tabela: string;
+          operacao: string;
+          ocorrido_em: string;
+          autor_id: string | null;
+          autor_nome: string | null;
+          valores_antes: Json | null;
+          valores_depois: Json | null;
+        }>;
+      };
       grafo_servicos_observabilidade: {
         Args: { p_minutos?: number };
         Returns: Json;
@@ -1617,6 +1750,11 @@ export type Database = {
       status_erro: StatusErroDb;
       tipo_canal: TipoCanalDb;
       tipo_parametro: TipoParametroDb;
+      tipo_mudanca: TipoMudancaDb;
+      risco_mudanca: RiscoMudancaDb;
+      status_mudanca: StatusMudancaDb;
+      decisao_cab: DecisaoCabDb;
+      resultado_mudanca: ResultadoMudancaDb;
     };
     CompositeTypes: { [_ in never]: never };
   };

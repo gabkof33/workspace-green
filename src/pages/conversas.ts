@@ -1,7 +1,7 @@
 /** Conversas — canal por equipe mais o canal geral. */
 
 import { esqueleto } from "@/components/esqueleto";
-import { avisar, h, montar } from "@/lib/dom";
+import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
 import { listarDiretorioMencoes } from "@/lib/api";
 import {
   assinarCanal,
@@ -635,7 +635,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
                           },
                         },
                       },
-                      "×",
+                      icone(ICONES.fechar),
                     )
                   : null,
               ),

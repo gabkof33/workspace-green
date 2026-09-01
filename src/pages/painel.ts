@@ -327,7 +327,7 @@ function blocoRanking(p: PainelGovernanca): HTMLElement {
           style: "margin-top:var(--s-2)",
           on: { click: () => navegar("ativos") },
         },
-        "Abrir CMDB",
+        "Abrir ativos",
       ),
     ),
   );

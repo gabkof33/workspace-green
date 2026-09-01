@@ -50,13 +50,41 @@
   background: var(--c-surface-2);
 }
 
+/* Destrutivo: `color="critical" variant="filled"` do `Button` do DS —
+   `bg-danger` com o texto em `fg-on-danger`.
+
+   É a exceção deliberada à regra de contorno do `.btn--primario` acima, e a
+   única da aplicação: apagar não se desfaz, e essa é a ação que não pode
+   passar por "mais um botão da fileira".
+
+   Uma variante só, não duas: o botão da tela e o de confirmar no diálogo são
+   o mesmo `filled`. Enquanto havia `soft` na tela e `filled` no diálogo, a
+   ação mudava de aparência entre pedir e confirmar — e é justamente aí que
+   ela tem de parecer a mesma coisa. */
 .btn--perigo {
-  border-color: var(--c-erro);
-  color: var(--c-erro);
-  background: transparent;
+  border-color: transparent;
+  background: var(--ds-bg-danger);
+  color: var(--ds-fg-on-danger);
+  font-weight: 600;
 }
 .btn--perigo:hover:not(:disabled) {
-  background: var(--c-erro-wash);
+  background: var(--ds-bg-danger-hover);
+}
+
+/* Botão só de ícone, redondo: `size="icon-md" shape="pill"` do DS. Para o ×
+   de "remover esta linha", onde um rótulo repetiria o que o ícone já diz. */
+.btn--icone {
+  width: var(--ds-form-lg);
+  height: var(--ds-form-lg);
+  padding: 0;
+}
+.btn--icone.btn--sm {
+  width: var(--ds-form-md);
+  height: var(--ds-form-md);
+  padding: 0;
+}
+.btn--pilula {
+  border-radius: var(--ds-radius-full);
 }
 
 .btn--bloco {
@@ -553,6 +581,15 @@
 .selo--encerrado {
   color: var(--c-muted);
 }
+/* Mudança reprovada pelo CAB e mudança revertida no rollback. O chamado nunca
+   precisou de um selo vermelho — ele é cancelado, não reprovado —, e a GMUD
+   precisa: "reprovada" pintada de cinza se confunde com "cancelada", e as duas
+   contam histórias opostas sobre o comitê. */
+.selo--falhou {
+  color: var(--c-p1);
+  background: var(--c-p1-wash);
+  border-color: transparent;
+}
 
 /* --- Barra de SLA --- */
 .sla {
@@ -632,6 +669,15 @@
 }
 .tabela tbody tr:hover {
   background: var(--c-surface-2);
+}
+/* A linha de estado vazio não é registro. As regras acima valem para a tabela
+   toda porque nela toda linha abre um detalhe — aqui não há o que abrir, e
+   cursor de mão mais realce no hover convidam a clicar no nada. */
+.tabela tbody tr.tabela__linha-vazia {
+  cursor: default;
+}
+.tabela tbody tr.tabela__linha-vazia:hover {
+  background: transparent;
 }
 .tabela__num {
   font-family: var(--f-mono);
@@ -1969,6 +2015,14 @@
 }
 .msg__excluir {
   font-size: 15px;
+}
+/* O × deixou de ser o caractere "×" e passou a ser `ICONES.fechar`. Sem
+   tamanho explícito o SVG assume a caixa toda do `viewBox` e estoura a linha:
+   `.btn svg` não alcança aqui, porque este botão não é `.btn`. */
+.msg__excluir svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 .msg__excluir:hover {
   color: var(--c-erro);
@@ -3756,6 +3810,13 @@ button.tags__marca:hover {
 .cartao--clicavel:focus-visible {
   outline: 2px solid var(--c-accent);
   outline-offset: 2px;
+}
+
+/* Janela de mudança acontecendo AGORA. Barra na borda esquerda em vez de fundo
+   colorido: a lista de janelas é cronológica e longa, e o que precisa saltar é
+   a posição da linha de "agora" dentro dela — não o cartão inteiro. */
+.cartao--agora {
+  border-left: 3px solid var(--c-alerta);
 }
 
 .pm__titulo {

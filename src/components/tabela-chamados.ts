@@ -6,6 +6,7 @@ import { corDaTag } from "@/lib/api";
 import { botaoCopiarLink } from "@/components/copiar-link";
 import { h } from "@/lib/dom";
 import { navegar } from "@/lib/router";
+import { corpoOuVazio } from "@/components/tabela-vazia";
 import {
   avaliarSla,
   classeStatus,
@@ -63,19 +64,6 @@ export interface OpcoesTabela {
 }
 
 export function tabelaChamados(opcoes: OpcoesTabela): HTMLElement {
-  if (opcoes.chamados.length === 0) {
-    return h(
-      "div",
-      { class: "cartao" },
-      h(
-        "div",
-        { class: "vazio" },
-        h("h3", {}, opcoes.vazio.titulo),
-        h("p", {}, opcoes.vazio.texto),
-      ),
-    );
-  }
-
   const cabecalho = h(
     "tr",
     {},
@@ -177,7 +165,20 @@ export function tabelaChamados(opcoes: OpcoesTabela): HTMLElement {
       "table",
       { class: "tabela" },
       h("thead", {}, cabecalho),
-      h("tbody", {}, ...linhas),
+      // O `colspan` sai da contagem real de células do cabeçalho, porque duas
+      // colunas daqui são condicionais (`mostrarSolicitante`,
+      // `mostrarResponsavel`). Número fixo envelheceria na primeira coluna
+      // nova, e a célula de vazio pararia de atravessar a tabela.
+      h(
+        "tbody",
+        {},
+        ...corpoOuVazio(
+          linhas,
+          cabecalho.childElementCount,
+          opcoes.vazio.titulo,
+          opcoes.vazio.texto,
+        ),
+      ),
     ),
   );
 }

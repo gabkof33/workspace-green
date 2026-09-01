@@ -416,15 +416,14 @@
   color: var(--ds-fg-default);
 }
 
-.formulario-ds .btn--perigo {
-  border-color: var(--ds-border-danger-muted);
-  background: transparent;
-  color: var(--ds-fg-danger);
-}
-
-.formulario-ds .btn--perigo:hover:not(:disabled) {
-  background: var(--ds-bg-danger-muted);
-}
+/* `.btn--perigo` NÃO tem override aqui de propósito.
+   Esta camada existia para trocar as cores do app pelas do DS — e o
+   `.btn--perigo` global já usa `--ds-bg-danger-muted` e `--ds-fg-danger`
+   direto. O override que morava aqui era a variante `outline` do
+   `critical`, e mantê-lo faria o mesmo botão ter dois desenhos: contorno nas
+   cinco telas com `formulario-ds` (abrir, conversas, fila, login, setores) e
+   fundo tingido em todas as outras. Ação destrutiva é o último lugar onde
+   cabe o botão mudar de aparência conforme a tela. */
 
 .formulario-ds .btn--sm {
   min-height: var(--ds-form-md);

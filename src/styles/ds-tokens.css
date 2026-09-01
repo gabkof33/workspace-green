@@ -102,6 +102,17 @@
   --ds-bg-danger-muted: color-mix(in oklch, var(--ds-danger) 14%, transparent);
   --ds-bg-success-muted: color-mix(in oklch, var(--ds-success) 14%, transparent);
   --ds-bg-warning-muted: color-mix(in oklch, var(--ds-warning) 14%, transparent);
+
+  /* Hover das duas variantes destrutivas do botão. Mesma fórmula do
+     `--ds-bg-brand-hover` logo abaixo, que é a do DS: o preenchido escurece
+     no claro e clareia no escuro (por isso tem override nos dois blocos
+     escuros); o `muted` só sobe de 14% para 22% e não muda com o tema. */
+  --ds-bg-danger-hover: color-mix(in oklch, var(--ds-danger) 90%, black);
+  --ds-bg-danger-muted-hover: color-mix(
+    in oklch,
+    var(--ds-danger) 22%,
+    transparent
+  );
   --ds-bg-info-muted: color-mix(in oklch, var(--ds-info) 14%, transparent);
 
   --ds-fg-strong: oklch(0.15 0 0);
@@ -238,8 +249,10 @@
     --ds-bg-table-head: oklch(0.252 0 0);
     --ds-bg-table-row-hover: oklch(0.252 0 0);
 
-    /* No escuro o hover da marca clareia (mistura com branco), não escurece. */
+    /* No escuro o hover da marca clareia (mistura com branco), não escurece.
+       O mesmo vale para o destrutivo preenchido. */
     --ds-bg-brand-hover: color-mix(in oklch, var(--ds-brand) 90%, white);
+    --ds-bg-danger-hover: color-mix(in oklch, var(--ds-danger) 90%, white);
 
     --ds-fg-strong: oklch(1 0 0);
     --ds-fg-default: oklch(0.98 0 0);
@@ -291,6 +304,7 @@
   --ds-bg-table-row-hover: oklch(0.252 0 0);
 
   --ds-bg-brand-hover: color-mix(in oklch, var(--ds-brand) 90%, white);
+  --ds-bg-danger-hover: color-mix(in oklch, var(--ds-danger) 90%, white);
 
   --ds-fg-strong: oklch(1 0 0);
   --ds-fg-default: oklch(0.98 0 0);

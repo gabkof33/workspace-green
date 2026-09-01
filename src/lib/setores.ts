@@ -5,7 +5,6 @@ import type { AbaConfiguravel, Setor, SetorArvore } from "@/types/dominio";
 
 /** Abas configuráveis por setor. */
 export const ABAS_CONFIGURAVEIS: AbaConfiguravel[] = [
-  { chave: "abrir", rotulo: "Abrir chamado", somenteTi: false },
   { chave: "meus", rotulo: "Meus chamados", somenteTi: false },
   { chave: "demandas", rotulo: "Quadro de demandas", somenteTi: false },
   { chave: "gantt", rotulo: "Cronograma", somenteTi: false },
@@ -16,14 +15,15 @@ export const ABAS_CONFIGURAVEIS: AbaConfiguravel[] = [
   { chave: "fila", rotulo: "Fila de atendimento", somenteTi: true },
   { chave: "setores", rotulo: "Setores", somenteTi: true },
   { chave: "rotinas", rotulo: "Rotinas preventivas", somenteTi: true },
-  { chave: "ativos", rotulo: "Ativos (CMDB)", somenteTi: true },
+  { chave: "mudancas", rotulo: "Mudanças", somenteTi: true },
+  { chave: "ativos", rotulo: "Ativos", somenteTi: true },
+  { chave: "catalogo", rotulo: "Catálogo de serviços", somenteTi: true },
   { chave: "tempos", rotulo: "Tempos de atendimento", somenteTi: true },
   { chave: "painel", rotulo: "Painel de governança", somenteTi: true },
 ];
 
 /** Conjunto que um setor fora da TI costuma precisar. */
 export const ABAS_PADRAO_SETOR = [
-  "abrir",
   "meus",
   "demandas",
   "gantt",

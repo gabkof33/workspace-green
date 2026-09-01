@@ -17,6 +17,11 @@ import "@/styles/login-ds.css";
 import "@/styles/conversas-ds.css";
 import "@/styles/mapa-ds.css";
 
+// Relevo dos indicadores. Precisa ser o ÚLTIMO: `fila-ds.css` redeclara
+// `.metrica` com a mesma especificidade, e antes dele o 3D não apareceria na
+// fila. O porquê completo está no cabeçalho do arquivo.
+import "@/styles/relevo.css";
+
 import { h, montar } from "@/lib/dom";
 import { aoMudarRota, navegar, rotaAtual } from "@/lib/router";
 import {
@@ -40,7 +45,6 @@ import {
 } from "@/lib/notificacoes-tempo-real";
 import { iniciarMarcador, zerarNaoLidos } from "@/lib/marcador-aba";
 import { iniciarSentinela } from "@/lib/sentinela";
-import { renderizarAbrir } from "@/pages/abrir";
 import { renderizarFila } from "@/pages/fila";
 import { renderizarMeus } from "@/pages/meus";
 import { renderizarChamado } from "@/pages/chamado";
@@ -59,6 +63,8 @@ import { renderizarPostMortems } from "@/pages/postmortems";
 import { renderizarTempos } from "@/pages/tempos";
 import { renderizarConversas } from "@/pages/conversas";
 import { renderizarObservabilidade } from "@/pages/observabilidade";
+import { renderizarCatalogo } from "@/pages/catalogo";
+import { renderizarMudancas } from "@/pages/mudancas";
 import type { Perfil } from "@/types/dominio";
 
 const raiz = document.getElementById("app");
@@ -85,11 +91,15 @@ const ROTAS_DE_TI = new Set([
   "pessoas",
   "tempos",
   "observabilidade",
+  // Mudança e catálogo são operação de TI. O catálogo entra aqui mesmo sendo
+  // leitura para o agente: ele expõe fila padrão, política de SLA e o impacto
+  // configurado de cada serviço, que é a mecânica interna do atendimento.
+  "mudancas",
+  "catalogo",
 ]);
 
 /** Rotas guardadas pela configuração de abas do setor. */
 const ABAS = new Set([
-  "abrir",
   "meus",
   "demandas",
   "gantt",
@@ -104,6 +114,8 @@ const ABAS = new Set([
   "tempos",
   "postmortems",
   "observabilidade",
+  "mudancas",
+  "catalogo",
 ]);
 
 // A fila fica fora da lista de propósito.
@@ -123,15 +135,6 @@ function resolverPagina(perfil: Perfil): Pagina {
   }
 
   switch (caminho) {
-    case "abrir":
-      renderizarAbrir(conteudo, perfil);
-      return {
-        titulo: "Abrir chamado",
-        subtitulo:
-          "Escolha o serviço e descreva o que houve. A prioridade é calculada a partir das suas respostas.",
-        conteudo,
-      };
-
     case "meus":
       renderizarMeus(conteudo, perfil);
       return {
@@ -142,18 +145,20 @@ function resolverPagina(perfil: Perfil): Pagina {
 
     case "chamado":
       if (!parametro) {
-        navegar("fila");
+        navegar("demandas");
         return { titulo: "Chamado", conteudo };
       }
       renderizarChamado(conteudo, perfil, parametro);
       return { titulo: "Detalhe do chamado", conteudo };
 
+    // A porta única de registro e, para quem atende, também a fila. O título
+    // segue "Quadro de trabalho" e não "de demandas": chamado entra por aqui.
     case "demandas":
       renderizarDemandas(conteudo, perfil);
       return {
-        titulo: "Quadro de demandas",
+        titulo: "Quadro de trabalho",
         subtitulo:
-          "Registre uma melhoria ou escolha uma demanda disponível — ao pegar, você assume o prazo.",
+          "Registre o que precisa — a tela decide se vira chamado com SLA ou demanda com cronograma — ou escolha uma demanda disponível.",
         conteudo,
       };
 
@@ -204,7 +209,7 @@ function resolverPagina(perfil: Perfil): Pagina {
     case "ativos":
       renderizarAtivos(conteudo, perfil);
       return {
-        titulo: "Ativos (CMDB)",
+        titulo: "Ativos",
         subtitulo:
           "A coluna “sem conferir” é a que decide se este inventário presta — registro que ninguém confere vira ficção.",
         conteudo,
@@ -216,6 +221,24 @@ function resolverPagina(perfil: Perfil): Pagina {
         titulo: "Rotinas preventivas",
         subtitulo:
           "Passo com falha abre incidente ao encerrar a execução — a rotina não termina “com ressalva”.",
+        conteudo,
+      };
+
+    case "mudancas":
+      renderizarMudancas(conteudo, perfil);
+      return {
+        titulo: "Mudanças",
+        subtitulo:
+          "Sem plano de rollback escrito a mudança não sai do rascunho, e quem solicitou não vota no próprio pedido.",
+        conteudo,
+      };
+
+    case "catalogo":
+      renderizarCatalogo(conteudo, perfil);
+      return {
+        titulo: "Catálogo de serviços",
+        subtitulo:
+          "O serviço decide em que fila o chamado cai, com que prazo e com que prioridade nasce — as três coisas de uma vez.",
         conteudo,
       };
 

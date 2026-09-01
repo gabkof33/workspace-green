@@ -35,19 +35,22 @@ interface ItemNav {
   emBreve?: boolean;
 }
 
-const NAV_ATENDIMENTO: ItemNav[] = [
-  { caminho: "abrir", rotulo: "Abrir chamado", icone: ICONES.abrir },
-  { caminho: "meus", rotulo: "Meus chamados", icone: ICONES.meus },
-  {
-    caminho: "fila",
-    rotulo: "Fila de atendimento",
-    icone: ICONES.fila,
-    somenteAgente: true,
-  },
-];
-
-const NAV_DEMANDAS: ItemNav[] = [
+/**
+ * Um grupo só para o trabalho, porque agora existe uma porta só.
+ *
+ * "Abrir chamado" e "Fila de atendimento" saíram do menu: as duas viraram
+ * parte do Quadro de demandas. A abertura é uma porta única — quem pede
+ * descreve o que precisa e a tela decide a esteira — e a fila é uma aba ao
+ * lado de Disponíveis. As rotas `abrir` e `fila` continuam existindo, para
+ * quem chega por link antigo ou por notificação.
+ *
+ * Com elas fora, "Atendimento" ficava com um item e "Demandas" com dois.
+ * Dois grupos de um e dois itens não são hierarquia, são ruído — e o nome
+ * "Trabalho" é o que sobra de verdade em comum entre chamado e demanda.
+ */
+const NAV_TRABALHO: ItemNav[] = [
   { caminho: "demandas", rotulo: "Quadro de demandas", icone: ICONES.demandas },
+  { caminho: "meus", rotulo: "Meus chamados", icone: ICONES.meus },
   { caminho: "gantt", rotulo: "Cronograma", icone: ICONES.gantt },
 ];
 
@@ -75,10 +78,26 @@ const NAV_OPERACAO: ItemNav[] = [
     icone: ICONES.rotinas,
     somenteAgente: true,
   },
+  // GMUD fica ao lado das rotinas porque as duas são trabalho planejado que
+  // toca produção com janela — e não junto do CMDB, que é cadastro.
+  {
+    caminho: "mudancas",
+    rotulo: "Mudanças",
+    icone: ICONES.mudancas,
+    somenteAgente: true,
+  },
   {
     caminho: "ativos",
-    rotulo: "Ativos (CMDB)",
+    rotulo: "Ativos",
     icone: ICONES.ativos,
+    somenteAgente: true,
+  },
+  // O catálogo define fila, prazo e prioridade de todo chamado. Fica visível
+  // para a equipe inteira em leitura; a escrita é da gestão, pela policy.
+  {
+    caminho: "catalogo",
+    rotulo: "Catálogo de serviços",
+    icone: ICONES.catalogo,
     somenteAgente: true,
   },
   {
@@ -537,8 +556,7 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
         h("div", { class: "marca-auth__sub" }, "Operação de TI"),
       ),
     ),
-    grupo("Atendimento", NAV_ATENDIMENTO),
-    grupo("Demandas", NAV_DEMANDAS),
+    grupo("Trabalho", NAV_TRABALHO),
     grupo("Organização", NAV_ORGANIZACAO),
     grupo("Operação", NAV_OPERACAO),
     h(

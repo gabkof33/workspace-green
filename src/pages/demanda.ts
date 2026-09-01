@@ -2,7 +2,7 @@
 
 import { aguardando } from "@/components/esqueleto";
 import { corDaTag } from "@/lib/api";
-import { avisar, h, montar } from "@/lib/dom";
+import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
 import { navegar } from "@/lib/router";
 import { dataCurta, dataHora } from "@/lib/formato";
 import { listarDiretorioMencoes } from "@/lib/api";
@@ -408,6 +408,7 @@ export function renderizarDemanda(
             title: exclusao.motivo || "Remove das listas, mantendo o registro",
             on: { click: () => pedirExclusao(d) },
           },
+          icone(ICONES.excluir),
           "Excluir demanda",
         ),
       );
@@ -754,7 +755,7 @@ export function renderizarDemanda(
                 },
               },
             },
-            "×",
+            icone(ICONES.fechar),
           )
         : null,
     );
@@ -979,7 +980,7 @@ export function renderizarDemanda(
                   },
                 },
               },
-              "×",
+              icone(ICONES.fechar),
             )
           : null,
       ),

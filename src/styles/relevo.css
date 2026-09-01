@@ -1,0 +1,151 @@
+/**
+ * Relevo dos cartões de indicador — o 3D da faixa de métricas, em tokens do DS.
+ *
+ * Vale para toda `.grade-metricas`, e por isso alcança as nove telas que a
+ * usam de uma vez: fila, demandas, rotinas, ativos, conhecimento, pessoas,
+ * setores, catálogo e mudanças.
+ *
+ * ── Por que só tokens `--ds-*` ────────────────────────────────────────────
+ * A primeira versão deste arquivo inventou uma família `--relevo-*` com
+ * sombras próprias. Estava errado: o DS já tem vocabulário de profundidade, e
+ * uma segunda escala de elevação ao lado da dele é exatamente o tipo de coisa
+ * que faz dois cartões vizinhos parecerem de produtos diferentes.
+ *
+ * O vocabulário de profundidade do DS é a escala de elevação em três passos
+ * (`--ds-sh-sm`, `--ds-sh-md`, `--ds-sh-lg`) mais as bordas. Ele NÃO tem token
+ * de chanfro, de verniz nem de brilho — então o relevo aqui é composto do que
+ * existe, em vez de inventar o que falta:
+ *
+ *   corpo em repouso   `--ds-sh-md`, a elevação de peça levantada do DS (o
+ *                      `Kpi` do DS assenta em `sh-sm`, que é rasteiro demais
+ *                      para ler como 3D; `md` é o passo acima, não um valor
+ *                      novo)
+ *   corpo no hover     `--ds-sh-lg`, o passo seguinte da MESMA escala
+ *   quina de cima      `--ds-border-subtle` — no escuro este token é
+ *                      `oklch(1 0 0 / 0.04)`, branco translúcido: é literalmente
+ *                      um brilho, e serve de chanfro sem eu escolher cor
+ *   espessura de baixo `--ds-border-default`, o tom de borda mais fechado
+ *
+ * Duas coisas que eu conferi e que mudaram o desenho:
+ *
+ * `--ds-bg-surface-elevated` é IDÊNTICO a `--ds-bg-surface` nos três temas do
+ * DS. Um gradiente de face entre os dois seria um no-op — por isso não há
+ * gradiente aqui, e a profundidade vem de elevação, chanfro e geometria. Era
+ * o que a versão anterior fazia com cor inventada.
+ *
+ * O DS não expõe token de duração nem de easing. A curva abaixo é a que o
+ * `base.css` já usa na troca de tema, para o app ter uma cadência só.
+ *
+ * ── Escopo ────────────────────────────────────────────────────────────────
+ * Superfície e profundidade: fundo, borda, raio, chanfro e elevação — todos do
+ * DS. É o que faz as nove telas terem um cartão de indicador só, em vez de o
+ * cinza do DS na fila e o quase-preto do app nas outras oito.
+ *
+ * O que NÃO vem para cá: padding, gap e tipografia. A fila também os
+ * redeclara (`--ds-pad-card-md`, `--ds-gp-xs`, rótulo em `caption` no lugar do
+ * mono em caixa alta), e trazer isso mudaria a densidade e a voz da faixa em
+ * oito telas — decisão maior que "seguir o DS no cartão", e que merece ser
+ * pedida, não embutida aqui.
+ *
+ * ── Ordem importa ────────────────────────────────────────────────────────
+ * Este é o ÚLTIMO import de CSS do `main.ts`. A fila redeclara `.metrica`
+ * inteira em `fila-ds.css`, `box-shadow: var(--ds-sh-sm)` incluído, com a
+ * mesma especificidade de qualquer selecionador de dois níveis daqui. Antes
+ * dela o relevo não apareceria na fila — que é a tela onde a faixa mais
+ * aparece.
+ */
+
+.grade-metricas {
+  /* A perspectiva mora na grade, não no cartão: declarada em cada filho, cada
+     um teria seu próprio ponto de fuga e a faixa inclinaria em leque. Aqui os
+     cartões compartilham um ponto de fuga só e giram como uma fileira.
+
+     900px é perspectiva longa — a inclinação lê como relevo, não como carta
+     de baralho caindo. */
+  perspective: 900px;
+  perspective-origin: 50% 40%;
+}
+
+.grade-metricas .metrica,
+.fila-ds .grade-metricas .metrica {
+  /* Superfície sólida do DS, e é ela que unifica a faixa.
+
+     Antes daqui havia dois cinzas na mesma aplicação: a fila já era o port do
+     DS (`--ds-bg-surface`, cinza neutro sólido) e as outras oito telas ficavam
+     no `--c-surface` do app, que no escuro é `#0e1411` — quase preto e puxado
+     para o verde. Lado a lado num quadro só, o cartão do app desaparecia no
+     fundo enquanto o da fila parecia peça de verdade.
+
+     Opaco de propósito: o relevo é chanfro e elevação, não transparência. Sem
+     fundo sólido a projeção do cartão de baixo atravessa o de cima.
+
+     No claro os dois tokens já eram brancos (`oklch(1 0 0)` e `#ffffff`), então
+     esta linha não muda nada lá — o cinza que aparece é só no escuro. */
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+
+  box-shadow:
+    inset 0 1px 0 var(--ds-border-subtle),
+    inset 0 -1px 0 var(--ds-border-default),
+    var(--ds-sh-md);
+
+  /* `preserve-3d` para o número poder subir em Z no hover. Sem ele o
+     `translateZ` do valor é achatado e não acontece nada. */
+  transform-style: preserve-3d;
+
+  /* A dobradiça embaixo: o cartão tomba para trás apoiado na base, que é como
+     uma peça apoiada numa superfície se move. Com origem no centro ele
+     giraria no ar. */
+  transform-origin: 50% 100%;
+
+  transition:
+    transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grade-metricas .metrica:hover,
+.fila-ds .grade-metricas .metrica:hover {
+  /* 5deg é o teto útil: acima disso o texto do cartão começa a distorcer e o
+     número perde a leitura, que é a única coisa que a faixa existe para dar. */
+  transform: translateY(-4px) rotateX(5deg) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 var(--ds-border-subtle),
+    inset 0 -1px 0 var(--ds-border-default),
+    var(--ds-sh-lg);
+}
+
+/* O número sobe para fora da face. É o que transforma "cartão com sombra" em
+   profundidade de verdade: o valor passa a flutuar sobre a peça.
+
+   Só no hover, e nunca em repouso: `translateZ` permanente em texto obriga o
+   navegador a rasterizar a camada, e o número — `--f-display` em 22px com
+   `tabular-nums` — sai borrado no estado em que a pessoa passa 100% do tempo
+   olhando. */
+.grade-metricas .metrica__valor {
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grade-metricas .metrica:hover .metrica__valor {
+  transform: translateZ(18px);
+}
+
+/* O relevo estático (chanfro e elevação) fica: ele não se move, e é contraste,
+   não animação. O que sai é o tombo e a subida do número. */
+@media (prefers-reduced-motion: reduce) {
+  .grade-metricas {
+    perspective: none;
+  }
+  .grade-metricas .metrica,
+  .fila-ds .grade-metricas .metrica,
+  .grade-metricas .metrica__valor {
+    transition: none;
+  }
+  .grade-metricas .metrica:hover,
+  .fila-ds .grade-metricas .metrica:hover {
+    transform: none;
+  }
+  .grade-metricas .metrica:hover .metrica__valor {
+    transform: none;
+  }
+}

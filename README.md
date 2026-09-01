@@ -1,8 +1,9 @@
 # Central Green — Operação de TI
 
-Workspace de gestão de demandas de TI cobrindo quatro pilares: central de chamados
-com SLA, demandas de engenharia com cronograma, rotinas preventivas de operação, e
-inventário de ativos com base de conhecimento.
+Workspace de gestão de demandas de TI cobrindo cinco pilares: central de chamados
+com SLA, demandas de engenharia com cronograma, rotinas preventivas de operação,
+inventário de ativos com base de conhecimento, e mudanças controladas com CAB
+sobre um catálogo de serviços administrável.
 
 A especificação de arquitetura que orienta este código está no blueprint:
 schema relacional, matriz de prioridade, esteiras de estado, regras de automação
@@ -25,6 +26,37 @@ Demanda é onde entram pedidos como *organizar os endpoints GET da API* ou
 *automatizar a conferência de backup*. Quem publica define o prazo; quem pega
 assume esse prazo. O cronograma em Gantt mostra as duas coisas ao mesmo tempo:
 quanto do prazo já passou e quanto do trabalho andou.
+
+### Duas esteiras, uma porta
+
+A distinção acima é real e continua inteira no banco — mas ela é **interna**.
+Enquanto existiam duas abas, "Abrir chamado" e "Nova demanda", a primeira
+decisão que o sistema pedia era justamente a que quem pede não sabe tomar: o
+vocabulário `chamado`/`demanda` é da TI, e escolher errado manda o trabalho
+para a esteira errada — um ERP fora do ar registrado como demanda não tem
+relógio de SLA correndo.
+
+Hoje há **um botão só**, no Quadro de trabalho, e a pergunta que ele faz é
+factual:
+
+| Se a pessoa diz… | Vira | Governança |
+| --- | --- | --- |
+| "algo quebrou, ou preciso de um serviço" | Chamado | SLA cronometrado, prioridade calculada |
+| "quero que algo seja melhorado" | Demanda | Cronograma, prazo assumido por quem pega |
+
+O ramo de chamado **reaproveita o formulário de quatro etapas inteiro** — é
+ele que carrega os campos dinâmicos de `catalogo_servicos.schema_formulario`
+(F12) e a prévia de prioridade. Um formulário compacto novo no lugar teria
+perdido as duas coisas.
+
+A **Fila de atendimento** também deixou de ser aba própria e virou uma aba do
+quadro, ao lado de Disponíveis, Minhas e Todas — visível para quem atende, com
+o mesmo corte de antes (papel de agente **e** aba liberada no setor). Com isso
+o pouso do app passou de `fila` para `demandas`: pousar numa tela fora do menu
+deixaria a primeira coisa que a pessoa vê inalcançável pelo caminho normal.
+
+As rotas `abrir` e `fila` continuam existindo, para quem chega por link antigo
+ou por notificação. O que saiu foi o item de menu — nada foi apagado do banco.
 
 ## Stack
 
@@ -228,6 +260,8 @@ src/
     api.ts                Sessão, cadastro, pessoas, catálogo, chamados
     demandas.ts           Demandas, comentários e notificações
     cmdb.ts               Ativos e grafo de dependências
+    catalogo.ts           Cadastro do catálogo de serviços
+    mudancas.ts           Mudanças, votos do CAB e implantação
     rotinas.ts            Rotinas, runbooks e execuções
     conhecimento.ts       Artigos e erros conhecidos
     painel.ts             Indicadores e comparação com metas
@@ -243,16 +277,18 @@ src/
     insignia.ts           Ícone de hierarquia
   pages/
     login.ts              Entrar, criar conta e login Microsoft
-    abrir.ts              Formulário de abertura em 4 etapas
-    fila.ts               Fila do agente com métricas
+    abrir.ts              Abertura em 4 etapas, embutida no quadro
+    fila.ts               Fila do agente (rota antiga; a aba vive no quadro)
     meus.ts               Portal do solicitante
     chamado.ts            Detalhe, linha do tempo e encerramento
-    demandas.ts           Quadro de demandas e registro
+    demandas.ts           Quadro de trabalho: porta única, fila e demandas
     demanda.ts            Detalhe, progresso e discussão
     gantt.ts              Cronograma
     pessoas.ts            Organograma e promoção
     ativos.ts             CMDB
     rotinas.ts            Rotinas, runbook e execução
+    mudancas.ts           Esteira, CAB e janelas de implantação
+    catalogo.ts           Catálogo de serviços
     conhecimento.ts       Artigos e KEDB
     painel.ts             Governança
   styles/
@@ -296,14 +332,14 @@ primeira importação de planilha.
 | Fase | Entrega                                               | Estado                          |
 | ---- | ----------------------------------------------------- | ------------------------------- |
 | F1   | Núcleo: perfis, hierarquia, calendários, auditoria, RLS | **aplicada**                  |
-| F2   | Catálogo de serviços, SLA e horário útil              | **aplicada** — 12 serviços      |
+| F2   | Catálogo de serviços, SLA e horário útil              | **aplicada** — 12 serviços, com interface |
 | F3   | CMDB, grafo de dependências e contratos               | **aplicada** — com interface    |
 | F4   | Chamados, interações e relógio de SLA                 | **aplicada**                    |
 | F5   | Automações R-03, R-07 a R-10, R-12 a R-14             | a fazer — exigem Edge Functions |
 | F6   | Base de conhecimento, KEDB e post-mortem              | **aplicada**                    |
 | F7   | Rotinas, runbooks, execuções e plantão                | **aplicada**                    |
 | F8   | Demandas, cronograma, menções e notificações          | **aplicada**                    |
-| F8b  | Mudanças, CAB e deploys                               | a fazer                         |
+| F8b  | Mudanças, CAB e deploys                               | **aplicada** — com interface    |
 | F9   | Painel de governança                                  | **aplicada**                    |
 
 As automações que rodam como trigger no banco já estão ativas: R-01 (triagem e
@@ -339,6 +375,142 @@ mensal do contorno, que é o argumento de orçamento para priorizar a correção
 **Painel de governança.** Cada indicador aparece ao lado da meta e pintado
 pela distância até ela — indicador sem meta é decoração. Tudo é apurado no
 Postgres em `painel_governanca()` e chega em uma viagem só.
+
+## Catálogo de serviços
+
+O catálogo é a peça que decide três coisas do chamado de uma vez: **em que
+fila** ele cai, **com que prazo** e **com que prioridade** nasce. Até a F2 ele
+existia só como configuração inserida por migration — doze serviços editáveis
+por SQL. Funciona enquanto ninguém precisa de um serviço novo, e para de
+funcionar no dia em que precisa: serviço que falta é chamado que não pode ser
+aberto.
+
+A tela mostra duas colunas que um cadastro comum esconderia:
+
+**A prioridade que o serviço vai produzir.** `impacto_padrao` e
+`urgencia_padrao` são as entradas da matriz, e ninguém prevê o resultado de
+cabeça. A coluna aplica `calcularPrioridade()` e mostra o P1 a P4 que sairá
+dali — a mesma prévia que o formulário de abertura dá ao solicitante.
+
+**Quantos chamados o serviço já gerou.** Serviço com zero uso depois de meses
+é nome errado ou fila errada, e isso só aparece quando está na lista. É a mesma
+ideia do "sem conferir" do CMDB: o número que incomoda fica à vista.
+
+A métrica **sem fila padrão** precisa ser zero. Serviço ativo sem
+`equipe_padrao_id` produz chamado sem equipe, que é chamado sem ninguém — a
+R-01 herda a fila do catálogo, e não há de onde herdar.
+
+**O código não é editável depois de criado.** Ele é lido por gente em
+relatório e, em pelo menos um caso, procurado pelo nome dentro do banco:
+`fn_falha_rotina_abre_incidente` busca `INF-SERVIDOR-INDISPONIVEL` para
+escolher o serviço do incidente que abre. Renomear quebraria o vínculo em
+silêncio. Para trocar de código, cadastre outro serviço e desative este.
+
+**Desativar, nunca apagar.** `chamados.servico_id` aponta para o catálogo:
+apagar deixaria o histórico sem o serviço que originou o chamado. Serviço
+inativo sai do formulário de abertura e continua explicando os chamados
+antigos.
+
+A escrita é da gestão, pela policy `catalogo_escrita` (`sou_gestor()`). Quem
+atende vê o catálogo inteiro em leitura, porque fila padrão e política de SLA
+são a mecânica interna do próprio atendimento.
+
+## Mudanças (GMUD)
+
+O enum `status_chamado` tem `pendente_mudanca` desde a F4, mas até a F8b não
+havia mudança nenhuma para apontar: o chamado parava "esperando mudança" e a
+mudança era um combinado verbal. Ninguém sabia dizer qual mudança, quem
+aprovou, nem o que aconteceria se desse errado.
+
+### Três tipos, porque só eles mudam a governança
+
+| Tipo | CAB | Quando |
+| --- | --- | --- |
+| `padrao` | dispensa | Receita já aprovada — troca de peça igual, reset em lote |
+| `normal` | **antes** de agendar | O caso comum |
+| `emergencial` | **depois** de implantar | 3h da manhã, ERP fora, não há comitê |
+
+O risco é separado do tipo de propósito: mudança `padrao` de risco **alto**
+volta a exigir CAB. O tipo diz a receita; o risco diz o quanto ela dói se der
+errado.
+
+`mudancas.exige_cab` é **coluna gerada** por `mudanca_exige_cab(tipo, risco)`,
+o mesmo tratamento de `chamados.prioridade`. Não é editável porque, se fosse,
+toda mudança apertada acharia um motivo para dispensar o comitê. A função é
+lida em dois lugares — a coluna gerada e o gatilho de transição — e existe
+como função exatamente para não divergir entre eles.
+
+### As travas moram no banco
+
+Todas em `fn_mudanca_transicao` e nos `CHECK` da tabela, não na tela:
+
+**Sem plano de rollback não sai do rascunho.** É o mesmo desenho de "rotina
+sem runbook não é agendada" e de "chamado não fecha sem causa raiz". Mudança
+sem caminho de volta não é controlada — e "deu errado" precisa ter um próximo
+passo às 3h da manhã.
+
+**Sem janela não agenda.** É o que produz a mudança que "entrou a qualquer
+hora". `janela_fim > janela_inicio` é `CHECK`.
+
+**CAB aprova antes de agendar,** e **uma reprovação veta**. O comitê não é
+média ponderada: quem enxergou o problema que os outros não viram é quem tem a
+informação que falta.
+
+A primeira versão desta trava tinha um furo, e ele vale registro porque o erro
+é fácil de repetir. A checagem perguntava `aprovada_em is null` — e entrar em
+`aprovada` não exigia voto nenhum, só carimbava esse campo. Como
+`mudanca_update` libera `sou_agente()`, qualquer agente fazia dois PATCH na API
+(`status: aprovada`, depois `status: agendada`) e implantava risco alto com zero
+votos. Reproduzido no banco antes da correção.
+
+O erro de fundo foi **guardar a decisão do comitê num campo derivado e
+escrivível, e depois usar esse campo como prova**. `aprovada_em` é carimbo de
+conveniência para a tela; a prova são as linhas de `mudanca_aprovacoes`. Hoje
+as duas transições — `aprovada` e `agendada` — contam voto na fonte, e nenhuma
+lê `aprovada_em`.
+
+**O solicitante é imutável.** Pela mesma razão: `fn_cab_voto_valido` compara
+`aprovador_id = solicitante_id` para impedir que quem propõe aprove, e enquanto
+a coluna era editável o gestor trocava o solicitante e votava na própria
+proposta.
+
+**Quem propõe não aprova.** `fn_cab_voto_valido` recusa voto do próprio
+solicitante. É a trava que faz o CAB ser um comitê e não um carimbo do autor —
+e a consequência prática é que **a aprovação exige um segundo gestor**.
+
+**Encerrada sem resultado é recusada,** e **implantada é ponto final.**
+Reabrir apagaria `implantada_em` e o resultado, que são a única prova de que a
+janela foi usada. Voto trocado depois do fim fica registrado e não mexe no
+desfecho.
+
+### O voto é uma linha, não uma coluna
+
+`mudanca_aprovacoes` guarda um voto por gestor. Uma coluna na mudança
+guardaria só a última decisão; a linha guarda quem disse o quê e quando, que é
+exatamente o que se procura quando a mudança dá errado. O voto é alterável
+(quem pediu mais informações volta e decide) e nunca apagável.
+
+O status é **consequência** dos votos: `fn_cab_consolidar` recalcula
+`aprovada` ou `reprovada` a cada voto, para que o histórico do CAB e a esteira
+nunca contem versões diferentes da mesma decisão.
+
+### O que a mudança devolve para o chamado
+
+Quando a mudança é encerrada, `fn_mudanca_reflete_chamado` escreve uma
+interação de sistema no chamado de origem e — só se ele ainda estiver em
+`pendente_mudanca` — notifica quem abriu. É aqui que o ciclo fecha sem ninguém
+precisar lembrar de voltar lá. Chamado já resolvido não recebe ping.
+
+### Reprovada e cancelada são terminais diferentes
+
+Reprovada é decisão do CAB; cancelada é desistência de quem pediu. A taxa de
+reprovação só diz algo se a desistência não estiver misturada nela.
+
+### A aba Janelas
+
+Ordenada por início de janela, não por data de criação: a pergunta que ela
+responde é "o que entra em produção nos próximos dias, e o que cai junto".
+Para isso a ordem cronológica é a única útil.
 
 ## Progresso automático
 

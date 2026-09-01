@@ -2,7 +2,8 @@
 
 import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
-import { avisar, h, montar } from "@/lib/dom";
+import { corpoOuVazio } from "@/components/tabela-vazia";
+import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
 import { confirmar } from "@/components/dialogo";
 import { dataCurta } from "@/lib/formato";
 import {
@@ -165,23 +166,6 @@ export function renderizarAtivos(alvo: HTMLElement, perfil: Perfil): void {
   };
 
   const lista = (ativos: AtivoEnriquecido[]): HTMLElement => {
-    if (ativos.length === 0) {
-      return h(
-        "div",
-        { class: "cartao" },
-        h(
-          "div",
-          { class: "vazio" },
-          h("h3", {}, "Nenhum ativo cadastrado"),
-          h(
-            "p",
-            {},
-            "Comece pelos ativos de produção — servidores, links e aplicações. São eles que, ao cair, param o negócio, e é o vínculo com eles que dá sentido ao ranking de incidentes.",
-          ),
-        ),
-      );
-    }
-
     const linhas = ativos.flatMap((a) => {
       const dias = diasSemVerificar(a);
       const sujo = inventarioSujo(a);
@@ -298,7 +282,16 @@ export function renderizarAtivos(alvo: HTMLElement, perfil: Perfil): void {
             h("th", {}, ""),
           ),
         ),
-        h("tbody", {}, ...linhas),
+        h(
+          "tbody",
+          {},
+          ...corpoOuVazio(
+            linhas,
+            7,
+            "Nenhum ativo cadastrado",
+            "Comece pelos ativos de produção — servidores, links e aplicações. São eles que, ao cair, param o negócio, e é o vínculo com eles que dá sentido ao ranking de incidentes.",
+          ),
+        ),
       ),
     );
   };
@@ -415,6 +408,7 @@ export function renderizarAtivos(alvo: HTMLElement, perfil: Perfil): void {
                       },
                     },
                   },
+                  icone(ICONES.excluir),
                   "Excluir do inventário",
                 )
               : null,

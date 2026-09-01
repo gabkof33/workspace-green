@@ -3,8 +3,9 @@
 import { criarBarraFiltros } from "@/components/barra-filtros";
 import { dentroDoPeriodo } from "@/lib/periodo";
 import { aguardando } from "@/components/esqueleto";
+import { corpoOuVazio } from "@/components/tabela-vazia";
 import { areaCarregando } from "@/components/spinner";
-import { avisar, h, montar } from "@/lib/dom";
+import { avisar, h, icone, ICONES, montar } from "@/lib/dom";
 import { perguntar } from "@/components/dialogo";
 import { dataCurta, dataHora } from "@/lib/formato";
 import { listarEquipes } from "@/lib/api";
@@ -189,24 +190,10 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
     execucoes: ExecucaoEnriquecida[],
     rotinas: RotinaEnriquecida[],
   ): HTMLElement => {
-    if (execucoes.length === 0) {
-      return h(
-        "div",
-        { class: "cartao" },
-        h(
-          "div",
-          { class: "vazio" },
-          h("h3", {}, "Nenhuma execução agendada"),
-          h(
-            "p",
-            {},
-            rotinas.length === 0
-              ? "Cadastre uma rotina no catálogo, escreva os passos do runbook e agende a primeira execução."
-              : "Abra o catálogo e agende a próxima execução de uma das rotinas.",
-          ),
-        ),
-      );
-    }
+    const textoVazio =
+      rotinas.length === 0
+        ? "Cadastre uma rotina no catálogo, escreva os passos do runbook e agende a primeira execução."
+        : "Abra o catálogo e agende a próxima execução de uma das rotinas.";
 
     const hoje = new Date().toISOString().slice(0, 10);
 
@@ -286,7 +273,16 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
             h("th", {}, "Consequência"),
           ),
         ),
-        h("tbody", {}, ...linhas),
+        h(
+          "tbody",
+          {},
+          ...corpoOuVazio(
+            linhas,
+            5,
+            "Nenhuma execução agendada",
+            textoVazio,
+          ),
+        ),
       ),
     );
   };
@@ -726,7 +722,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
                 h(
                   "button",
                   {
-                    class: "btn btn--sutil btn--sm",
+                    class: "btn btn--perigo btn--sm",
                     type: "button",
                     on: {
                       click: () => {
@@ -741,6 +737,7 @@ export function renderizarRotinas(alvo: HTMLElement, perfil: Perfil): void {
                       },
                     },
                   },
+                  icone(ICONES.excluir),
                   "Remover",
                 ),
               ),
