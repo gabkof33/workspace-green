@@ -45,6 +45,7 @@ import {
 } from "@/lib/notificacoes-tempo-real";
 import { iniciarMarcador, zerarNaoLidos } from "@/lib/marcador-aba";
 import { iniciarSentinela } from "@/lib/sentinela";
+import { renderizarAbrir } from "@/pages/abrir";
 import { renderizarFila } from "@/pages/fila";
 import { renderizarMeus } from "@/pages/meus";
 import { renderizarChamado } from "@/pages/chamado";
@@ -100,6 +101,7 @@ const ROTAS_DE_TI = new Set([
 
 /** Rotas guardadas pela configuração de abas do setor. */
 const ABAS = new Set([
+  "abrir",
   "meus",
   "demandas",
   "gantt",
@@ -135,6 +137,15 @@ function resolverPagina(perfil: Perfil): Pagina {
   }
 
   switch (caminho) {
+    case "abrir":
+      renderizarAbrir(conteudo, perfil);
+      return {
+        titulo: "Abrir chamado",
+        subtitulo:
+          "Escolha o serviço e descreva o que houve. A prioridade é calculada a partir das suas respostas.",
+        conteudo,
+      };
+
     case "meus":
       renderizarMeus(conteudo, perfil);
       return {
@@ -145,20 +156,18 @@ function resolverPagina(perfil: Perfil): Pagina {
 
     case "chamado":
       if (!parametro) {
-        navegar("demandas");
+        navegar("fila");
         return { titulo: "Chamado", conteudo };
       }
       renderizarChamado(conteudo, perfil, parametro);
       return { titulo: "Detalhe do chamado", conteudo };
 
-    // A porta única de registro e, para quem atende, também a fila. O título
-    // segue "Quadro de trabalho" e não "de demandas": chamado entra por aqui.
     case "demandas":
       renderizarDemandas(conteudo, perfil);
       return {
-        titulo: "Quadro de trabalho",
+        titulo: "Quadro de demandas",
         subtitulo:
-          "Registre o que precisa — a tela decide se vira chamado com SLA ou demanda com cronograma — ou escolha uma demanda disponível.",
+          "Registre uma melhoria ou escolha uma demanda disponível — ao pegar, você assume o prazo.",
         conteudo,
       };
 

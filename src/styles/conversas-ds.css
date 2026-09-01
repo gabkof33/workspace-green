@@ -32,6 +32,99 @@
   box-shadow: var(--ds-sh-sm);
 }
 
+/* Âncora da pílula: envolve só a lista, e não a thread inteira.
+   Dentro da `.rolagem` a pílula rolaria com o conteúdo e sairia da tela justo
+   quando é necessária; ancorada na `.thread`, o fundo passaria a ser o fim do
+   COMPOSER — cuja altura muda quando a textarea cresce. Aqui o fim do
+   contêiner é o fim da lista, que é onde a pílula deve parar. */
+.conversa__area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* Sem isto o filho com `overflow-y: auto` não encolhe e a thread cresce sem
+     fim, levando o composer para fora da tela. */
+  min-height: 0;
+}
+
+/* ── Pílula de novas mensagens ───────────────────────────────────────────────
+ * Aparece quando chega mensagem e a pessoa está lendo mais acima. É convite,
+ * não empurrão: a lista fica parada e descer é um clique.
+ *
+ * Vestida como o `Button` `brand filled` do DS — é a ação primária do momento,
+ * e a única coisa flutuando sobre a conversa. */
+
+/* Esta regra existe porque a do navegador não basta.
+   `[hidden] { display: none }` mora na folha do AGENTE, e qualquer `display`
+   declarado por autor a vence — então o `display: inline-flex` abaixo deixava
+   a pílula visível o tempo todo, vazia, porque o conteúdo só é montado quando
+   há mensagem nova. Um botão que não fazia nada porque não era para estar ali.
+
+   Ganha por especificidade, não por ordem: duas classes + um atributo (0,3,0)
+   contra duas classes (0,2,0). Mover este bloco não muda o resultado. */
+.conversas-ds .conversa__pilula[hidden] {
+  display: none;
+}
+
+.conversas-ds .conversa__pilula {
+  position: absolute;
+  left: 50%;
+  /* Fim da lista, não da thread: o contêiner `.conversa__area` já exclui o
+     composer, então a distância aqui é só o respiro. */
+  bottom: var(--ds-pad-2xl);
+  transform: translateX(-50%);
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-sm);
+  padding: var(--ds-pad-md) var(--ds-pad-xl);
+
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-bg-brand);
+  color: var(--ds-fg-on-brand);
+  box-shadow: var(--ds-sh-lg);
+
+  font-family: var(--ds-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.conversas-ds .conversa__pilula:hover {
+  background: var(--ds-bg-brand-hover);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.conversas-ds .conversa__pilula:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--ds-sh-lg),
+    0 0 0 4px var(--ds-ring-brand);
+}
+
+.conversas-ds .conversa__pilula svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* Quem pediu menos movimento recebe a pílula sem o deslocamento no hover — a
+   cor já diz que ela é clicável. */
+@media (prefers-reduced-motion: reduce) {
+  .conversas-ds .conversa__pilula {
+    transition: none;
+  }
+  .conversas-ds .conversa__pilula:hover {
+    transform: translateX(-50%);
+  }
+}
+
 .conversas-ds .conversa__canais {
   padding: var(--ds-pad-md);
   gap: var(--ds-gp-2xl);
@@ -150,6 +243,43 @@
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-full);
   background: var(--ds-bg-surface);
+}
+
+/* ── Régua de "novas mensagens" ──────────────────────────────────────────────
+ * Mesma anatomia da régua de dia, e é de propósito: as duas dizem "daqui para
+ * baixo é outra coisa", e inventar um segundo desenho para a mesma função só
+ * daria mais uma linguagem para o olho aprender.
+ *
+ * O que muda é a cor — marca, não neutra — e o filete atravessando a conversa,
+ * que a régua de dia não tem. É a única linha da thread que precisa ser achada
+ * de relance ao abrir o canal. */
+
+.conversas-ds .conversa__dia--novas {
+  position: relative;
+  color: var(--ds-fg-brand);
+  font-weight: 600;
+}
+
+.conversas-ds .conversa__dia--novas::before {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--ds-border-brand);
+  /* Atrás da pílula, e sem capturar clique da mensagem que estiver embaixo. */
+  z-index: 0;
+  pointer-events: none;
+}
+
+.conversas-ds .conversa__dia--novas > span {
+  position: relative;
+  z-index: 1;
+  border-color: var(--ds-border-brand);
+  background: var(--ds-bg-brand-subtle);
+  color: var(--ds-fg-brand);
 }
 
 /* ── Mensagem — a `MessageBubble` ────────────────────────────────────────────

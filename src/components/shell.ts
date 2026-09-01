@@ -35,22 +35,19 @@ interface ItemNav {
   emBreve?: boolean;
 }
 
-/**
- * Um grupo só para o trabalho, porque agora existe uma porta só.
- *
- * "Abrir chamado" e "Fila de atendimento" saíram do menu: as duas viraram
- * parte do Quadro de demandas. A abertura é uma porta única — quem pede
- * descreve o que precisa e a tela decide a esteira — e a fila é uma aba ao
- * lado de Disponíveis. As rotas `abrir` e `fila` continuam existindo, para
- * quem chega por link antigo ou por notificação.
- *
- * Com elas fora, "Atendimento" ficava com um item e "Demandas" com dois.
- * Dois grupos de um e dois itens não são hierarquia, são ruído — e o nome
- * "Trabalho" é o que sobra de verdade em comum entre chamado e demanda.
- */
-const NAV_TRABALHO: ItemNav[] = [
-  { caminho: "demandas", rotulo: "Quadro de demandas", icone: ICONES.demandas },
+const NAV_ATENDIMENTO: ItemNav[] = [
+  { caminho: "abrir", rotulo: "Abrir chamado", icone: ICONES.abrir },
   { caminho: "meus", rotulo: "Meus chamados", icone: ICONES.meus },
+  {
+    caminho: "fila",
+    rotulo: "Fila de atendimento",
+    icone: ICONES.fila,
+    somenteAgente: true,
+  },
+];
+
+const NAV_DEMANDAS: ItemNav[] = [
+  { caminho: "demandas", rotulo: "Quadro de demandas", icone: ICONES.demandas },
   { caminho: "gantt", rotulo: "Cronograma", icone: ICONES.gantt },
 ];
 
@@ -556,7 +553,8 @@ export function renderizarShell(opcoes: OpcoesShell): HTMLElement {
         h("div", { class: "marca-auth__sub" }, "Operação de TI"),
       ),
     ),
-    grupo("Trabalho", NAV_TRABALHO),
+    grupo("Atendimento", NAV_ATENDIMENTO),
+    grupo("Demandas", NAV_DEMANDAS),
     grupo("Organização", NAV_ORGANIZACAO),
     grupo("Operação", NAV_OPERACAO),
     h(

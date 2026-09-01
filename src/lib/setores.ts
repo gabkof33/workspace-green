@@ -5,6 +5,7 @@ import type { AbaConfiguravel, Setor, SetorArvore } from "@/types/dominio";
 
 /** Abas configuráveis por setor. */
 export const ABAS_CONFIGURAVEIS: AbaConfiguravel[] = [
+  { chave: "abrir", rotulo: "Abrir chamado", somenteTi: false },
   { chave: "meus", rotulo: "Meus chamados", somenteTi: false },
   { chave: "demandas", rotulo: "Quadro de demandas", somenteTi: false },
   { chave: "gantt", rotulo: "Cronograma", somenteTi: false },
@@ -24,6 +25,7 @@ export const ABAS_CONFIGURAVEIS: AbaConfiguravel[] = [
 
 /** Conjunto que um setor fora da TI costuma precisar. */
 export const ABAS_PADRAO_SETOR = [
+  "abrir",
   "meus",
   "demandas",
   "gantt",

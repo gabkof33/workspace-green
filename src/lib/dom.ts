@@ -51,6 +51,12 @@ interface AtributosBase {
   disabled: boolean;
   checked: boolean;
   required: boolean;
+  /**
+   * Estado inicial de visibilidade. A aplicação genérica de booleano abaixo já
+   * dá conta de LIGAR; para desligar depois, use `el.hidden = false` — atributo
+   * booleano com valor `false` aqui é ignorado, não removido.
+   */
+  hidden: boolean;
   rows: number;
   min: string;
   max: string;

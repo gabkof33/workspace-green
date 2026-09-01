@@ -3,15 +3,7 @@
 import { criarBarraFiltros } from "@/components/barra-filtros";
 import { aguardando } from "@/components/esqueleto";
 import { corpoOuVazio } from "@/components/tabela-vazia";
-import {
-  abaVisivel,
-  corDaTag,
-  ehAgente,
-  listarChamados,
-  listarTagsSugeridas,
-} from "@/lib/api";
-import { tabelaChamados } from "@/components/tabela-chamados";
-import { renderizarAbrir } from "@/pages/abrir";
+import { corDaTag, listarTagsSugeridas } from "@/lib/api";
 import { criarCampoTags, type CampoTags } from "@/components/campo-tags";
 import { avisar, h, montar } from "@/lib/dom";
 import { navegar } from "@/lib/router";
@@ -29,7 +21,6 @@ import {
 } from "@/lib/demandas";
 import { listarSetores, setoresSolicitantes } from "@/lib/setores";
 import type {
-  ChamadoEnriquecido,
   DemandaEnriquecida,
   TagSugerida,
   SetorArvore,
@@ -40,29 +31,12 @@ import type {
   TipoDemanda,
 } from "@/types/dominio";
 
-type Aba = "todas" | "disponiveis" | "minhas" | "excluidas" | "fila";
-
-/**
- * O que a porta única abre.
- *
- * `null` é o formulário fechado. As duas outras são as duas unidades de
- * trabalho do sistema — chamado tem SLA cronometrado, demanda tem cronograma —
- * e continuam sendo coisas diferentes no banco. O que mudou é que a pessoa
- * não precisa mais saber disso ANTES de começar: ela descreve o que precisa e
- * a tela escolhe a esteira.
- */
-type Entrada = null | "chamado" | "demanda";
+type Aba = "todas" | "disponiveis" | "minhas" | "excluidas";
 
 export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
   let aba: Aba = "disponiveis";
-  let entrada: Entrada = null;
+  let formAberto = false;
   let setores: SetorArvore[] = [];
-
-  // A fila é trabalho de quem atende, e o corte aqui repete EXATAMENTE o que a
-  // rota `fila` fazia no `main.ts`: papel de agente E a aba liberada no setor.
-  // Só `ehAgente` mostraria a aba para agente cujo setor não tem `fila`
-  // configurada — permissão que existia e que virar aba não deve afrouxar.
-  const temFila = ehAgente(perfil) && abaVisivel(perfil, "fila");
 
   const area = h("div", { class: "pilha" });
   montar(alvo, area);
@@ -106,21 +80,13 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
 
   const desenhar = (): void => {
     aguardando(area, "tabela");
-    void Promise.all([
-      listarDemandas({
-        texto: busca.value,
-        tipo: barra.opcao("tipo") as TipoDemanda | null,
-        excluidas: aba === "excluidas",
-        ...barra.periodo("data"),
-      }),
-      // Os chamados só são buscados na aba que os mostra: a fila é a lista
-      // mais pesada do sistema (traz política de SLA e relógio por linha), e
-      // pagar por ela ao abrir "Disponíveis" seria trabalho jogado fora.
-      aba === "fila" && temFila
-        ? listarChamados({ apenasAbertos: true })
-        : Promise.resolve([] as ChamadoEnriquecido[]),
-    ])
-      .then(([todas, chamados]) => {
+    void listarDemandas({
+      texto: busca.value,
+      tipo: barra.opcao("tipo") as TipoDemanda | null,
+      excluidas: aba === "excluidas",
+      ...barra.periodo("data"),
+    })
+      .then((todas) => {
         const visiveis =
           aba === "disponiveis"
             ? todas.filter((d) => d.status === "disponivel")
@@ -132,7 +98,9 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
           area,
           aba === "excluidas" ? null : metricas(todas, perfil),
           barraAcoes(),
-          entrada ? formEntrada() : null,
+          formAberto
+            ? formNovaDemanda(perfil, setores, desenhar, fecharForm)
+            : null,
           aba === "disponiveis"
             ? h(
                 "div",
@@ -159,108 +127,20 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
                 ),
               )
             : null,
-          aba === "fila"
-            ? tabelaChamados({
-                chamados,
-                mostrarSolicitante: true,
-                mostrarResponsavel: true,
-                vazio: {
-                  titulo: "Fila vazia",
-                  texto:
-                    "Nenhum chamado em aberto. Chamado entra aqui quando alguém registra um problema ou pedido, ou quando uma rotina preventiva falha e abre incidente sozinha.",
-                },
-              })
-            : listaDemandas(visiveis, perfil, desenhar, aba),
+          listaDemandas(visiveis, perfil, desenhar, aba),
         );
       })
       .catch((e: unknown) => {
         avisar(
-          e instanceof Error ? e.message : "Falha ao carregar.",
+          e instanceof Error ? e.message : "Falha ao carregar as demandas.",
           "erro",
         );
       });
   };
 
   const fecharForm = (): void => {
-    entrada = null;
+    formAberto = false;
     desenhar();
-  };
-
-  /**
-   * A porta única.
-   *
-   * A pergunta que separa as duas esteiras não é "chamado ou demanda?" — esse
-   * vocabulário é interno e ninguém de fora da TI acerta. É "algo quebrou / eu
-   * preciso de um serviço" contra "quero que algo seja melhorado", que são
-   * fatos que quem pede sabe responder.
-   *
-   * O ramo de chamado NÃO reimplementa o formulário: chama o
-   * `renderizarAbrir` da antiga aba "Abrir chamado", inteiro. É ele que
-   * desenha as quatro etapas, os campos dinâmicos de
-   * `catalogo_servicos.schema_formulario` (F12) e a prévia de prioridade — e um
-   * formulário compacto novo aqui teria perdido as três coisas. Ao concluir,
-   * ele mesmo navega para o chamado criado.
-   */
-  const formEntrada = (): HTMLElement => {
-    const opcao = (
-      valor: Exclude<Entrada, null>,
-      titulo: string,
-      exemplo: string,
-      governanca: string,
-    ): HTMLElement =>
-      h(
-        "label",
-        { class: "escolha" },
-        h("input", {
-          type: "radio",
-          name: "tipo-de-entrada",
-          checked: entrada === valor,
-          on: {
-            change: () => {
-              entrada = valor;
-              desenhar();
-            },
-          },
-        }),
-        h(
-          "span",
-          {},
-          h("span", { class: "escolha__titulo" }, titulo),
-          h("span", { class: "campo__ajuda" }, exemplo),
-          h("span", { class: "campo__ajuda" }, governanca),
-        ),
-      );
-
-    const caixa = h("div", { style: "margin-top:var(--s-4)" });
-
-    if (entrada === "chamado") {
-      renderizarAbrir(caixa, perfil);
-    } else {
-      montar(caixa, formNovaDemanda(perfil, setores, desenhar, fecharForm));
-    }
-
-    return h(
-      "div",
-      { class: "cartao" },
-      h("h3", { style: "margin-top:0" }, "O que você precisa registrar?"),
-      h(
-        "div",
-        { class: "grade-campos" },
-        opcao(
-          "chamado",
-          "Algo quebrou, ou preciso de um serviço",
-          "Ex.: o ERP está fora do ar; preciso de acesso ao sistema de notas.",
-          "Vira chamado: prazo cronometrado por SLA e prioridade calculada a partir do que você responder.",
-        ),
-        opcao(
-          "demanda",
-          "Quero que algo seja melhorado",
-          "Ex.: organizar os endpoints da API; automatizar a conferência de backup.",
-          "Vira demanda: entra no quadro com cronograma, e quem pegar assume o prazo que você definir.",
-        ),
-      ),
-      caixa,
-    );
   };
 
   const barraAcoes = (): HTMLElement => {
@@ -283,8 +163,6 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
     return h(
       "div",
       { class: "grade-filtros" },
-      // A fila vem primeiro para quem atende: é o que tem prazo correndo.
-      temFila ? botaoAba("fila", "Fila de atendimento") : null,
       botaoAba("disponiveis", "Disponíveis"),
       botaoAba("minhas", "Minhas demandas"),
       botaoAba("todas", "Todas"),
@@ -298,15 +176,12 @@ export function renderizarDemandas(alvo: HTMLElement, perfil: Perfil): void {
           type: "button",
           on: {
             click: () => {
-              // Abre no seletor, não numa das duas esteiras: quem clica ainda
-              // não disse o que precisa, e escolher por ela é o que fazia a
-              // pessoa abrir demanda para relatar que o ERP caiu.
-              entrada = entrada ? null : "chamado";
+              formAberto = !formAberto;
               desenhar();
             },
           },
         },
-        entrada ? "Cancelar" : "Novo",
+        formAberto ? "Cancelar" : "Nova demanda",
       ),
     );
   };
@@ -425,10 +300,7 @@ function listaDemandas(
   // As mensagens de vazio ficam por aba: "nada disponível" e "você não tem
   // demandas" são situações diferentes, e um texto genérico não diria a
   // nenhuma das duas o que fazer em seguida.
-  // `Exclude<Aba, "fila">` porque a fila não passa por aqui: ela desenha
-  // `tabelaChamados`, com o vazio dela. Tipar sobre `Aba` inteira obrigaria a
-  // inventar uma mensagem de demanda para uma aba que não lista demanda.
-  const vazios: Record<Exclude<Aba, "fila">, [string, string]> = {
+  const vazios: Record<Aba, [string, string]> = {
     disponiveis: [
       "Nenhuma demanda disponível",
       "Tudo que estava livre já foi assumido. Registre uma nova demanda ou veja o quadro completo.",
@@ -446,7 +318,7 @@ function listaDemandas(
       "Quando alguém excluir uma demanda por engano de digitação ou data trocada, ela aparece aqui — com o motivo e a opção de restaurar.",
     ],
   };
-  const [tituloVazio, textoVazio] = vazios[aba as Exclude<Aba, "fila">];
+  const [tituloVazio, textoVazio] = vazios[aba];
 
   const linhas = demandas.map((d) => {
     const podePegar = d.status === "disponivel" && !d.responsavel_id;

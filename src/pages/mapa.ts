@@ -179,31 +179,69 @@ export function renderizarMapa(alvo: HTMLElement): void {
 
   /* ---------- Cena ---------- */
 
+  /**
+   * A cena tem dois modos de falhar, e eles pedem respostas diferentes.
+   *
+   * Antes daqui um `catch` vazio engolia a exceção e mostrava "Sem WebGL" para
+   * QUALQUER erro dentro de `criarMapaOrbital`. Quando o mapa caía por bug —
+   * elemento nulo, mudança de API do three — a tela culpava a placa de vídeo
+   * da pessoa, e não sobrava rastro nenhum para depurar.
+   *
+   * Agora a pergunta é feita direto ao navegador: se não há contexto WebGL, a
+   * mensagem sobre a placa é verdadeira. Se há, o problema é nosso — e aí o
+   * erro real vai para o console em vez de desaparecer.
+   */
+  const temWebGL = (): boolean => {
+    try {
+      const teste = document.createElement("canvas");
+      return Boolean(
+        teste.getContext("webgl2") ?? teste.getContext("webgl"),
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const semWebGL = (): HTMLElement =>
+    h(
+      "div",
+      { class: "mapa__sem-webgl" },
+      h("h3", {}, "Sem WebGL neste navegador"),
+      h(
+        "p",
+        {},
+        "O mapa é desenhado pela placa de vídeo. Abra em um navegador atualizado, ou com a aceleração por hardware ligada, para vê-lo.",
+      ),
+    );
+
+  const falhouPorBug = (erro: unknown): HTMLElement => {
+    // O console é o único lugar onde a causa sobrevive: a mensagem de tela é
+    // para quem usa, e o `erro` inteiro é para quem conserta.
+    console.error("[mapa] a cena orbital não iniciou:", erro);
+    return h(
+      "div",
+      { class: "mapa__sem-webgl" },
+      h("h3", {}, "O mapa não iniciou"),
+      h(
+        "p",
+        {},
+        "Este navegador tem WebGL, então a falha é do próprio mapa e não da sua máquina. O erro está no console (F12) — mande a mensagem para a TI.",
+      ),
+    );
+  };
+
   void import("@/components/mapa-orbital")
     .then(({ criarMapaOrbital }) => {
       try {
         cena = criarMapaOrbital({ palco, aoSelecionar: selecionar });
-      } catch {
-        // `WebGLRenderer` lança quando não há contexto — placa antiga,
-        // aceleração desligada, sessão remota.
-        montar(
-          palco,
-          h(
-            "div",
-            { class: "mapa__sem-webgl" },
-            h("h3", {}, "Sem WebGL neste navegador"),
-            h(
-              "p",
-              {},
-              "O mapa é desenhado pela placa de vídeo. Abra em um navegador atualizado, ou com a aceleração por hardware ligada, para vê-lo.",
-            ),
-          ),
-        );
+      } catch (erro: unknown) {
+        montar(palco, temWebGL() ? falhouPorBug(erro) : semWebGL());
       }
     })
-    .catch(() =>
-      avisar("Falha ao carregar o mapa. Recarregue a página.", "erro"),
-    );
+    .catch((erro: unknown) => {
+      console.error("[mapa] o módulo da cena não carregou:", erro);
+      avisar("Falha ao carregar o mapa. Recarregue a página.", "erro");
+    });
 
   // A cena roda um laço de animação e escuta a janela: sair da tela sem
   // desmontar deixaria a GPU trabalhando numa página que ninguém está vendo.

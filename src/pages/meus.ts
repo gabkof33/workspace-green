@@ -66,9 +66,9 @@ export function renderizarMeus(alvo: HTMLElement, perfil: Perfil): void {
               {
                 class: "btn btn--primario",
                 type: "button",
-                on: { click: () => navegar("demandas") },
+                on: { click: () => navegar("abrir") },
               },
-              "Registrar novo",
+              "Abrir novo chamado",
             ),
           ),
         );

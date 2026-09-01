@@ -62,6 +62,43 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   const rolagem = h("div", { class: "conversa__rolagem" });
   const rodape = h("div", { class: "conversa__composer" });
 
+  /**
+   * Contêiner só para ancorar a pílula.
+   *
+   * Ela precisa flutuar sobre as mensagens e parar ACIMA do composer. Ancorada
+   * na `thread` inteira, a distância até o fim teria de contar a altura do
+   * composer — que muda quando a textarea cresce — e foi exatamente o que fez
+   * a pílula aparecer dentro dele. Aqui o fim do contêiner é o fim da lista.
+   */
+  const areaMensagens = h("div", { class: "conversa__area" });
+
+  /** Quantas chegaram enquanto a pessoa estava lendo mais acima. */
+  let novasAbaixo = 0;
+
+  /**
+   * Não-lidas que o canal tinha no instante em que foi aberto.
+   *
+   * Serve para desenhar a régua de "novas mensagens" na posição certa. Fica em
+   * variável porque `marcarLido` zera a contagem do canal logo em seguida —
+   * depois disso a informação não existe mais em lugar nenhum.
+   */
+  let naoLidasAoAbrir = 0;
+
+  const pilula = h("button", {
+    class: "conversa__pilula",
+    type: "button",
+    hidden: true,
+    on: { click: () => rolarParaFim({ forcar: true }) },
+  }) as HTMLButtonElement;
+
+  // Chegar ao fim rolando à mão zera o aviso: a pessoa já viu o que havia.
+  rolagem.addEventListener("scroll", () => {
+    if (novasAbaixo > 0 && pertoDoFim()) {
+      novasAbaixo = 0;
+      desenharPilula();
+    }
+  });
+
   const contagemOnline = h("span", {
     class: "conversa__online",
     title: "Pessoas com a Central Green aberta agora",
@@ -321,6 +358,12 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
   function abrirCanal(canal: CanalComContagem): void {
     canalAtivo = canal;
     mensagens = [];
+    // Guardado ANTES de `marcarLido` zerar a contagem: é a única chance de
+    // saber quantas mensagens a pessoa ainda não tinha visto, e é isso que
+    // posiciona a régua de "novas" na lista.
+    naoLidasAoAbrir = canal.nao_lidas;
+    novasAbaixo = 0;
+    desenharPilula();
     desenharCanais();
     montar(rolagem, esqueleto("lista"));
     montarThread();
@@ -329,7 +372,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
       .then((lista) => {
         mensagens = lista;
         desenharMensagens();
-        rolarParaFim();
+        rolarParaFim({ forcar: true });
         return marcarLido(canal.id);
       })
       .then(() => {
@@ -346,7 +389,8 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
         if (mensagens.some((m) => m.id === nova.id)) return;
         mensagens.push(nova);
         desenharMensagens();
-        rolarParaFim();
+        // A própria mensagem sempre desce: quem escreveu quer ver o que enviou.
+        rolarParaFim({ forcar: nova.autor_id === perfil.id });
         void marcarLido(canal.id);
 
         // Nunca para a própria mensagem: quem escreveu já sabe. O módulo cala
@@ -465,6 +509,8 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
       ),
     );
 
+    montar(areaMensagens, rolagem, pilula);
+
     montar(
       thread,
       h(
@@ -484,7 +530,7 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
           canalAtivo.tipo === "geral" ? "toda a empresa" : "equipe",
         ),
       ),
-      rolagem,
+      areaMensagens,
       rodape,
     );
 
@@ -514,6 +560,21 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
     const itens: HTMLElement[] = [];
     let diaAnterior = "";
 
+    /**
+     * Onde entra a régua de "novas mensagens".
+     *
+     * As não-lidas são sempre as ÚLTIMAS da lista, então o índice sai de uma
+     * subtração — não precisa de consulta nova nem de comparar horários.
+     *
+     * `-1` quando não havia não-lidas, e também quando todas as mensagens do
+     * canal são novas: régua na primeira linha não separa nada de nada, só
+     * empurra a conversa para baixo.
+     */
+    const indiceNovas =
+      naoLidasAoAbrir > 0 && naoLidasAoAbrir < mensagens.length
+        ? mensagens.length - naoLidasAoAbrir
+        : -1;
+
     mensagens.forEach((m, i) => {
       const dia = rotuloDia(m.criado_em);
       if (dia !== diaAnterior) {
@@ -521,7 +582,22 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
         diaAnterior = dia;
       }
 
-      const agrupada = mesmoBloco(mensagens[i - 1], m) && dia === diaAnterior;
+      if (i === indiceNovas) {
+        itens.push(
+          h(
+            "div",
+            { class: "conversa__dia conversa__dia--novas" },
+            h("span", {}, "novas mensagens"),
+          ),
+        );
+      }
+
+      // A régua quebra o bloco: agrupar a primeira não-lida com a última lida
+      // esconderia justo a linha que a régua existe para marcar.
+      const agrupada =
+        i !== indiceNovas &&
+        mesmoBloco(mensagens[i - 1], m) &&
+        dia === diaAnterior;
       itens.push(cartaoMensagem(m, agrupada));
     });
 
@@ -807,10 +883,66 @@ export function renderizarConversas(alvo: HTMLElement, perfil: Perfil): void {
     );
   }
 
-  function rolarParaFim(): void {
+  /**
+   * Rolagem que respeita quem está lendo.
+   *
+   * Antes daqui toda mensagem nova descia a lista à força. É o incômodo
+   * clássico de chat: a pessoa sobe para reler algo, chega mensagem, e a tela
+   * a arranca de volta para o fim — perdendo o lugar sem ter pedido nada.
+   *
+   * Agora a régua é a distância até o fim. Perto do fim, descer é o que a
+   * pessoa espera e acontece sozinho. Longe do fim, ela está lendo: a lista
+   * fica parada e o aviso vira uma pílula, que é o convite para descer em vez
+   * de um empurrão.
+   *
+   * `forcar` existe para os dois momentos em que descer é certo
+   * independentemente da posição: abrir o canal e enviar a própria mensagem.
+   */
+  const MARGEM_FIM = 120;
+
+  function pertoDoFim(): boolean {
+    const restante =
+      rolagem.scrollHeight - rolagem.scrollTop - rolagem.clientHeight;
+    return restante <= MARGEM_FIM;
+  }
+
+  function rolarParaFim(opcoes: { forcar?: boolean } = {}): void {
+    if (!opcoes.forcar && !pertoDoFim()) {
+      novasAbaixo += 1;
+      desenharPilula();
+      return;
+    }
+    novasAbaixo = 0;
+    desenharPilula();
     window.requestAnimationFrame(() => {
       rolagem.scrollTop = rolagem.scrollHeight;
     });
+  }
+
+  /**
+   * A pílula de "novas mensagens".
+   *
+   * Vive fora da `rolagem` de propósito: dentro dela, um elemento posicionado
+   * rolaria junto com o conteúdo e sairia da tela justamente quando é preciso.
+   * Fica no `.conversa__thread`, que é o contêiner com posição relativa.
+   */
+  function desenharPilula(): void {
+    if (novasAbaixo === 0) {
+      pilula.hidden = true;
+      return;
+    }
+    pilula.hidden = false;
+    montar(
+      pilula,
+      h(
+        "span",
+        {},
+        novasAbaixo === 1
+          ? "1 nova mensagem"
+          : `${novasAbaixo} novas mensagens`,
+      ),
+      icone(ICONES.seta_baixo),
+    );
   }
 }
 

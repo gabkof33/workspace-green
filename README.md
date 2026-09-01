@@ -27,37 +27,6 @@ Demanda é onde entram pedidos como *organizar os endpoints GET da API* ou
 assume esse prazo. O cronograma em Gantt mostra as duas coisas ao mesmo tempo:
 quanto do prazo já passou e quanto do trabalho andou.
 
-### Duas esteiras, uma porta
-
-A distinção acima é real e continua inteira no banco — mas ela é **interna**.
-Enquanto existiam duas abas, "Abrir chamado" e "Nova demanda", a primeira
-decisão que o sistema pedia era justamente a que quem pede não sabe tomar: o
-vocabulário `chamado`/`demanda` é da TI, e escolher errado manda o trabalho
-para a esteira errada — um ERP fora do ar registrado como demanda não tem
-relógio de SLA correndo.
-
-Hoje há **um botão só**, no Quadro de trabalho, e a pergunta que ele faz é
-factual:
-
-| Se a pessoa diz… | Vira | Governança |
-| --- | --- | --- |
-| "algo quebrou, ou preciso de um serviço" | Chamado | SLA cronometrado, prioridade calculada |
-| "quero que algo seja melhorado" | Demanda | Cronograma, prazo assumido por quem pega |
-
-O ramo de chamado **reaproveita o formulário de quatro etapas inteiro** — é
-ele que carrega os campos dinâmicos de `catalogo_servicos.schema_formulario`
-(F12) e a prévia de prioridade. Um formulário compacto novo no lugar teria
-perdido as duas coisas.
-
-A **Fila de atendimento** também deixou de ser aba própria e virou uma aba do
-quadro, ao lado de Disponíveis, Minhas e Todas — visível para quem atende, com
-o mesmo corte de antes (papel de agente **e** aba liberada no setor). Com isso
-o pouso do app passou de `fila` para `demandas`: pousar numa tela fora do menu
-deixaria a primeira coisa que a pessoa vê inalcançável pelo caminho normal.
-
-As rotas `abrir` e `fila` continuam existindo, para quem chega por link antigo
-ou por notificação. O que saiu foi o item de menu — nada foi apagado do banco.
-
 ## Stack
 
 | Camada       | Escolha                                                        |
@@ -277,11 +246,11 @@ src/
     insignia.ts           Ícone de hierarquia
   pages/
     login.ts              Entrar, criar conta e login Microsoft
-    abrir.ts              Abertura em 4 etapas, embutida no quadro
-    fila.ts               Fila do agente (rota antiga; a aba vive no quadro)
+    abrir.ts              Formulário de abertura em 4 etapas
+    fila.ts               Fila do agente com métricas
     meus.ts               Portal do solicitante
     chamado.ts            Detalhe, linha do tempo e encerramento
-    demandas.ts           Quadro de trabalho: porta única, fila e demandas
+    demandas.ts           Quadro de demandas e registro
     demanda.ts            Detalhe, progresso e discussão
     gantt.ts              Cronograma
     pessoas.ts            Organograma e promoção
