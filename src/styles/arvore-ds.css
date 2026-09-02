@@ -1,0 +1,358 @@
+/**
+ * Árvore da estrutura — dendrograma horizontal, em tokens do DS.
+ *
+ * Os conectores são pseudo-elementos, não SVG: em SVG cada caixa precisaria
+ * ser medida depois de renderizada e o traçado redesenhado a cada mudança de
+ * fonte, largura ou zoom. A anatomia das três partes do cotovelo está
+ * documentada no bloco "Conectores", mais abaixo.
+ */
+
+/* ── A grade ─────────────────────────────────────────────────────────────────
+ * Os pontinhos não são enfeite: são a régua a que tudo se encaixa. Para isso
+ * funcionar, TODA medida da árvore é múltipla de `--arv-grade` — conector,
+ * recuo, respiro entre linhas e a altura mínima da caixa. Com qualquer uma
+ * fora do múltiplo, os nós flutuam entre os pontos e a grade passa a poluir em
+ * vez de organizar.
+ *
+ * 16px é `--ds-pad-2xl`, que já é o ritmo base do DS — não é número escolhido
+ * a esmo para o desenho fechar.
+ *
+ * Aqui é `radial-gradient`, não o `fundo-pontilhado.ts` que já existe no
+ * projeto. Aquele é uma malha ANIMADA em canvas, que reage ao cursor com
+ * física: é decoração da tela de acesso. Como referência de alinhamento ele
+ * seria ruim justamente por se mexer, e ainda disputaria o cursor com o
+ * arrasto. Grade estática não precisa de canvas nem de JavaScript. */
+
+.arv {
+  --arv-grade: var(--ds-pad-2xl);
+  /* Três células = 48px. Duas ainda encurtavam o cotovelo: com o trecho
+     pai→espinha desenhado, o traçado precisa de comprimento para o ângulo
+     reto se ler como ângulo, e não como um sobressalto. */
+  --arv-conector: calc(var(--arv-grade) * 3);
+  --arv-traco: 2px;
+  --arv-linha: var(--ds-fg-subtle);
+
+  overflow: auto;
+  padding: var(--arv-grade);
+  font-family: var(--ds-font-sans);
+
+  background-image: radial-gradient(
+    circle at center,
+    var(--ds-border-default) 1px,
+    transparent 1px
+  );
+  background-size: var(--arv-grade) var(--arv-grade);
+  /* `local` e não o padrão `scroll`: em contêiner com rolagem, `scroll` prega
+     o fundo na caixa do elemento e os pontos ficam parados enquanto o
+     conteúdo anda — os nós desencaixariam ao rolar. `local` faz a grade rolar
+     junto, que é a única forma de ela continuar sendo referência. */
+  background-attachment: local;
+}
+
+.arv__ramo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Uma célula. Com a altura mínima da caixa em duas, cada linha passa a
+     ocupar três células exatas — e é assim que as linhas seguintes continuam
+     caindo sobre pontos. */
+  gap: var(--arv-grade);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* O item é a linha [caixa][ramo dos filhos]: é isso que faz a árvore crescer
+   para a direita em vez de para baixo. `center` alinha a caixa do pai ao meio
+   do bloco de filhos, que é o que fecha o cotovelo no lugar certo. */
+.arv__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Conectores ──────────────────────────────────────────────────────────────
+ * O cotovelo tem TRÊS partes, e a primeira versão só tinha duas — era o que
+ * fazia o desenho parecer solto:
+ *
+ *   1. pai → espinha   (`.arv__ramo::before`)  ← estava FALTANDO
+ *   2. a espinha vertical, somada dos segmentos de cada filho (`item::after`)
+ *   3. espinha → filho (`item::before`)
+ *
+ * Sem a parte 1, a caixa do pai terminava e o traçado só recomeçava 48px
+ * depois, já dentro do bloco dos filhos: a hierarquia ficava sugerida pela
+ * posição, não desenhada.
+ *
+ * O traço é 2px e sai de `--ds-fg-subtle`, não de `--ds-border-default`: no
+ * escuro aquele token é `oklch(0.2645)`, quase o fundo — servia para a borda
+ * de uma caixa, que tem a massa dela para ser vista, e desaparecia como linha
+ * solta de 1px. Aqui a linha é o conteúdo. */
+
+/* (1) Do pai até a espinha. Mora no ramo dos filhos porque é ele que sabe
+   onde a espinha está: exatamente no fim do próprio recuo. */
+.arv__item > .arv__ramo {
+  position: relative;
+  padding-left: var(--arv-conector);
+}
+
+.arv__item > .arv__ramo::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--arv-conector);
+  height: var(--arv-traco);
+  background: var(--arv-linha);
+  transform: translateY(-50%);
+  border-radius: var(--arv-traco);
+}
+
+/* (3) Da espinha até o filho. */
+.arv__ramo:not(.arv__ramo--raiz) > .arv__item::before {
+  content: "";
+  flex: none;
+  width: var(--arv-conector);
+  height: var(--arv-traco);
+  background: var(--arv-linha);
+  border-radius: var(--arv-traco);
+}
+
+/* (2) O segmento vertical de cada filho. Somados, formam a espinha do centro
+   do primeiro ao centro do último.
+
+   O `-gap/2` em cima e embaixo é o que FECHA a espinha, e a falta dele era o
+   furo: com `top: 0; bottom: 0` o segmento cobria só a altura do item, e os
+   16px de respiro entre irmãos ficavam sem traço — a espinha saía picada, um
+   pedaço por filho. Esticando cada segmento por meio respiro de cada lado,
+   eles se encontram no meio do vão e a linha vira contínua. */
+.arv__ramo:not(.arv__ramo--raiz) > .arv__item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(var(--arv-grade) / -2);
+  bottom: calc(var(--arv-grade) / -2);
+  width: var(--arv-traco);
+  background: var(--arv-linha);
+}
+
+.arv__ramo:not(.arv__ramo--raiz) > .arv__item:first-child::after {
+  top: 50%;
+}
+
+.arv__ramo:not(.arv__ramo--raiz) > .arv__item:last-child::after {
+  bottom: 50%;
+}
+
+/* Filho único: o pai liga direto nele, em linha reta. A espinha não existe, e
+   desenhá-la deixaria um coto vertical de 2px pendurado no nada. */
+.arv__ramo:not(.arv__ramo--raiz) > .arv__item:only-child::after {
+  display: none;
+}
+
+/* ── A caixa ────────────────────────────────────────────────────────────── */
+
+.arv__caixa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-sm);
+  padding: 0 var(--ds-pad-xl);
+  min-height: calc(var(--arv-grade) * 2);
+  border: 1px solid var(--ds-border-default);
+  /* A faixa da área. 3px é a espessura do stripe de seleção do
+     `ConversationListItem` do DS — mesma função aqui: dizer a que conjunto a
+     linha pertence, sem tomar espaço de conteúdo. */
+  border-left: 3px solid var(--arv-cor, var(--ds-border-default));
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-surface);
+  box-shadow: var(--ds-sh-sm);
+  white-space: nowrap;
+  cursor: grab;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
+}
+
+/* ── Paleta dos ramos ────────────────────────────────────────────────────────
+ * A série categórica do DS (`--ds-chart-1..5`): cinco matizes escolhidos para
+ * se distinguirem lado a lado. Encaixa nas cinco áreas de topo de hoje, e
+ * volta ao começo se aparecer uma sexta.
+ *
+ * Mora no CSS, não no TypeScript: a árvore manda só o índice em `data-cor`, do
+ * mesmo jeito que a lista de canais em `conversas.ts`. Trocar a paleta é mexer
+ * aqui, num lugar, e não caçar hexadecimal espalhado em `.ts`.
+ *
+ * Estas cores NÃO significam nada — não são status nem prioridade. São
+ * identidade de ramo, e é por isso que nenhuma reaproveita `--c-p1`..`--c-p4`,
+ * que significam severidade. */
+
+.arv__caixa[data-cor="0"] {
+  --arv-cor: var(--ds-chart-1);
+}
+.arv__caixa[data-cor="1"] {
+  --arv-cor: var(--ds-chart-2);
+}
+.arv__caixa[data-cor="2"] {
+  --arv-cor: var(--ds-chart-3);
+}
+.arv__caixa[data-cor="3"] {
+  --arv-cor: var(--ds-chart-4);
+}
+.arv__caixa[data-cor="4"] {
+  --arv-cor: var(--ds-chart-5);
+}
+
+/* Equipe sem setor: cinza, porque está fora da árvore. Dar a ela a cor de um
+   ramo diria que pertence a um — e é justamente o que ainda não foi dito. */
+.arv__caixa[data-cor="orfa"] {
+  --arv-cor: var(--ds-border-default);
+  border-style: dashed;
+}
+
+/* Só os três lados que não carregam a cor do ramo.  é atalho
+   para os quatro, e apagaria a faixa da área justo ao passar o mouse — que é
+   quando a pessoa mais precisa saber de que ramo aquela caixa é. */
+.arv__caixa:hover {
+  border-block-color: var(--ds-border-brand-subtle);
+  border-inline-end-color: var(--ds-border-brand-subtle);
+  background: var(--ds-bg-muted);
+}
+
+.arv__caixa:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-ring-brand);
+}
+
+/* Equipe é folha e fila de atendimento: fundo da marca em tom fraco, para se
+   distinguir do setor num relance sem precisar de legenda. */
+.arv__caixa--equipe {
+  background: var(--ds-bg-brand-subtle);
+  /* Mesmo cuidado do hover: a faixa esquerda é do ramo, não do tipo de nó. */
+  border-block-color: var(--ds-border-brand-subtle);
+  border-inline-end-color: var(--ds-border-brand-subtle);
+}
+
+/* Pessoa: sem preenchimento e com o nome em peso normal.
+   Os três tipos precisam se distinguir sem legenda, e a distinção é de PESO,
+   não de mais uma cor: setor é a estrutura (fundo neutro), equipe é a fila
+   (fundo da marca), pessoa é a folha — a mais numerosa, e por isso a mais
+   leve. Dar cor própria a ela deixaria a árvore com três fundos competindo
+   com as cinco cores de ramo da borda esquerda. */
+.arv__caixa--pessoa {
+  background: transparent;
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.arv__caixa--pessoa .arv__nome {
+  font-weight: 500;
+}
+
+.arv__caixa--pessoa .arv__marca {
+  color: var(--ds-fg-subtle);
+}
+
+.arv__caixa--inativo {
+  opacity: 0.55;
+}
+
+.arv__marca {
+  display: inline-flex;
+  color: var(--ds-fg-muted);
+}
+
+.arv__marca svg {
+  width: 14px;
+  height: 14px;
+}
+
+.arv__caixa--equipe .arv__marca {
+  color: var(--ds-fg-brand);
+}
+
+.arv__nome {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-fg-default);
+}
+
+.arv__nota {
+  font-size: 0.6875rem;
+  color: var(--ds-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ações só no hover: com cinco botões visíveis em cada caixa, a árvore deixa
+   de ser um diagrama e vira uma barra de ferramentas repetida. */
+.arv__acoes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-gp-xs);
+  margin-left: var(--ds-gp-sm);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+/* Os botões de ícone do DS são 36px no tamanho `sm` (`--ds-form-md`), e a
+   caixa da árvore tem 32px de altura mínima — duas células da grade. Sem este
+   recorte o botão esticava a caixa para ~38px e a linha saía do encaixe,
+   desmontando justo a grade que os pontinhos existem para mostrar.
+
+   24px é uma célula e meia: cabe nos 32px com respiro, e o ícone de 14px
+   continua legível. */
+.arv__acoes .btn--icone {
+  width: calc(var(--arv-grade) * 1.5);
+  height: calc(var(--arv-grade) * 1.5);
+  min-height: 0;
+}
+
+.arv__acoes .btn--icone svg {
+  width: 13px;
+  height: 13px;
+}
+
+.arv__caixa:hover .arv__acoes,
+.arv__caixa:focus-within .arv__acoes {
+  opacity: 1;
+}
+
+/* ── Arrastar ───────────────────────────────────────────────────────────── */
+
+/* Elevação de quem está em trânsito — o `isDragging` do DS, que sobe a sombra
+   e apaga um pouco o original que ficou no lugar. */
+.arv__caixa--arrastando {
+  opacity: 0.4;
+  box-shadow: var(--ds-sh-lg);
+  cursor: grabbing;
+}
+
+/* Indicador de inserção. `antes` e `depois` desenham um filete na borda que
+   vai receber; `dentro` acende a caixa toda, porque o alvo passa a ser o pai.
+   São desenhos diferentes de propósito: as duas ações têm resultados
+   diferentes, e um só realce faria a pessoa descobrir qual foi só depois. */
+.arv__caixa[data-solta="antes"] {
+  box-shadow: inset 0 2px 0 var(--ds-bg-brand);
+}
+
+.arv__caixa[data-solta="depois"] {
+  box-shadow: inset 0 -2px 0 var(--ds-bg-brand);
+}
+
+.arv__caixa[data-solta="dentro"] {
+  border-color: var(--ds-bg-brand);
+  background: var(--ds-bg-brand-subtle);
+  box-shadow: 0 0 0 3px var(--ds-ring-brand);
+}
+
+/* Alvo recusado: nada acende. O cursor de "proibido" do navegador já responde,
+   e é a resposta mais clara que existe — não precisa de cor para reforçar. */
+.arv__caixa[data-solta="nao"] {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arv__caixa,
+  .arv__acoes {
+    transition: none;
+  }
+}

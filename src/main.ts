@@ -16,6 +16,7 @@ import "@/styles/abrir-ds.css";
 import "@/styles/login-ds.css";
 import "@/styles/conversas-ds.css";
 import "@/styles/mapa-ds.css";
+import "@/styles/arvore-ds.css";
 
 // Relevo dos indicadores. Precisa ser o ÚLTIMO: `fila-ds.css` redeclara
 // `.metrica` com a mesma especificidade, e antes dele o 3D não apareceria na

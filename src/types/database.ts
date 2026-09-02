@@ -174,6 +174,7 @@ type EquipesRow = {
   calendario_id: string | null;
   email_grupo: string | null;
   ativa: boolean;
+  setor_id: string | null;
   criado_em: string;
 };
 type EquipesInsert = {
@@ -184,6 +185,7 @@ type EquipesInsert = {
   calendario_id?: string | null;
   email_grupo?: string | null;
   ativa?: boolean;
+  setor_id?: string | null;
   criado_em?: string;
 };
 

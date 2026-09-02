@@ -193,6 +193,8 @@ export interface Equipe {
   nivel: 1 | 2 | 3;
   gestor_id: string | null;
   email_grupo: string | null;
+  /** Setor a que pertence. `null` = equipe ainda fora da árvore. */
+  setor_id: string | null;
 }
 
 /* ---------- Catálogo e formulário dinâmico ---------- */
